@@ -10,6 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -148,6 +149,9 @@ export function SprintsPage() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Create Sprint</DialogTitle>
+            <DialogDescription>
+              Add a new sprint to organize and track your tasks.
+            </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <Label htmlFor="sprint-name" className="text-sm font-medium">
