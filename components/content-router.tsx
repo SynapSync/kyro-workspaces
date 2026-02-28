@@ -6,11 +6,19 @@ import { ReadmePage } from "@/components/pages/readme-page";
 import { DocumentsPage } from "@/components/pages/documents-page";
 import { SprintsPage } from "@/components/pages/sprints-page";
 import { SprintBoard } from "@/components/pages/sprint-board";
+import { SprintDetailPage } from "@/components/pages/sprint-detail-page";
 import { AgentsActivityPage } from "@/components/pages/agents-activity-page";
 
 export function ContentRouter() {
-  const { activeSidebarItem, activeSprintId } = useAppStore();
+  const { activeSidebarItem, activeSprintId, activeSprintDetailId } =
+    useAppStore();
 
+  // Sprint detail (markdown sections) takes priority
+  if (activeSprintDetailId) {
+    return <SprintDetailPage sprintId={activeSprintDetailId} />;
+  }
+
+  // Sprint board (kanban) view
   if (activeSprintId) {
     return <SprintBoard sprintId={activeSprintId} />;
   }

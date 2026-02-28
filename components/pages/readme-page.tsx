@@ -8,7 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAppStore } from "@/lib/store";
 
 export function ReadmePage() {
-  const { project, updateReadme } = useAppStore();
+  const { getActiveProject, updateReadme } = useAppStore();
+  const project = getActiveProject();
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(project.readme);
 

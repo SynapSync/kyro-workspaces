@@ -1,8 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { formatDistanceToNow } from "date-fns";
-import { Plus, Zap, ArrowRight, CheckCircle2, Clock, Calendar } from "lucide-react";
+import {
+  Plus,
+  Zap,
+  ArrowRight,
+  CheckCircle2,
+  Calendar,
+  FileText,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,8 +23,9 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useAppStore } from "@/lib/store";
-import type { SprintStatus } from "@/lib/types";
+import { SPRINT_SECTIONS, type SprintStatus } from "@/lib/types";
 
 const statusConfig: Record<
   SprintStatus,
@@ -30,9 +37,17 @@ const statusConfig: Record<
 };
 
 export function SprintsPage() {
-  const { project, addSprint, setActiveSprintId } = useAppStore();
+  const {
+    getActiveProject,
+    addSprint,
+    setActiveSprintId,
+    setActiveSprintDetailId,
+  } = useAppStore();
+  const project = getActiveProject();
   const [createOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState("");
+  const [newObjective, setNewObjective] = useState("");
+  const [newVersion, setNewVersion] = useState("");
 
   const handleCreate = () => {
     if (!newName.trim()) return;
@@ -42,9 +57,14 @@ export function SprintsPage() {
       status: "planned",
       startDate: new Date().toISOString(),
       endDate: undefined,
+      version: newVersion.trim() || undefined,
+      objective: newObjective.trim() || undefined,
       tasks: [],
+      sections: {},
     });
     setNewName("");
+    setNewObjective("");
+    setNewVersion("");
     setCreateOpen(false);
   };
 
@@ -77,6 +97,12 @@ export function SprintsPage() {
           const progress =
             totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
 
+          const filledSections = SPRINT_SECTIONS.filter(
+            (s) =>
+              sprint.sections?.[s.key] &&
+              sprint.sections[s.key]!.trim().length > 0
+          );
+
           return (
             <Card
               key={sprint.id}
@@ -92,26 +118,53 @@ export function SprintsPage() {
                       <h3 className="font-semibold text-foreground">
                         {sprint.name}
                       </h3>
-                      <div className="flex items-center gap-2 mt-0.5">
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                         <Badge variant={config.variant} className="text-[10px] h-5">
                           {config.label}
                         </Badge>
+                        {sprint.version && (
+                          <Badge variant="outline" className="text-[10px] h-5 font-mono">
+                            v{sprint.version}
+                          </Badge>
+                        )}
                         <span className="text-xs text-muted-foreground">
                           {totalTasks} task{totalTasks !== 1 ? "s" : ""}
                         </span>
+                        {filledSections.length > 0 && (
+                          <span className="text-xs text-muted-foreground">
+                            {filledSections.length}/{SPRINT_SECTIONS.length} sections
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5"
-                    onClick={() => setActiveSprintId(sprint.id)}
-                  >
-                    Open Board
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5"
+                      onClick={() => setActiveSprintDetailId(sprint.id)}
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                      Details
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5"
+                      onClick={() => setActiveSprintId(sprint.id)}
+                    >
+                      Board
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
+
+                {sprint.objective && (
+                  <p className="text-xs text-muted-foreground mb-3 line-clamp-2 leading-relaxed">
+                    {sprint.objective}
+                  </p>
+                )}
 
                 {totalTasks > 0 && (
                   <div>
@@ -122,6 +175,29 @@ export function SprintsPage() {
                       </span>
                     </div>
                     <Progress value={progress} className="h-1.5" />
+                  </div>
+                )}
+
+                {/* Section dots */}
+                {filledSections.length > 0 && (
+                  <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-border">
+                    <span className="text-[10px] text-muted-foreground mr-1">
+                      Sections:
+                    </span>
+                    {SPRINT_SECTIONS.map((section) => {
+                      const hasCt =
+                        sprint.sections?.[section.key] &&
+                        sprint.sections[section.key]!.trim().length > 0;
+                      return (
+                        <span
+                          key={section.key}
+                          className={`h-1.5 w-1.5 rounded-full ${
+                            hasCt ? "bg-emerald-500" : "bg-muted"
+                          }`}
+                          title={section.label}
+                        />
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>
@@ -153,18 +229,44 @@ export function SprintsPage() {
               Add a new sprint to organize and track your tasks.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <Label htmlFor="sprint-name" className="text-sm font-medium">
-              Sprint Name
-            </Label>
-            <Input
-              id="sprint-name"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              placeholder="e.g., Sprint 4 - Mobile Features"
-              className="mt-2"
-              onKeyDown={(e) => e.key === "Enter" && handleCreate()}
-            />
+          <div className="flex flex-col gap-4 py-4">
+            <div>
+              <Label htmlFor="sprint-name" className="text-sm font-medium">
+                Sprint Name
+              </Label>
+              <Input
+                id="sprint-name"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="e.g., Sprint 5 - Live Trading Wiring"
+                className="mt-2"
+                onKeyDown={(e) => e.key === "Enter" && handleCreate()}
+              />
+            </div>
+            <div>
+              <Label htmlFor="sprint-version" className="text-sm font-medium">
+                Version (optional)
+              </Label>
+              <Input
+                id="sprint-version"
+                value={newVersion}
+                onChange={(e) => setNewVersion(e.target.value)}
+                placeholder="e.g., 0.5.0"
+                className="mt-2"
+              />
+            </div>
+            <div>
+              <Label htmlFor="sprint-objective" className="text-sm font-medium">
+                Objective (optional)
+              </Label>
+              <Textarea
+                id="sprint-objective"
+                value={newObjective}
+                onChange={(e) => setNewObjective(e.target.value)}
+                placeholder="Describe the sprint's main goal..."
+                className="mt-2 min-h-[80px] resize-none"
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button

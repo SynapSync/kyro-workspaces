@@ -7,7 +7,6 @@ import {
   Plus,
   FileText,
   Pencil,
-  Eye,
   Save,
   Trash2,
   ArrowLeft,
@@ -21,13 +20,13 @@ import { useAppStore } from "@/lib/store";
 import type { Document } from "@/lib/types";
 
 export function DocumentsPage() {
-  const { project, addDocument, updateDocument, deleteDocument } =
+  const { getActiveProject, addDocument, updateDocument, deleteDocument } =
     useAppStore();
+  const project = getActiveProject();
   const [activeDocId, setActiveDocId] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const [draftTitle, setDraftTitle] = useState("");
-  const [isCreating, setIsCreating] = useState(false);
 
   const activeDoc = project.documents.find((d) => d.id === activeDocId);
 
@@ -64,7 +63,6 @@ export function DocumentsPage() {
     setDraftTitle(newDoc.title);
     setDraft(newDoc.content);
     setIsEditing(true);
-    setIsCreating(false);
   };
 
   const handleDelete = (id: string) => {

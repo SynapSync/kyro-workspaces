@@ -7,14 +7,24 @@ import {
   FileText,
   Plus,
   ArrowRight,
+  FolderOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import { useAppStore } from "@/lib/store";
+import { SPRINT_SECTIONS } from "@/lib/types";
 
 export function ProjectOverview() {
-  const { project, setActiveSidebarItem, setActiveSprintId } = useAppStore();
+  const {
+    getActiveProject,
+    setActiveSidebarItem,
+    setActiveSprintId,
+    setActiveSprintDetailId,
+  } = useAppStore();
+
+  const project = getActiveProject();
 
   const allTasks = project.sprints.flatMap((s) => s.tasks);
   const doneTasks = allTasks.filter((t) => t.status === "done");
@@ -55,6 +65,15 @@ export function ProjectOverview() {
       bgColor: "bg-blue-500/10",
     },
   ];
+
+  // Find sprints with documented sections
+  const documentedSprints = project.sprints.filter(
+    (s) =>
+      s.sections &&
+      SPRINT_SECTIONS.some(
+        (sec) => s.sections?.[sec.key] && s.sections[sec.key]!.trim().length > 0
+      )
+  );
 
   return (
     <div className="p-6 max-w-5xl">
@@ -153,6 +172,75 @@ export function ProjectOverview() {
           </Card>
         )}
       </div>
+
+      {/* Recent documented sprints */}
+      {documentedSprints.length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-sm font-semibold text-foreground mb-3">
+            Documented Sprints
+          </h2>
+          <div className="grid gap-3">
+            {documentedSprints.slice(0, 3).map((sprint) => {
+              const filled = SPRINT_SECTIONS.filter(
+                (s) =>
+                  sprint.sections?.[s.key] &&
+                  sprint.sections[s.key]!.trim().length > 0
+              );
+              return (
+                <Card
+                  key={sprint.id}
+                  className="border shadow-sm hover:border-primary/30 transition-colors cursor-pointer"
+                  onClick={() => setActiveSprintDetailId(sprint.id)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                          <FolderOpen className="h-4 w-4 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm text-foreground">
+                            {sprint.name}
+                          </p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            {sprint.version && (
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] h-4 font-mono"
+                              >
+                                v{sprint.version}
+                              </Badge>
+                            )}
+                            <span className="text-xs text-muted-foreground">
+                              {filled.length}/{SPRINT_SECTIONS.length} sections
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        {filled.map((s) => (
+                          <span
+                            key={s.key}
+                            className="h-1.5 w-1.5 rounded-full bg-emerald-500"
+                          />
+                        ))}
+                        {Array.from({ length: SPRINT_SECTIONS.length - filled.length }).map(
+                          (_, i) => (
+                            <span
+                              key={i}
+                              className="h-1.5 w-1.5 rounded-full bg-muted"
+                            />
+                          )
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Quick Actions */}
       <div>

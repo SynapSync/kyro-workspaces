@@ -12,7 +12,7 @@ import {
   type DragEndEvent,
   type DragOverEvent,
 } from "@dnd-kit/core";
-import { ArrowLeft, Plus } from "lucide-react";
+import { ArrowLeft, Plus, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -28,15 +28,17 @@ interface SprintBoardProps {
 
 export function SprintBoard({ sprintId }: SprintBoardProps) {
   const {
-    project,
+    getActiveProject,
     moveTask,
     addTask,
     updateTask,
     deleteTask,
     setActiveSprintId,
+    setActiveSprintDetailId,
     setActiveSidebarItem,
   } = useAppStore();
 
+  const project = getActiveProject();
   const sprint = project.sprints.find((s) => s.id === sprintId);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -76,7 +78,7 @@ export function SprintBoard({ sprintId }: SprintBoardProps) {
     if (task) setActiveTask(task);
   };
 
-  const handleDragOver = (event: DragOverEvent) => {
+  const handleDragOver = (_event: DragOverEvent) => {
     // handled in dragEnd
   };
 
@@ -88,14 +90,12 @@ export function SprintBoard({ sprintId }: SprintBoardProps) {
     const taskId = active.id as string;
     const overId = over.id as string;
 
-    // Check if dropped onto a column
     const targetColumn = COLUMNS.find((c) => c.id === overId);
     if (targetColumn) {
       moveTask(sprintId, taskId, targetColumn.id);
       return;
     }
 
-    // Dropped onto another task - find that task's column
     const overTask = sprint.tasks.find((t) => t.id === overId);
     if (overTask && overTask.id !== taskId) {
       moveTask(sprintId, taskId, overTask.status);
@@ -137,6 +137,11 @@ export function SprintBoard({ sprintId }: SprintBoardProps) {
     setActiveSidebarItem("sprints");
   };
 
+  const handleViewDetails = () => {
+    setActiveSprintId(null);
+    setActiveSprintDetailId(sprintId);
+  };
+
   const statusConfig: Record<string, string> = {
     planned: "outline",
     active: "default",
@@ -174,16 +179,32 @@ export function SprintBoard({ sprintId }: SprintBoardProps) {
                 {sprint.status.charAt(0).toUpperCase() +
                   sprint.status.slice(1)}
               </Badge>
+              {sprint.version && (
+                <Badge variant="outline" className="text-[10px] h-5 font-mono">
+                  v{sprint.version}
+                </Badge>
+              )}
             </div>
             <p className="text-xs text-muted-foreground">
               {sprint.tasks.length} tasks
             </p>
           </div>
         </div>
-        <Button size="sm" className="gap-1.5" onClick={handleCreateTask}>
-          <Plus className="h-3.5 w-3.5" />
-          Add Task
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={handleViewDetails}
+          >
+            <FileText className="h-3.5 w-3.5" />
+            Details
+          </Button>
+          <Button size="sm" className="gap-1.5" onClick={handleCreateTask}>
+            <Plus className="h-3.5 w-3.5" />
+            Add Task
+          </Button>
+        </div>
       </div>
 
       {/* Board */}

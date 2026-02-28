@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
 import {
@@ -54,7 +55,12 @@ const actionConfig: Record<
 };
 
 export function AgentsActivityPage() {
-  const { activities } = useAppStore();
+  const { activities, activeProjectId } = useAppStore();
+
+  const projectActivities = useMemo(
+    () => activities.filter((a) => a.projectId === activeProjectId),
+    [activities, activeProjectId]
+  );
 
   return (
     <div className="p-6 max-w-3xl">
@@ -68,7 +74,7 @@ export function AgentsActivityPage() {
           </div>
         </div>
         <p className="text-sm text-muted-foreground">
-          Timeline of AI agent actions across your project
+          Timeline of AI agent actions in this project
         </p>
       </div>
 
@@ -78,7 +84,7 @@ export function AgentsActivityPage() {
         <div className="absolute left-5 top-0 bottom-0 w-px bg-border" />
 
         <div className="flex flex-col gap-4">
-          {activities.map((activity, index) => {
+          {projectActivities.map((activity, index) => {
             const config = actionConfig[activity.actionType];
             const Icon = config.icon;
 
@@ -135,7 +141,7 @@ export function AgentsActivityPage() {
         </div>
       </div>
 
-      {activities.length === 0 && (
+      {projectActivities.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted mb-3">
             <Bot className="h-6 w-6 text-muted-foreground" />

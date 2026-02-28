@@ -37,13 +37,28 @@ export const ColumnSchema = z.object({
   tasks: z.array(TaskSchema),
 });
 
+// --- Sprint Markdown Sections ---
+// Each sprint can hold structured markdown content for retrospective,
+// accumulated tech debt, execution metrics, findings, and recommendations.
+
+export const SprintMarkdownSectionsSchema = z.object({
+  retrospective: z.string().optional(),
+  technicalDebt: z.string().optional(),
+  executionMetrics: z.string().optional(),
+  findings: z.string().optional(),
+  recommendations: z.string().optional(),
+});
+
 export const SprintSchema = z.object({
   id: z.string(),
   name: z.string().min(1),
   status: SprintStatusSchema,
   startDate: z.string().optional(),
   endDate: z.string().optional(),
+  version: z.string().optional(),
+  objective: z.string().optional(),
   tasks: z.array(TaskSchema),
+  sections: SprintMarkdownSectionsSchema.optional(),
 });
 
 export const DocumentSchema = z.object({
@@ -58,13 +73,17 @@ export const ProjectSchema = z.object({
   id: z.string(),
   name: z.string().min(1),
   description: z.string(),
+  color: z.string().optional(),
   readme: z.string(),
   documents: z.array(DocumentSchema),
   sprints: z.array(SprintSchema),
+  createdAt: z.string(),
+  updatedAt: z.string(),
 });
 
 export const AgentActivitySchema = z.object({
   id: z.string(),
+  projectId: z.string(),
   actionType: AgentActionTypeSchema,
   description: z.string(),
   timestamp: z.string(),
@@ -79,10 +98,52 @@ export type SprintStatus = z.infer<typeof SprintStatusSchema>;
 export type AgentActionType = z.infer<typeof AgentActionTypeSchema>;
 export type Task = z.infer<typeof TaskSchema>;
 export type Column = z.infer<typeof ColumnSchema>;
+export type SprintMarkdownSections = z.infer<typeof SprintMarkdownSectionsSchema>;
 export type Sprint = z.infer<typeof SprintSchema>;
 export type Document = z.infer<typeof DocumentSchema>;
 export type Project = z.infer<typeof ProjectSchema>;
 export type AgentActivity = z.infer<typeof AgentActivitySchema>;
+
+// Sprint section metadata for rendering tabs
+export interface SprintSectionMeta {
+  key: keyof SprintMarkdownSections;
+  label: string;
+  description: string;
+  placeholder: string;
+}
+
+export const SPRINT_SECTIONS: SprintSectionMeta[] = [
+  {
+    key: "retrospective",
+    label: "Retrospective",
+    description: "What went well, what didn't, and surprises",
+    placeholder: "## What Went Well\n\n- \n\n## What Didn't Go Well\n\n- \n\n## Surprises\n\n- ",
+  },
+  {
+    key: "technicalDebt",
+    label: "Technical Debt",
+    description: "Accumulated debt items with status tracking",
+    placeholder: "| # | Item | Origin | Priority | Status |\n|---|------|--------|----------|--------|\n| D1 | Description | Sprint X | HIGH | open |",
+  },
+  {
+    key: "executionMetrics",
+    label: "Execution Metrics",
+    description: "Tests, performance, and sprint execution data",
+    placeholder: "## Metrics\n\n- Tests: \n- Files modified: \n- Files created: \n\n## Results\n\n| Metric | Value |\n|--------|-------|\n| | |",
+  },
+  {
+    key: "findings",
+    label: "Findings",
+    description: "Key discoveries and learnings from this sprint",
+    placeholder: "## Key Findings\n\n1. **Finding 1**: Description\n2. **Finding 2**: Description",
+  },
+  {
+    key: "recommendations",
+    label: "Recommendations",
+    description: "Suggestions and priorities for upcoming sprints",
+    placeholder: "## Recommendations for Next Sprint\n\n1. **[CRITICAL]** Description\n2. **[HIGH]** Description\n3. **[MEDIUM]** Description",
+  },
+];
 
 // --- Column Configuration ---
 
