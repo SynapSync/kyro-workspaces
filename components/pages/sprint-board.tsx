@@ -1,0 +1,237 @@
+"use client";
+
+import { useState, useMemo } from "react";
+import {
+  DndContext,
+  DragOverlay,
+  closestCorners,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragStartEvent,
+  type DragEndEvent,
+  type DragOverEvent,
+} from "@dnd-kit/core";
+import { ArrowLeft, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { BoardColumn } from "@/components/kanban/board-column";
+import { TaskCard } from "@/components/kanban/task-card";
+import { TaskDialog } from "@/components/kanban/task-dialog";
+import { useAppStore } from "@/lib/store";
+import { COLUMNS, type Task, type TaskStatus } from "@/lib/types";
+
+interface SprintBoardProps {
+  sprintId: string;
+}
+
+export function SprintBoard({ sprintId }: SprintBoardProps) {
+  const {
+    project,
+    moveTask,
+    addTask,
+    updateTask,
+    deleteTask,
+    setActiveSprintId,
+    setActiveSidebarItem,
+  } = useAppStore();
+
+  const sprint = project.sprints.find((s) => s.id === sprintId);
+  const [activeTask, setActiveTask] = useState<Task | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    })
+  );
+
+  const columnTasks = useMemo(() => {
+    if (!sprint) return {};
+    const map: Record<TaskStatus, Task[]> = {
+      backlog: [],
+      todo: [],
+      in_progress: [],
+      review: [],
+      done: [],
+    };
+    sprint.tasks.forEach((task) => {
+      map[task.status].push(task);
+    });
+    return map;
+  }, [sprint]);
+
+  if (!sprint) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-muted-foreground">Sprint not found</p>
+      </div>
+    );
+  }
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const task = sprint.tasks.find((t) => t.id === event.active.id);
+    if (task) setActiveTask(task);
+  };
+
+  const handleDragOver = (event: DragOverEvent) => {
+    // handled in dragEnd
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    setActiveTask(null);
+    const { active, over } = event;
+    if (!over) return;
+
+    const taskId = active.id as string;
+    const overId = over.id as string;
+
+    // Check if dropped onto a column
+    const targetColumn = COLUMNS.find((c) => c.id === overId);
+    if (targetColumn) {
+      moveTask(sprintId, taskId, targetColumn.id);
+      return;
+    }
+
+    // Dropped onto another task - find that task's column
+    const overTask = sprint.tasks.find((t) => t.id === overId);
+    if (overTask && overTask.id !== taskId) {
+      moveTask(sprintId, taskId, overTask.status);
+    }
+  };
+
+  const handleCreateTask = () => {
+    setEditingTask(null);
+    setDialogOpen(true);
+  };
+
+  const handleEditTask = (task: Task) => {
+    setEditingTask(task);
+    setDialogOpen(true);
+  };
+
+  const handleDeleteTask = (taskId: string) => {
+    deleteTask(sprintId, taskId);
+  };
+
+  const handleSaveTask = (
+    data: Omit<Task, "id" | "createdAt" | "updatedAt">
+  ) => {
+    if (editingTask) {
+      updateTask(sprintId, editingTask.id, data);
+    } else {
+      const newTask: Task = {
+        ...data,
+        id: `task-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      addTask(sprintId, newTask);
+    }
+  };
+
+  const handleBack = () => {
+    setActiveSprintId(null);
+    setActiveSidebarItem("sprints");
+  };
+
+  const statusConfig: Record<string, string> = {
+    planned: "outline",
+    active: "default",
+    closed: "secondary",
+  };
+
+  return (
+    <div className="flex h-full flex-col">
+      {/* Board Header */}
+      <div className="flex items-center justify-between border-b border-border px-6 py-4">
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleBack}
+            className="h-8 w-8"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span className="sr-only">Back to sprints</span>
+          </Button>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg font-bold tracking-tight text-foreground">
+                {sprint.name}
+              </h1>
+              <Badge
+                variant={
+                  statusConfig[sprint.status] as
+                    | "default"
+                    | "secondary"
+                    | "outline"
+                }
+                className="text-[10px] h-5"
+              >
+                {sprint.status.charAt(0).toUpperCase() +
+                  sprint.status.slice(1)}
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {sprint.tasks.length} tasks
+            </p>
+          </div>
+        </div>
+        <Button size="sm" className="gap-1.5" onClick={handleCreateTask}>
+          <Plus className="h-3.5 w-3.5" />
+          Add Task
+        </Button>
+      </div>
+
+      {/* Board */}
+      <div className="flex-1 overflow-hidden">
+        <ScrollArea className="h-full">
+          <div className="flex gap-4 p-6 h-full min-h-[500px]">
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCorners}
+              onDragStart={handleDragStart}
+              onDragOver={handleDragOver}
+              onDragEnd={handleDragEnd}
+            >
+              {COLUMNS.map((col) => (
+                <BoardColumn
+                  key={col.id}
+                  id={col.id}
+                  title={col.title}
+                  color={col.color}
+                  tasks={columnTasks[col.id] || []}
+                  onEditTask={handleEditTask}
+                  onDeleteTask={handleDeleteTask}
+                />
+              ))}
+              <DragOverlay>
+                {activeTask ? (
+                  <div className="w-72 rotate-3 scale-105">
+                    <TaskCard
+                      task={activeTask}
+                      onEdit={() => {}}
+                      onDelete={() => {}}
+                    />
+                  </div>
+                ) : null}
+              </DragOverlay>
+            </DndContext>
+          </div>
+          <ScrollBar orientation="horizontal" />
+        </ScrollArea>
+      </div>
+
+      {/* Task Dialog */}
+      <TaskDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        task={editingTask}
+        onSave={handleSaveTask}
+      />
+    </div>
+  );
+}
