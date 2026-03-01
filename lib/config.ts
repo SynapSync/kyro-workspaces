@@ -110,7 +110,7 @@ export const SPRINT_SECTIONS: SprintSectionMeta[] = [
 
 // --- App Identity ---
 
-export const APP_NAME = "Clever";
+export const APP_NAME = "Kyro";
 export const APP_DESCRIPTION =
   "An AI-native Kanban project management platform with intelligent task automation and sprint planning.";
 
@@ -122,8 +122,8 @@ export interface SprintStatusConfig {
 }
 export const SPRINT_STATUS_CONFIG: Record<SprintStatus, SprintStatusConfig> = {
   planned: { label: "Planned", variant: "secondary" },
-  active:  { label: "Active",  variant: "default"   },
-  closed:  { label: "Closed",  variant: "outline"   },
+  active: { label: "Active", variant: "default" },
+  closed: { label: "Closed", variant: "outline" },
 };
 
 // --- Zen Mode Columns ---
@@ -133,7 +133,7 @@ export const ZEN_COLUMNS: TaskStatus[] = ["in_progress", "review"];
 // --- Task Tag Config ---
 
 export const TASK_TAGS = {
-  BLOCKED:    "blocked",
+  BLOCKED: "blocked",
   AI_CREATED: "ai-created",
 } as const;
 
@@ -144,20 +144,31 @@ export interface TagStyle {
   badgeClassName: string;
 }
 export const TAG_CONFIG: Record<TaskTagKey, TagStyle> = {
-  "blocked":    { label: "Blocked", badgeClassName: "bg-red-500/10 text-red-600 border-red-200"          },
-  "ai-created": { label: "AI",      badgeClassName: "bg-purple-500/10 text-purple-600 border-purple-200" },
+  blocked: {
+    label: "Blocked",
+    badgeClassName: "bg-red-500/10 text-red-600 border-red-200",
+  },
+  "ai-created": {
+    label: "AI",
+    badgeClassName: "bg-purple-500/10 text-purple-600 border-purple-200",
+  },
 };
 
 // --- Sprint Section Icons ---
 
-export type SprintSectionKey = "retrospective" | "technicalDebt" | "executionMetrics" | "findings" | "recommendations";
+export type SprintSectionKey =
+  | "retrospective"
+  | "technicalDebt"
+  | "executionMetrics"
+  | "findings"
+  | "recommendations";
 
 export const SPRINT_SECTION_ICONS: Record<SprintSectionKey, LucideIcon> = {
-  retrospective:    BookOpen,
-  technicalDebt:    AlertTriangle,
+  retrospective: BookOpen,
+  technicalDebt: AlertTriangle,
   executionMetrics: BarChart2,
-  findings:         Search,
-  recommendations:  Lightbulb,
+  findings: Search,
+  recommendations: Lightbulb,
 };
 
 // --- Markdown Toolbar Items ---
@@ -169,28 +180,28 @@ export interface ToolbarItem {
   shortcut?: string;
 }
 export const MARKDOWN_TOOLBAR_ITEMS: ToolbarItem[] = [
-  { format: "bold",         label: "Bold",         icon: Bold,         shortcut: "⌘B" },
-  { format: "italic",       label: "Italic",       icon: Italic,       shortcut: "⌘I" },
-  { format: "code",         label: "Inline Code",  icon: Code                         },
-  { format: "code_block",   label: "Code Block",   icon: Square                       },
-  { format: "link",         label: "Link",         icon: Link2                        },
-  { format: "heading",      label: "Heading",      icon: Heading                      },
-  { format: "bullet_list",  label: "Bullet List",  icon: List                         },
-  { format: "ordered_list", label: "Ordered List", icon: ListOrdered                  },
-  { format: "quote",        label: "Quote",        icon: Quote                        },
+  { format: "bold", label: "Bold", icon: Bold, shortcut: "⌘B" },
+  { format: "italic", label: "Italic", icon: Italic, shortcut: "⌘I" },
+  { format: "code", label: "Inline Code", icon: Code },
+  { format: "code_block", label: "Code Block", icon: Square },
+  { format: "link", label: "Link", icon: Link2 },
+  { format: "heading", label: "Heading", icon: Heading },
+  { format: "bullet_list", label: "Bullet List", icon: List },
+  { format: "ordered_list", label: "Ordered List", icon: ListOrdered },
+  { format: "quote", label: "Quote", icon: Quote },
 ];
 
 // --- Entity Defaults ---
 
 export const DEFAULT_DOCUMENT = {
-  title:   "Untitled Document",
+  title: "Untitled Document",
   content: "# New Document\n\nStart writing here...",
 } as const;
 
 export const DEFAULT_PROJECT = {
-  name:        "New Project",
+  name: "New Project",
   description: "A new project",
-  readme:      "# New Project\n\nWelcome!",
+  readme: "# New Project\n\nWelcome!",
 } as const;
 
 export const DEFAULT_SPRINT_NAME_PREFIX = "Sprint";
@@ -200,3 +211,9 @@ export const DEFAULT_SPRINT_NAME_PREFIX = "Sprint";
 export const NEW_TASK_THRESHOLD_MS = 5000;
 export const DEFAULT_WORDS_PER_MINUTE = 200;
 export const QUERY_STALE_TIME_MS = 60 * 1_000; // 60 seconds
+
+// --- Workspace ---
+
+export const DEFAULT_WORKSPACE_PATH =
+  process.env.KYRO_WORKSPACE_PATH ??
+  `${process.env.HOME ?? "~"}/kyro-workspace`;

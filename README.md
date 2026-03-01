@@ -1,4 +1,4 @@
-# Clever
+# Kyro
 
 A modern project management application built with Next.js 16, React 19, and Radix UI. Manage projects, sprints, tasks, and documents with a beautiful, accessible interface.
 

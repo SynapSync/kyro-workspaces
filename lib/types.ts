@@ -9,6 +9,8 @@ export const TaskStatusSchema = z.enum([
   "in_progress",
   "review",
   "done",
+  "blocked",
+  "skipped",
 ]);
 export const SprintStatusSchema = z.enum(["planned", "active", "closed"]);
 export const AgentActionTypeSchema = z.enum([
@@ -150,3 +152,49 @@ export type MarkdownFormat =
   | "quote";
 
 // COLUMNS and SPRINT_SECTIONS constants live in lib/config.ts
+
+// --- Workspace ---
+
+export const WorkspaceSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1),
+  description: z.string().optional(),
+  rootPath: z.string(),
+  projects: z.array(ProjectSchema),
+  members: z.array(TeamMemberSchema),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+export type Workspace = z.infer<typeof WorkspaceSchema>;
+
+// --- Sprint Task Symbol System ---
+// Maps the checkbox symbols used in sprint markdown files to TaskStatus values.
+
+export type SprintTaskSymbol = " " | "~" | "x" | "!" | "-" | ">";
+
+export const SYMBOL_TO_STATUS: Record<SprintTaskSymbol, TaskStatus> = {
+  " ": "todo",        // [ ] Pending
+  "~": "in_progress", // [~] In Progress
+  "x": "done",        // [x] Done
+  "!": "blocked",     // [!] Blocked
+  "-": "skipped",     // [-] Skipped
+  ">": "todo",        // [>] Carry-over (becomes todo in next sprint)
+};
+
+export function symbolToStatus(symbol: string): TaskStatus {
+  if (symbol in SYMBOL_TO_STATUS) {
+    return SYMBOL_TO_STATUS[symbol as SprintTaskSymbol];
+  }
+  return "todo";
+}
+
+export const STATUS_TO_SYMBOL: Partial<Record<TaskStatus, SprintTaskSymbol>> = {
+  todo:        " ",
+  in_progress: "~",
+  done:        "x",
+  blocked:     "!",
+  skipped:     "-",
+  backlog:     " ",
+  review:      "~",
+};

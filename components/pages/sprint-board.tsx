@@ -91,6 +91,8 @@ export function SprintBoard({ sprintId }: SprintBoardProps) {
       in_progress: [],
       review: [],
       done: [],
+      blocked: [],
+      skipped: [],
     };
     sprint.tasks.forEach((task) => {
       map[task.status].push(task);

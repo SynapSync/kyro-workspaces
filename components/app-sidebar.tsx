@@ -110,7 +110,7 @@ export function AppSidebar() {
           </div>
           {!sidebarCollapsed && (
             <span className="text-lg font-semibold tracking-tight text-sidebar-foreground">
-              Clever
+              Kyro
             </span>
           )}
           <Button
