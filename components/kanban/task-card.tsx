@@ -3,7 +3,7 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { formatDistanceToNow } from "date-fns";
-import { GripVertical, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { GripVertical, MoreHorizontal, Pencil, Trash2, Ban, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,27 +13,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import type { Task, TaskPriority } from "@/lib/types";
+import type { Task } from "@/lib/types";
+import { PRIORITY_CONFIG, TAG_CONFIG, TASK_TAGS, NEW_TASK_THRESHOLD_MS } from "@/lib/config";
 import { cn } from "@/lib/utils";
-
-const priorityConfig: Record<
-  TaskPriority,
-  { label: string; className: string }
-> = {
-  low: { label: "Low", className: "bg-muted text-muted-foreground" },
-  medium: {
-    label: "Medium",
-    className: "bg-blue-500/10 text-blue-600",
-  },
-  high: {
-    label: "High",
-    className: "bg-amber-500/10 text-amber-600",
-  },
-  urgent: {
-    label: "Urgent",
-    className: "bg-red-500/10 text-red-600",
-  },
-};
 
 interface TaskCardProps {
   task: Task;
@@ -56,7 +38,7 @@ export function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
     transition,
   };
 
-  const priority = priorityConfig[task.priority];
+  const priority = PRIORITY_CONFIG[task.priority];
   const initials = task.assignee
     ? task.assignee
         .split(" ")
@@ -64,13 +46,22 @@ export function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
         .join("")
     : null;
 
+  const isBlocked = task.tags.includes(TASK_TAGS.BLOCKED);
+  const isAICreated = task.tags.includes(TASK_TAGS.AI_CREATED);
+
+  // Check if task was created recently (within last 5 seconds)
+  const isNew = Date.now() - new Date(task.createdAt).getTime() < NEW_TASK_THRESHOLD_MS;
+
   return (
     <div
       ref={setNodeRef}
       style={style}
       className={cn(
         "group rounded-lg border bg-card p-3 shadow-sm transition-all hover:border-primary/30",
-        isDragging && "opacity-50 rotate-2 scale-105 shadow-lg"
+        isDragging && "opacity-50 rotate-2 scale-105 shadow-lg",
+        isBlocked && "border-red-300 dark:border-red-800 bg-red-50/50 dark:bg-red-950/20",
+        isAICreated && "border-purple-300 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-950/20",
+        isNew && "animate-pulse ring-2 ring-primary/30"
       )}
     >
       <div className="flex items-start justify-between gap-2 mb-2">
@@ -128,7 +119,19 @@ export function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
           >
             {priority.label}
           </Badge>
-          {task.tags.slice(0, 2).map((tag) => (
+          {isBlocked && (
+            <Badge className={`text-[10px] h-5 gap-1 ${TAG_CONFIG[TASK_TAGS.BLOCKED].badgeClassName}`}>
+              <Ban className="h-2.5 w-2.5" />
+              {TAG_CONFIG[TASK_TAGS.BLOCKED].label}
+            </Badge>
+          )}
+          {isAICreated && (
+            <Badge className={`text-[10px] h-5 gap-1 ${TAG_CONFIG[TASK_TAGS.AI_CREATED].badgeClassName}`}>
+              <Sparkles className="h-2.5 w-2.5" />
+              {TAG_CONFIG[TASK_TAGS.AI_CREATED].label}
+            </Badge>
+          )}
+          {task.tags.filter(t => t !== TASK_TAGS.BLOCKED && t !== TASK_TAGS.AI_CREATED).slice(0, 2).map((tag) => (
             <Badge
               key={tag}
               variant="outline"

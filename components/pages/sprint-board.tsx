@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -12,7 +12,7 @@ import {
   type DragEndEvent,
   type DragOverEvent,
 } from "@dnd-kit/core";
-import { ArrowLeft, Plus, FileText } from "lucide-react";
+import { ArrowLeft, Plus, FileText, Focus, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -20,7 +20,8 @@ import { BoardColumn } from "@/components/kanban/board-column";
 import { TaskCard } from "@/components/kanban/task-card";
 import { TaskDialog } from "@/components/kanban/task-dialog";
 import { useAppStore } from "@/lib/store";
-import { COLUMNS, type Task, type TaskStatus } from "@/lib/types";
+import { COLUMNS, SPRINT_STATUS_CONFIG, ZEN_COLUMNS } from "@/lib/config";
+import { type Task, type TaskStatus } from "@/lib/types";
 
 interface SprintBoardProps {
   sprintId: string;
@@ -36,6 +37,15 @@ export function SprintBoard({ sprintId }: SprintBoardProps) {
     setActiveSprintId,
     setActiveSprintDetailId,
     setActiveSidebarItem,
+    collapsedColumns,
+    setColumnCollapsed,
+    toggleColumnCollapsed,
+    focusMode,
+    focusedColumnId,
+    setFocusedColumn,
+    toggleFocusMode,
+    zenMode,
+    setZenMode,
   } = useAppStore();
 
   const project = getActiveProject();
@@ -44,6 +54,29 @@ export function SprintBoard({ sprintId }: SprintBoardProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
+  // Load persisted column state on mount
+  useEffect(() => {
+    const saved = localStorage.getItem(`kyro-column-state-${sprintId}`);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      Object.entries(parsed).forEach(([columnId, collapsed]) => {
+        setColumnCollapsed(sprintId, columnId, collapsed as boolean);
+      });
+    }
+  }, [sprintId, setColumnCollapsed]);
+
+  // Persist column state changes
+  useEffect(() => {
+    const toSave: Record<string, boolean> = {};
+    Object.keys(collapsedColumns).forEach((key) => {
+      if (key.startsWith(sprintId)) {
+        const columnId = key.replace(`${sprintId}-`, "");
+        toSave[columnId] = collapsedColumns[key];
+      }
+    });
+    localStorage.setItem(`kyro-column-state-${sprintId}`, JSON.stringify(toSave));
+  }, [collapsedColumns, sprintId]);
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 8 },
@@ -51,13 +84,15 @@ export function SprintBoard({ sprintId }: SprintBoardProps) {
   );
 
   const columnTasks = useMemo(() => {
-    if (!sprint) return {};
+    if (!sprint) return {} as Record<TaskStatus, Task[]>;
     const map: Record<TaskStatus, Task[]> = {
       backlog: [],
       todo: [],
       in_progress: [],
       review: [],
       done: [],
+      blocked: [],
+      skipped: [],
     };
     sprint.tasks.forEach((task) => {
       map[task.status].push(task);
@@ -142,11 +177,7 @@ export function SprintBoard({ sprintId }: SprintBoardProps) {
     setActiveSprintDetailId(sprintId);
   };
 
-  const statusConfig: Record<string, string> = {
-    planned: "outline",
-    active: "default",
-    closed: "secondary",
-  };
+  const statusCfg = SPRINT_STATUS_CONFIG[sprint.status];
 
   return (
     <div className="flex h-full flex-col">
@@ -168,16 +199,10 @@ export function SprintBoard({ sprintId }: SprintBoardProps) {
                 {sprint.name}
               </h1>
               <Badge
-                variant={
-                  statusConfig[sprint.status] as
-                    | "default"
-                    | "secondary"
-                    | "outline"
-                }
+                variant={statusCfg.variant}
                 className="text-[10px] h-5"
               >
-                {sprint.status.charAt(0).toUpperCase() +
-                  sprint.status.slice(1)}
+                {statusCfg.label}
               </Badge>
               {sprint.version && (
                 <Badge variant="outline" className="text-[10px] h-5 font-mono">
@@ -191,6 +216,26 @@ export function SprintBoard({ sprintId }: SprintBoardProps) {
           </div>
         </div>
         <div className="flex gap-2">
+          <Button
+            variant={zenMode ? "default" : "outline"}
+            size="sm"
+            className="gap-1.5"
+            onClick={() => setZenMode(!zenMode)}
+            title="Zen Mode (In Progress + Review)"
+          >
+            <EyeOff className="h-3.5 w-3.5" />
+            Zen
+          </Button>
+          <Button
+            variant={focusMode ? "default" : "outline"}
+            size="sm"
+            className="gap-1.5"
+            onClick={toggleFocusMode}
+            title="Focus Mode"
+          >
+            <Focus className="h-3.5 w-3.5" />
+            Focus
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -218,17 +263,36 @@ export function SprintBoard({ sprintId }: SprintBoardProps) {
               onDragOver={handleDragOver}
               onDragEnd={handleDragEnd}
             >
-              {COLUMNS.map((col) => (
+              {COLUMNS.filter(col => {
+                if (zenMode) return ZEN_COLUMNS.includes(col.id);
+                if (focusMode && focusedColumnId) return col.id === focusedColumnId;
+                return true;
+              }).map((col) => {
+                const isColumnCollapsed = collapsedColumns[`${sprintId}-${col.id}`] ?? false;
+                const shouldBeCollapsed = zenMode || (focusMode && focusedColumnId && focusedColumnId !== col.id);
+                
+                return (
                 <BoardColumn
                   key={col.id}
                   id={col.id}
                   title={col.title}
                   color={col.color}
                   tasks={columnTasks[col.id] || []}
+                  collapsed={shouldBeCollapsed || isColumnCollapsed}
+                  onToggleCollapse={() => {
+                    if (focusMode && !focusedColumnId) {
+                      setFocusedColumn(col.id);
+                    } else if (focusedColumnId === col.id) {
+                      setFocusedColumn(null);
+                    } else {
+                      toggleColumnCollapsed(sprintId, col.id);
+                    }
+                  }}
                   onEditTask={handleEditTask}
                   onDeleteTask={handleDeleteTask}
                 />
-              ))}
+                );
+              })}
               <DragOverlay>
                 {activeTask ? (
                   <div className="w-72 rotate-3 scale-105">

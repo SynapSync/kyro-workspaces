@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
 import {
   Plus,
   FileText,
@@ -11,28 +12,90 @@ import {
   Trash2,
   ArrowLeft,
   X,
+  Loader2,
+  Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { useAppStore } from "@/lib/store";
-import type { Document } from "@/lib/types";
+import { MarkdownEditor } from "@/components/editor/markdown-editor";
+import { VersionHistory } from "@/components/editor/version-history";
+import type { Document, DocumentVersion } from "@/lib/types";
+import { DEFAULT_DOCUMENT } from "@/lib/config";
 
 export function DocumentsPage() {
-  const { getActiveProject, addDocument, updateDocument, deleteDocument } =
-    useAppStore();
+  const {
+    getActiveProject,
+    addDocument,
+    updateDocument,
+    deleteDocument,
+    addDocumentVersion,
+    restoreDocumentVersion,
+    getDocumentVersions,
+  } = useAppStore();
+  
   const project = getActiveProject();
   const [activeDocId, setActiveDocId] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const [draftTitle, setDraftTitle] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const activeDoc = project.documents.find((d) => d.id === activeDocId);
+  const versions = activeDocId ? getDocumentVersions(activeDocId) : [];
+
+  // Debounced autosave
+  const handleAutoSave = useCallback(
+    (content: string, title: string, docId: string) => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+
+      setIsSaving(true);
+
+      saveTimeoutRef.current = setTimeout(() => {
+        // Create version before saving
+        addDocumentVersion(docId, content, title);
+        
+        updateDocument(docId, { content, title });
+        setIsSaving(false);
+        setLastSaved(new Date());
+        toast.success("Document saved", { duration: 1500 });
+      }, 2000);
+    },
+    [addDocumentVersion, updateDocument]
+  );
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Update draft when activeDoc changes
+  useEffect(() => {
+    if (activeDoc && !isEditing) {
+      setDraft(activeDoc.content);
+      setDraftTitle(activeDoc.title);
+    }
+  }, [activeDoc, isEditing]);
 
   const handleOpen = (doc: Document) => {
+    // Save any pending changes before switching
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
     setActiveDocId(doc.id);
     setIsEditing(false);
+    setDraft(doc.content);
+    setDraftTitle(doc.title);
+    setLastSaved(null);
   };
 
   const handleEdit = () => {
@@ -45,7 +108,13 @@ export function DocumentsPage() {
 
   const handleSave = () => {
     if (activeDoc) {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+      addDocumentVersion(activeDoc.id, draft, draftTitle);
       updateDocument(activeDoc.id, { title: draftTitle, content: draft });
+      setIsSaving(false);
+      setLastSaved(new Date());
       setIsEditing(false);
     }
   };
@@ -53,8 +122,8 @@ export function DocumentsPage() {
   const handleCreate = () => {
     const newDoc: Document = {
       id: `doc-${Date.now()}`,
-      title: "Untitled Document",
-      content: "# New Document\n\nStart writing here...",
+      title: DEFAULT_DOCUMENT.title,
+      content: DEFAULT_DOCUMENT.content,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -74,8 +143,34 @@ export function DocumentsPage() {
   };
 
   const handleBack = () => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
     setActiveDocId(null);
     setIsEditing(false);
+  };
+
+  const handleRestore = (version: DocumentVersion) => {
+    if (activeDoc) {
+      restoreDocumentVersion(activeDoc.id, version.id);
+      setDraft(version.content);
+      setDraftTitle(version.title);
+      toast.success("Version restored", { duration: 1500 });
+    }
+  };
+
+  const handleContentChange = (content: string) => {
+    setDraft(content);
+    if (activeDoc) {
+      handleAutoSave(content, draftTitle, activeDoc.id);
+    }
+  };
+
+  const handleTitleChange = (title: string) => {
+    setDraftTitle(title);
+    if (activeDoc) {
+      handleAutoSave(draft, title, activeDoc.id);
+    }
   };
 
   // Document Editor View
@@ -91,7 +186,7 @@ export function DocumentsPage() {
             {isEditing ? (
               <Input
                 value={draftTitle}
-                onChange={(e) => setDraftTitle(e.target.value)}
+                onChange={(e) => handleTitleChange(e.target.value)}
                 className="text-lg font-bold h-9 max-w-md"
               />
             ) : (
@@ -100,13 +195,40 @@ export function DocumentsPage() {
               </h1>
             )}
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            {isEditing && (
+              <span className="text-xs text-muted-foreground mr-2 flex items-center gap-1">
+                {isSaving ? (
+                  <>
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Saving...
+                  </>
+                ) : lastSaved ? (
+                  <>
+                    <Check className="h-3 w-3 text-emerald-500" />
+                    Saved
+                  </>
+                ) : null}
+              </span>
+            )}
+            <VersionHistory
+              versions={versions}
+              onRestore={handleRestore}
+              currentContent={draft}
+            />
             {isEditing ? (
               <>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setIsEditing(false)}
+                  onClick={() => {
+                    if (saveTimeoutRef.current) {
+                      clearTimeout(saveTimeoutRef.current);
+                    }
+                    setIsEditing(false);
+                    setDraft(activeDoc.content);
+                    setDraftTitle(activeDoc.title);
+                  }}
                   className="gap-1.5"
                 >
                   <X className="h-3.5 w-3.5" />
@@ -138,11 +260,12 @@ export function DocumentsPage() {
         </p>
 
         {isEditing ? (
-          <Textarea
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            className="min-h-[500px] font-mono text-sm resize-none bg-card"
-          />
+          <div className="border rounded-lg overflow-hidden bg-card">
+            <MarkdownEditor
+              value={draft}
+              onChange={handleContentChange}
+            />
+          </div>
         ) : (
           <div className="prose prose-sm max-w-none rounded-xl border bg-card p-6 dark:prose-invert prose-headings:font-semibold prose-h1:text-xl prose-h2:text-lg prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:before:content-none prose-code:after:content-none">
             <ReactMarkdown>{activeDoc.content}</ReactMarkdown>

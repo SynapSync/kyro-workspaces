@@ -1,14 +1,15 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { APP_NAME, APP_DESCRIPTION } from '@/lib/config'
 import './globals.css'
 
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'Clever - AI-Native Project Management',
-  description: 'An AI-native Kanban project management platform with intelligent task automation and sprint planning.',
+  title: APP_NAME,
+  description: APP_DESCRIPTION,
   generator: 'v0.app',
   icons: {
     icon: [

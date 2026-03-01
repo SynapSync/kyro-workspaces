@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { useAppStore } from "@/lib/store";
-import { SPRINT_SECTIONS } from "@/lib/types";
+import { SPRINT_SECTIONS } from "@/lib/config";
 
 export function ProjectOverview() {
   const {

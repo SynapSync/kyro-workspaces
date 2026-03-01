@@ -21,8 +21,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Task, TaskPriority, TaskStatus } from "@/lib/types";
-import { COLUMNS } from "@/lib/types";
-import { teamMembers } from "@/lib/mock-data";
+import { COLUMNS, PRIORITY_CONFIG } from "@/lib/config";
+import { useAppStore } from "@/lib/store";
 
 interface TaskDialogProps {
   open: boolean;
@@ -37,6 +37,7 @@ export function TaskDialog({
   task,
   onSave,
 }: TaskDialogProps) {
+  const members = useAppStore((s) => s.members);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<TaskPriority>("medium");
@@ -126,10 +127,11 @@ export function TaskDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="low">Low</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="urgent">Urgent</SelectItem>
+                  {Object.entries(PRIORITY_CONFIG).map(([value, config]) => (
+                    <SelectItem key={value} value={value}>
+                      {config.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -162,7 +164,7 @@ export function TaskDialog({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="unassigned">Unassigned</SelectItem>
-                {teamMembers.map((m) => (
+                {members.map((m) => (
                   <SelectItem key={m.name} value={m.name}>
                     {m.name}
                   </SelectItem>

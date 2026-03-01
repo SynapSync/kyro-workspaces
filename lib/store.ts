@@ -7,8 +7,12 @@ import type {
   Sprint,
   SprintMarkdownSections,
   Document,
+  DocumentVersion,
+  TeamMember,
+  LoadingState,
 } from "./types";
-import { mockProjects, mockActivities } from "./mock-data";
+import { getInitialState } from "./services/mock/seed";
+import { services } from "./services";
 
 interface AppState {
   // Multi-project management
@@ -45,6 +49,17 @@ interface AppState {
   moveTask: (sprintId: string, taskId: string, newStatus: TaskStatus) => void;
   deleteTask: (sprintId: string, taskId: string) => void;
 
+  // Async initialization state
+  isInitializing: boolean;
+  initError: string | null;
+  initializeApp: () => Promise<void>;
+
+  // Team Members
+  members: TeamMember[];
+  addMember: (member: TeamMember) => void;
+  updateMember: (name: string, updates: Partial<TeamMember>) => void;
+  removeMember: (name: string) => void;
+
   // Agent Activity
   activities: AgentActivity[];
   addActivity: (activity: AgentActivity) => void;
@@ -56,6 +71,35 @@ interface AppState {
   setActiveSprintId: (id: string | null) => void;
   activeSprintDetailId: string | null;
   setActiveSprintDetailId: (id: string | null) => void;
+
+  // Sidebar State
+  sidebarCollapsed: boolean;
+  setSidebarCollapsed: (collapsed: boolean) => void;
+  toggleSidebar: () => void;
+
+  // Column Collapse State (per sprint)
+  collapsedColumns: Record<string, boolean>;
+  setColumnCollapsed: (sprintId: string, columnId: string, collapsed: boolean) => void;
+  toggleColumnCollapsed: (sprintId: string, columnId: string) => void;
+
+  // Document Version History
+  documentVersions: Record<string, DocumentVersion[]>;
+  addDocumentVersion: (docId: string, content: string, title: string) => void;
+  restoreDocumentVersion: (docId: string, versionId: string) => void;
+  getDocumentVersions: (docId: string) => DocumentVersion[];
+
+  // Focus Mode / Zen Mode
+  focusMode: boolean;
+  focusedColumnId: string | null;
+  setFocusedColumn: (columnId: string | null) => void;
+  toggleFocusMode: () => void;
+  zenMode: boolean;
+  setZenMode: (enabled: boolean) => void;
+
+  // Command Palette
+  commandPaletteOpen: boolean;
+  setCommandPaletteOpen: (open: boolean) => void;
+  toggleCommandPalette: () => void;
 }
 
 // Helper to update sprints inside a project
@@ -71,9 +115,11 @@ function updateProjectSprints(
   );
 }
 
+const { projects: initialProjects, members: initialMembers, activities: initialActivities } = getInitialState();
+
 export const useAppStore = create<AppState>((set, get) => ({
-  projects: mockProjects,
-  activeProjectId: mockProjects[0].id,
+  projects: initialProjects,
+  activeProjectId: initialProjects[0].id,
 
   setActiveProjectId: (id) =>
     set({ activeProjectId: id, activeSprintId: null, activeSprintDetailId: null, activeSidebarItem: "overview" }),
@@ -255,7 +301,36 @@ export const useAppStore = create<AppState>((set, get) => ({
       ),
     })),
 
-  activities: mockActivities,
+  isInitializing: false,
+  initError: null,
+  initializeApp: async () => {
+    set({ isInitializing: true, initError: null });
+    try {
+      const [projects, members, activities] = await Promise.all([
+        services.projects.list(),
+        services.members.list(),
+        services.activities.list(),
+      ]);
+      set({ projects, members, activities, isInitializing: false });
+    } catch (err) {
+      set({
+        isInitializing: false,
+        initError: err instanceof Error ? err.message : "Failed to initialize app",
+      });
+    }
+  },
+
+  members: initialMembers,
+  addMember: (member) =>
+    set((state) => ({ members: [...state.members, member] })),
+  updateMember: (name, updates) =>
+    set((state) => ({
+      members: state.members.map((m) => (m.name === name ? { ...m, ...updates } : m)),
+    })),
+  removeMember: (name) =>
+    set((state) => ({ members: state.members.filter((m) => m.name !== name) })),
+
+  activities: initialActivities,
   addActivity: (activity) =>
     set((state) => ({ activities: [activity, ...state.activities] })),
 
@@ -265,4 +340,89 @@ export const useAppStore = create<AppState>((set, get) => ({
   setActiveSprintId: (id) => set({ activeSprintId: id }),
   activeSprintDetailId: null,
   setActiveSprintDetailId: (id) => set({ activeSprintDetailId: id }),
+
+  // Sidebar State
+  sidebarCollapsed: false,
+  setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
+  toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
+
+  // Column Collapse State
+  collapsedColumns: {},
+  setColumnCollapsed: (sprintId, columnId, collapsed) =>
+    set((state) => ({
+      collapsedColumns: {
+        ...state.collapsedColumns,
+        [`${sprintId}-${columnId}`]: collapsed,
+      },
+    })),
+  toggleColumnCollapsed: (sprintId, columnId) =>
+    set((state) => ({
+      collapsedColumns: {
+        ...state.collapsedColumns,
+        [`${sprintId}-${columnId}`]: !state.collapsedColumns[`${sprintId}-${columnId}`],
+      },
+    })),
+
+  // Document Version History
+  documentVersions: {},
+  addDocumentVersion: (docId, content, title) =>
+    set((state) => {
+      const newVersion: DocumentVersion = {
+        id: `ver-${Date.now()}`,
+        docId,
+        content,
+        title,
+        createdAt: new Date().toISOString(),
+      };
+      const existingVersions = state.documentVersions[docId] || [];
+      const updatedVersions = [newVersion, ...existingVersions].slice(0, 10);
+      return {
+        documentVersions: {
+          ...state.documentVersions,
+          [docId]: updatedVersions,
+        },
+      };
+    }),
+  restoreDocumentVersion: (docId, versionId) =>
+    set((state) => {
+      const versions = state.documentVersions[docId] || [];
+      const version = versions.find((v) => v.id === versionId);
+      if (!version) return state;
+      
+      const activeProject = state.projects.find((p) => p.id === state.activeProjectId);
+      if (!activeProject) return state;
+      
+      return {
+        projects: state.projects.map((p) =>
+          p.id === state.activeProjectId
+            ? {
+                ...p,
+                documents: p.documents.map((d) =>
+                  d.id === docId
+                    ? { ...d, content: version.content, title: version.title, updatedAt: new Date().toISOString() }
+                    : d
+                ),
+                updatedAt: new Date().toISOString(),
+              }
+            : p
+        ),
+      };
+    }),
+  getDocumentVersions: (docId) => {
+    const state = get();
+    return state.documentVersions[docId] || [];
+  },
+
+  // Focus Mode / Zen Mode
+  focusMode: false,
+  focusedColumnId: null,
+  setFocusedColumn: (columnId) => set({ focusedColumnId: columnId }),
+  toggleFocusMode: () => set((state) => ({ focusMode: !state.focusMode })),
+  zenMode: false,
+  setZenMode: (enabled) => set({ zenMode: enabled }),
+
+  // Command Palette
+  commandPaletteOpen: false,
+  setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
+  toggleCommandPalette: () => set((state) => ({ commandPaletteOpen: !state.commandPaletteOpen })),
 }));
