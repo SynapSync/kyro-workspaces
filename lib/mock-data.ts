@@ -1,4 +1,4 @@
-import type { Project, AgentActivity, Task, Sprint } from "./types";
+import type { Project, AgentActivity, Task, Sprint, TeamMember } from "./types";
 
 const now = new Date().toISOString();
 const hoursAgo = (h: number) =>
@@ -727,7 +727,7 @@ export const mockActivities: AgentActivity[] = [
   },
 ];
 
-export const teamMembers = [
+export const teamMembers: TeamMember[] = [
   { name: "Alex Chen", avatar: "AC", color: "bg-blue-500" },
   { name: "Maya Patel", avatar: "MP", color: "bg-emerald-500" },
   { name: "Jordan Liu", avatar: "JL", color: "bg-amber-500" },

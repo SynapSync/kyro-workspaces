@@ -25,7 +25,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAppStore } from "@/lib/store";
-import { SPRINT_SECTIONS, type SprintStatus } from "@/lib/types";
+import { SPRINT_SECTIONS } from "@/lib/config";
+import { type SprintStatus } from "@/lib/types";
 
 const statusConfig: Record<
   SprintStatus,

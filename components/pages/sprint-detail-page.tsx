@@ -20,8 +20,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { useAppStore } from "@/lib/store";
+import { SPRINT_SECTIONS } from "@/lib/config";
 import {
-  SPRINT_SECTIONS,
   type SprintMarkdownSections,
   type SprintSectionMeta,
 } from "@/lib/types";

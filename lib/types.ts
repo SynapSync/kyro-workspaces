@@ -81,6 +81,13 @@ export const ProjectSchema = z.object({
   updatedAt: z.string(),
 });
 
+export const TeamMemberSchema = z.object({
+  id: z.string().optional(), // populated by the real API; absent in mock data
+  name: z.string(),
+  avatar: z.string(),
+  color: z.string(),
+});
+
 export const AgentActivitySchema = z.object({
   id: z.string(),
   projectId: z.string(),
@@ -90,19 +97,36 @@ export const AgentActivitySchema = z.object({
   metadata: z.record(z.string()).optional(),
 });
 
+export const DocumentVersionSchema = z.object({
+  id: z.string(),
+  docId: z.string(),
+  content: z.string(),
+  title: z.string(),
+  createdAt: z.string(),
+});
+
 // --- TypeScript Types ---
 
 export type TaskPriority = z.infer<typeof TaskPrioritySchema>;
 export type TaskStatus = z.infer<typeof TaskStatusSchema>;
 export type SprintStatus = z.infer<typeof SprintStatusSchema>;
+export type TeamMember = z.infer<typeof TeamMemberSchema>;
 export type AgentActionType = z.infer<typeof AgentActionTypeSchema>;
 export type Task = z.infer<typeof TaskSchema>;
 export type Column = z.infer<typeof ColumnSchema>;
 export type SprintMarkdownSections = z.infer<typeof SprintMarkdownSectionsSchema>;
 export type Sprint = z.infer<typeof SprintSchema>;
 export type Document = z.infer<typeof DocumentSchema>;
+export type DocumentVersion = z.infer<typeof DocumentVersionSchema>;
 export type Project = z.infer<typeof ProjectSchema>;
 export type AgentActivity = z.infer<typeof AgentActivitySchema>;
+
+// --- Async State ---
+
+export interface LoadingState {
+  isInitializing: boolean;
+  initError: string | null;
+}
 
 // Sprint section metadata for rendering tabs
 export interface SprintSectionMeta {
@@ -112,45 +136,4 @@ export interface SprintSectionMeta {
   placeholder: string;
 }
 
-export const SPRINT_SECTIONS: SprintSectionMeta[] = [
-  {
-    key: "retrospective",
-    label: "Retrospective",
-    description: "What went well, what didn't, and surprises",
-    placeholder: "## What Went Well\n\n- \n\n## What Didn't Go Well\n\n- \n\n## Surprises\n\n- ",
-  },
-  {
-    key: "technicalDebt",
-    label: "Technical Debt",
-    description: "Accumulated debt items with status tracking",
-    placeholder: "| # | Item | Origin | Priority | Status |\n|---|------|--------|----------|--------|\n| D1 | Description | Sprint X | HIGH | open |",
-  },
-  {
-    key: "executionMetrics",
-    label: "Execution Metrics",
-    description: "Tests, performance, and sprint execution data",
-    placeholder: "## Metrics\n\n- Tests: \n- Files modified: \n- Files created: \n\n## Results\n\n| Metric | Value |\n|--------|-------|\n| | |",
-  },
-  {
-    key: "findings",
-    label: "Findings",
-    description: "Key discoveries and learnings from this sprint",
-    placeholder: "## Key Findings\n\n1. **Finding 1**: Description\n2. **Finding 2**: Description",
-  },
-  {
-    key: "recommendations",
-    label: "Recommendations",
-    description: "Suggestions and priorities for upcoming sprints",
-    placeholder: "## Recommendations for Next Sprint\n\n1. **[CRITICAL]** Description\n2. **[HIGH]** Description\n3. **[MEDIUM]** Description",
-  },
-];
-
-// --- Column Configuration ---
-
-export const COLUMNS: { id: TaskStatus; title: string; color: string }[] = [
-  { id: "backlog", title: "Backlog", color: "bg-muted-foreground/60" },
-  { id: "todo", title: "Todo", color: "bg-blue-500" },
-  { id: "in_progress", title: "In Progress", color: "bg-amber-500" },
-  { id: "review", title: "Review", color: "bg-primary" },
-  { id: "done", title: "Done", color: "bg-emerald-500" },
-];
+// COLUMNS and SPRINT_SECTIONS constants live in lib/config.ts

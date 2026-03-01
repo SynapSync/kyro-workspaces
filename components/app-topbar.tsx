@@ -10,16 +10,18 @@ import {
   TooltipTrigger,
   TooltipProvider,
 } from "@/components/ui/tooltip";
-import { teamMembers } from "@/lib/mock-data";
+import { useAppStore } from "@/lib/store";
+import { currentUser } from "@/lib/auth";
 
 export function AppTopbar() {
+  const members = useAppStore((s) => s.members);
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-card px-6">
       {/* Left: team avatars */}
       <div className="flex items-center gap-2">
         <TooltipProvider delayDuration={200}>
           <div className="flex items-center -space-x-1.5">
-            {teamMembers.map((member) => (
+            {members.map((member) => (
               <Tooltip key={member.name}>
                 <TooltipTrigger asChild>
                   <Avatar className="h-7 w-7 border-2 border-card cursor-default">
@@ -67,7 +69,7 @@ export function AppTopbar() {
         </Button>
         <Avatar className="h-8 w-8 cursor-pointer">
           <AvatarFallback className="bg-primary/15 text-xs font-semibold text-primary">
-            TC
+            {currentUser.initials}
           </AvatarFallback>
         </Avatar>
       </div>
