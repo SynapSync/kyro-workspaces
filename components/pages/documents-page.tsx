@@ -22,6 +22,7 @@ import { useAppStore } from "@/lib/store";
 import { MarkdownEditor } from "@/components/editor/markdown-editor";
 import { VersionHistory } from "@/components/editor/version-history";
 import type { Document, DocumentVersion } from "@/lib/types";
+import { DEFAULT_DOCUMENT } from "@/lib/config";
 
 export function DocumentsPage() {
   const {
@@ -121,8 +122,8 @@ export function DocumentsPage() {
   const handleCreate = () => {
     const newDoc: Document = {
       id: `doc-${Date.now()}`,
-      title: "Untitled Document",
-      content: "# New Document\n\nStart writing here...",
+      title: DEFAULT_DOCUMENT.title,
+      content: DEFAULT_DOCUMENT.content,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

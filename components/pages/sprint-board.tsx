@@ -20,14 +20,12 @@ import { BoardColumn } from "@/components/kanban/board-column";
 import { TaskCard } from "@/components/kanban/task-card";
 import { TaskDialog } from "@/components/kanban/task-dialog";
 import { useAppStore } from "@/lib/store";
-import { COLUMNS } from "@/lib/config";
+import { COLUMNS, SPRINT_STATUS_CONFIG, ZEN_COLUMNS } from "@/lib/config";
 import { type Task, type TaskStatus } from "@/lib/types";
 
 interface SprintBoardProps {
   sprintId: string;
 }
-
-const ZEN_COLUMNS = ["in_progress", "review"];
 
 export function SprintBoard({ sprintId }: SprintBoardProps) {
   const {
@@ -177,11 +175,7 @@ export function SprintBoard({ sprintId }: SprintBoardProps) {
     setActiveSprintDetailId(sprintId);
   };
 
-  const statusConfig: Record<string, string> = {
-    planned: "outline",
-    active: "default",
-    closed: "secondary",
-  };
+  const statusCfg = SPRINT_STATUS_CONFIG[sprint.status];
 
   return (
     <div className="flex h-full flex-col">
@@ -203,16 +197,10 @@ export function SprintBoard({ sprintId }: SprintBoardProps) {
                 {sprint.name}
               </h1>
               <Badge
-                variant={
-                  statusConfig[sprint.status] as
-                    | "default"
-                    | "secondary"
-                    | "outline"
-                }
+                variant={statusCfg.variant}
                 className="text-[10px] h-5"
               >
-                {sprint.status.charAt(0).toUpperCase() +
-                  sprint.status.slice(1)}
+                {statusCfg.label}
               </Badge>
               {sprint.version && (
                 <Badge variant="outline" className="text-[10px] h-5 font-mono">

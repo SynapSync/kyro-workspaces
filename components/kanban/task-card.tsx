@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import type { Task } from "@/lib/types";
-import { PRIORITY_CONFIG } from "@/lib/config";
+import { PRIORITY_CONFIG, TAG_CONFIG, TASK_TAGS, NEW_TASK_THRESHOLD_MS } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
 interface TaskCardProps {
@@ -46,11 +46,11 @@ export function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
         .join("")
     : null;
 
-  const isBlocked = task.tags.includes("blocked");
-  const isAICreated = task.tags.includes("ai-created");
-  
+  const isBlocked = task.tags.includes(TASK_TAGS.BLOCKED);
+  const isAICreated = task.tags.includes(TASK_TAGS.AI_CREATED);
+
   // Check if task was created recently (within last 5 seconds)
-  const isNew = Date.now() - new Date(task.createdAt).getTime() < 5000;
+  const isNew = Date.now() - new Date(task.createdAt).getTime() < NEW_TASK_THRESHOLD_MS;
 
   return (
     <div
@@ -120,18 +120,18 @@ export function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
             {priority.label}
           </Badge>
           {isBlocked && (
-            <Badge variant="destructive" className="text-[10px] h-5 gap-1">
+            <Badge className={`text-[10px] h-5 gap-1 ${TAG_CONFIG[TASK_TAGS.BLOCKED].badgeClassName}`}>
               <Ban className="h-2.5 w-2.5" />
-              Blocked
+              {TAG_CONFIG[TASK_TAGS.BLOCKED].label}
             </Badge>
           )}
           {isAICreated && (
-            <Badge className="text-[10px] h-5 gap-1 bg-purple-500/10 text-purple-600 border-purple-200 dark:border-purple-800">
+            <Badge className={`text-[10px] h-5 gap-1 ${TAG_CONFIG[TASK_TAGS.AI_CREATED].badgeClassName}`}>
               <Sparkles className="h-2.5 w-2.5" />
-              AI
+              {TAG_CONFIG[TASK_TAGS.AI_CREATED].label}
             </Badge>
           )}
-          {task.tags.filter(t => t !== "blocked" && t !== "ai-created").slice(0, 2).map((tag) => (
+          {task.tags.filter(t => t !== TASK_TAGS.BLOCKED && t !== TASK_TAGS.AI_CREATED).slice(0, 2).map((tag) => (
             <Badge
               key={tag}
               variant="outline"

@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, useEffect, type ReactNode } from "react";
 import { useAppStore } from "@/lib/store";
+import { QUERY_STALE_TIME_MS } from "@/lib/config";
 
 function AppInitializer() {
   const initializeApp = useAppStore((s) => s.initializeApp);
@@ -18,7 +19,7 @@ export function Providers({ children }: { children: ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 60 * 1000,
+            staleTime: QUERY_STALE_TIME_MS,
           },
         },
       })

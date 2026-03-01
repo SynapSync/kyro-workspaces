@@ -3,16 +3,11 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  LayoutDashboard,
-  FileText,
-  FolderOpen,
   Zap,
-  Bot,
   Plus,
   Sidebar,
   Focus,
   EyeOff,
-  Search,
   FilePlus,
 } from "lucide-react";
 import {
@@ -25,6 +20,7 @@ import {
   CommandSeparator,
 } from "@/components/ui/command";
 import { useAppStore } from "@/lib/store";
+import { NAV_ITEMS, DEFAULT_PROJECT, DEFAULT_DOCUMENT, DEFAULT_SPRINT_NAME_PREFIX } from "@/lib/config";
 import type { Project, Document } from "@/lib/types";
 
 export function CommandPalette() {
@@ -65,9 +61,9 @@ export function CommandPalette() {
   const handleCreateProject = () => {
     const newProject: Project = {
       id: `proj-${Date.now()}`,
-      name: "New Project",
-      description: "A new project",
-      readme: "# New Project\n\nWelcome!",
+      name: DEFAULT_PROJECT.name,
+      description: DEFAULT_PROJECT.description,
+      readme: DEFAULT_PROJECT.readme,
       documents: [],
       sprints: [],
       createdAt: new Date().toISOString(),
@@ -82,13 +78,13 @@ export function CommandPalette() {
     if (!activeProject) return;
     const newDoc: Document = {
       id: `doc-${Date.now()}`,
-      title: "Untitled Document",
-      content: "# New Document\n\nStart writing...",
+      title: DEFAULT_DOCUMENT.title,
+      content: DEFAULT_DOCUMENT.content,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
     addDocument(newDoc);
-    setActiveSidebarItem("documents");
+    setActiveSidebarItem("documents"); // NAV_ITEMS id
     setCommandPaletteOpen(false);
   };
 
@@ -96,14 +92,14 @@ export function CommandPalette() {
     if (!activeProject) return;
     const newSprint = {
       id: `sprint-${Date.now()}`,
-      name: "Sprint " + (activeProject.sprints.length + 1),
+      name: `${DEFAULT_SPRINT_NAME_PREFIX} ${activeProject.sprints.length + 1}`,
       status: "planned" as const,
       tasks: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
     addSprint(newSprint);
-    setActiveSidebarItem("sprints");
+    setActiveSidebarItem("sprints"); // NAV_ITEMS id
     setActiveSprintId(newSprint.id);
     setCommandPaletteOpen(false);
   };
@@ -153,26 +149,12 @@ export function CommandPalette() {
         <CommandSeparator />
 
         <CommandGroup heading="Navigation">
-          <CommandItem onSelect={() => handleNavigate("overview")}>
-            <LayoutDashboard className="mr-2 h-4 w-4" />
-            <span>Go to Overview</span>
-          </CommandItem>
-          <CommandItem onSelect={() => handleNavigate("readme")}>
-            <FileText className="mr-2 h-4 w-4" />
-            <span>Go to README</span>
-          </CommandItem>
-          <CommandItem onSelect={() => handleNavigate("documents")}>
-            <FolderOpen className="mr-2 h-4 w-4" />
-            <span>Go to Documents</span>
-          </CommandItem>
-          <CommandItem onSelect={() => handleNavigate("sprints")}>
-            <Zap className="mr-2 h-4 w-4" />
-            <span>Go to Sprints</span>
-          </CommandItem>
-          <CommandItem onSelect={() => handleNavigate("agents")}>
-            <Bot className="mr-2 h-4 w-4" />
-            <span>Go to Agents Activity</span>
-          </CommandItem>
+          {NAV_ITEMS.map((item) => (
+            <CommandItem key={item.id} onSelect={() => handleNavigate(item.id)}>
+              <item.icon className="mr-2 h-4 w-4" />
+              <span>Go to {item.label}</span>
+            </CommandItem>
+          ))}
         </CommandGroup>
 
         <CommandSeparator />

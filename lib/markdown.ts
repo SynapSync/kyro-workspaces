@@ -1,13 +1,7 @@
-export type MarkdownFormat = 
-  | "bold" 
-  | "italic" 
-  | "code" 
-  | "codeblock" 
-  | "link" 
-  | "heading" 
-  | "list" 
-  | "numberedlist" 
-  | "quote";
+import type { MarkdownFormat } from "@/lib/types";
+import { DEFAULT_WORDS_PER_MINUTE } from "@/lib/config";
+
+export type { MarkdownFormat };
 
 export interface InsertResult {
   text: string;
@@ -46,7 +40,7 @@ export function insertMarkdownFormatting(
         : selectionStart + 1;
       break;
 
-    case "codeblock":
+    case "code_block":
       newText = `\`\`\`\n${selectedText || "code here"}\n\`\`\``;
       newCursorPos = selectedText 
         ? selectionEnd + 8 
@@ -65,12 +59,12 @@ export function insertMarkdownFormatting(
       newCursorPos = selectionStart + 3;
       break;
 
-    case "list":
+    case "bullet_list":
       newText = `- ${selectedText || "List item"}`;
       newCursorPos = selectionStart + 2;
       break;
 
-    case "numberedlist":
+    case "ordered_list":
       newText = `1. ${selectedText || "List item"}`;
       newCursorPos = selectionStart + 3;
       break;
@@ -104,7 +98,7 @@ export function getCharacterCount(text: string): number {
   return text.length;
 }
 
-export function getReadingTime(text: string, wordsPerMinute: number = 200): number {
+export function getReadingTime(text: string, wordsPerMinute: number = DEFAULT_WORDS_PER_MINUTE): number {
   const wordCount = getWordCount(text);
   return Math.ceil(wordCount / wordsPerMinute);
 }

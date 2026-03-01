@@ -136,4 +136,17 @@ export interface SprintSectionMeta {
   placeholder: string;
 }
 
+// --- Markdown Format ---
+
+export type MarkdownFormat =
+  | "bold"
+  | "italic"
+  | "code"
+  | "code_block"
+  | "link"
+  | "heading"
+  | "bullet_list"
+  | "ordered_list"
+  | "quote";
+
 // COLUMNS and SPRINT_SECTIONS constants live in lib/config.ts

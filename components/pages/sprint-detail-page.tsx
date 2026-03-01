@@ -7,11 +7,6 @@ import {
   Pencil,
   Save,
   X,
-  FileText,
-  AlertTriangle,
-  BarChart3,
-  Search,
-  Lightbulb,
   Target,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,20 +15,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { useAppStore } from "@/lib/store";
-import { SPRINT_SECTIONS } from "@/lib/config";
+import { SPRINT_SECTIONS, SPRINT_SECTION_ICONS, SPRINT_STATUS_CONFIG } from "@/lib/config";
+import type { SprintSectionKey } from "@/lib/config";
 import {
   type SprintMarkdownSections,
   type SprintSectionMeta,
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
-
-const sectionIcons: Record<keyof SprintMarkdownSections, typeof FileText> = {
-  retrospective: FileText,
-  technicalDebt: AlertTriangle,
-  executionMetrics: BarChart3,
-  findings: Search,
-  recommendations: Lightbulb,
-};
 
 interface SprintDetailPageProps {
   sprintId: string;
@@ -115,16 +103,10 @@ export function SprintDetailPage({ sprintId }: SprintDetailPageProps) {
                   {sprint.name}
                 </h1>
                 <Badge
-                  variant={
-                    sprint.status === "active"
-                      ? "default"
-                      : sprint.status === "closed"
-                      ? "secondary"
-                      : "outline"
-                  }
+                  variant={SPRINT_STATUS_CONFIG[sprint.status].variant}
                   className="text-[10px] h-5"
                 >
-                  {sprint.status.charAt(0).toUpperCase() + sprint.status.slice(1)}
+                  {SPRINT_STATUS_CONFIG[sprint.status].label}
                 </Badge>
                 {sprint.version && (
                   <Badge variant="outline" className="text-[10px] h-5 font-mono">
@@ -181,7 +163,7 @@ export function SprintDetailPage({ sprintId }: SprintDetailPageProps) {
                 Sprint Sections
               </p>
               {SPRINT_SECTIONS.map((section) => {
-                const Icon = sectionIcons[section.key];
+                const Icon = SPRINT_SECTION_ICONS[section.key as SprintSectionKey];
                 const hasContent =
                   sprint.sections?.[section.key] &&
                   sprint.sections[section.key]!.trim().length > 0;
@@ -264,7 +246,7 @@ export function SprintDetailPage({ sprintId }: SprintDetailPageProps) {
                 <div className="flex flex-col items-center justify-center py-20 text-center">
                   <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted mb-3">
                     {(() => {
-                      const Icon = sectionIcons[activeSection];
+                      const Icon = SPRINT_SECTION_ICONS[activeSection as SprintSectionKey];
                       return <Icon className="h-6 w-6 text-muted-foreground" />;
                     })()}
                   </div>

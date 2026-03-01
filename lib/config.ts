@@ -4,9 +4,29 @@ import {
   FolderOpen,
   Zap,
   Bot,
+  BookOpen,
+  AlertTriangle,
+  BarChart2,
+  Search,
+  Lightbulb,
+  Bold,
+  Italic,
+  Code,
+  Square,
+  Link2,
+  Heading,
+  List,
+  ListOrdered,
+  Quote,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import type { TaskStatus, TaskPriority, SprintSectionMeta } from "@/lib/types";
+import type {
+  TaskStatus,
+  TaskPriority,
+  SprintStatus,
+  SprintSectionMeta,
+  MarkdownFormat,
+} from "@/lib/types";
 
 // --- Priority Config ---
 
@@ -87,3 +107,96 @@ export const SPRINT_SECTIONS: SprintSectionMeta[] = [
       "## Recommendations for Next Sprint\n\n1. **[CRITICAL]** Description\n2. **[HIGH]** Description\n3. **[MEDIUM]** Description",
   },
 ];
+
+// --- App Identity ---
+
+export const APP_NAME = "Clever";
+export const APP_DESCRIPTION =
+  "An AI-native Kanban project management platform with intelligent task automation and sprint planning.";
+
+// --- Sprint Status Config ---
+
+export interface SprintStatusConfig {
+  label: string;
+  variant: "default" | "secondary" | "outline";
+}
+export const SPRINT_STATUS_CONFIG: Record<SprintStatus, SprintStatusConfig> = {
+  planned: { label: "Planned", variant: "secondary" },
+  active:  { label: "Active",  variant: "default"   },
+  closed:  { label: "Closed",  variant: "outline"   },
+};
+
+// --- Zen Mode Columns ---
+
+export const ZEN_COLUMNS: TaskStatus[] = ["in_progress", "review"];
+
+// --- Task Tag Config ---
+
+export const TASK_TAGS = {
+  BLOCKED:    "blocked",
+  AI_CREATED: "ai-created",
+} as const;
+
+export type TaskTagKey = (typeof TASK_TAGS)[keyof typeof TASK_TAGS];
+
+export interface TagStyle {
+  label: string;
+  badgeClassName: string;
+}
+export const TAG_CONFIG: Record<TaskTagKey, TagStyle> = {
+  "blocked":    { label: "Blocked", badgeClassName: "bg-red-500/10 text-red-600 border-red-200"          },
+  "ai-created": { label: "AI",      badgeClassName: "bg-purple-500/10 text-purple-600 border-purple-200" },
+};
+
+// --- Sprint Section Icons ---
+
+export type SprintSectionKey = "retrospective" | "technicalDebt" | "executionMetrics" | "findings" | "recommendations";
+
+export const SPRINT_SECTION_ICONS: Record<SprintSectionKey, LucideIcon> = {
+  retrospective:    BookOpen,
+  technicalDebt:    AlertTriangle,
+  executionMetrics: BarChart2,
+  findings:         Search,
+  recommendations:  Lightbulb,
+};
+
+// --- Markdown Toolbar Items ---
+
+export interface ToolbarItem {
+  format: MarkdownFormat;
+  label: string;
+  icon: LucideIcon;
+  shortcut?: string;
+}
+export const MARKDOWN_TOOLBAR_ITEMS: ToolbarItem[] = [
+  { format: "bold",         label: "Bold",         icon: Bold,         shortcut: "⌘B" },
+  { format: "italic",       label: "Italic",       icon: Italic,       shortcut: "⌘I" },
+  { format: "code",         label: "Inline Code",  icon: Code                         },
+  { format: "code_block",   label: "Code Block",   icon: Square                       },
+  { format: "link",         label: "Link",         icon: Link2                        },
+  { format: "heading",      label: "Heading",      icon: Heading                      },
+  { format: "bullet_list",  label: "Bullet List",  icon: List                         },
+  { format: "ordered_list", label: "Ordered List", icon: ListOrdered                  },
+  { format: "quote",        label: "Quote",        icon: Quote                        },
+];
+
+// --- Entity Defaults ---
+
+export const DEFAULT_DOCUMENT = {
+  title:   "Untitled Document",
+  content: "# New Document\n\nStart writing here...",
+} as const;
+
+export const DEFAULT_PROJECT = {
+  name:        "New Project",
+  description: "A new project",
+  readme:      "# New Project\n\nWelcome!",
+} as const;
+
+export const DEFAULT_SPRINT_NAME_PREFIX = "Sprint";
+
+// --- Timing / UI Constants ---
+
+export const NEW_TASK_THRESHOLD_MS = 5000;
+export const DEFAULT_WORDS_PER_MINUTE = 200;
+export const QUERY_STALE_TIME_MS = 60 * 1_000; // 60 seconds

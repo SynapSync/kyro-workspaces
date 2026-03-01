@@ -11,6 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { Task, TaskStatus } from "@/lib/types";
+import { TASK_TAGS } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
 interface BoardColumnProps {
@@ -36,7 +37,7 @@ export function BoardColumn({
 }: BoardColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id });
   
-  const blockedTasks = tasks.filter((t) => t.tags.includes("blocked"));
+  const blockedTasks = tasks.filter((t) => t.tags.includes(TASK_TAGS.BLOCKED));
   const hasBlocked = blockedTasks.length > 0;
 
   return (

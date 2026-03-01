@@ -25,16 +25,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAppStore } from "@/lib/store";
-import { SPRINT_SECTIONS } from "@/lib/config";
+import { SPRINT_SECTIONS, SPRINT_STATUS_CONFIG } from "@/lib/config";
 import { type SprintStatus } from "@/lib/types";
 
-const statusConfig: Record<
-  SprintStatus,
-  { label: string; variant: "default" | "secondary" | "outline"; icon: typeof Zap }
-> = {
-  planned: { label: "Planned", variant: "outline", icon: Calendar },
-  active: { label: "Active", variant: "default", icon: Zap },
-  closed: { label: "Closed", variant: "secondary", icon: CheckCircle2 },
+const statusIcons: Record<SprintStatus, typeof Zap> = {
+  planned: Calendar,
+  active: Zap,
+  closed: CheckCircle2,
 };
 
 export function SprintsPage() {
@@ -89,8 +86,8 @@ export function SprintsPage() {
 
       <div className="grid gap-4">
         {project.sprints.map((sprint) => {
-          const config = statusConfig[sprint.status];
-          const Icon = config.icon;
+          const config = SPRINT_STATUS_CONFIG[sprint.status];
+          const Icon = statusIcons[sprint.status];
           const doneTasks = sprint.tasks.filter(
             (t) => t.status === "done"
           ).length;

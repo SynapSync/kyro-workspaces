@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Task, TaskPriority, TaskStatus } from "@/lib/types";
-import { COLUMNS } from "@/lib/config";
+import { COLUMNS, PRIORITY_CONFIG } from "@/lib/config";
 import { useAppStore } from "@/lib/store";
 
 interface TaskDialogProps {
@@ -127,10 +127,11 @@ export function TaskDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="low">Low</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="urgent">Urgent</SelectItem>
+                  {Object.entries(PRIORITY_CONFIG).map(([value, config]) => (
+                    <SelectItem key={value} value={value}>
+                      {config.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
