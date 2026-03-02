@@ -52,6 +52,10 @@ export class MockProjectsService implements ProjectsService {
     throw new Error("MockProjectsService: updateSprint not implemented");
   }
 
+  async deleteSprint(_projectId: string, _sprintId: string): Promise<void> {
+    throw new Error("MockProjectsService: deleteSprint not implemented");
+  }
+
   async createTask(_projectId: string, _sprintId: string, _data: CreateTaskInput): Promise<Task> {
     throw new Error("MockProjectsService: createTask not implemented");
   }

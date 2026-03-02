@@ -96,6 +96,7 @@ export interface ProjectsService {
 
   createSprint(projectId: string, data: CreateSprintInput): Promise<Sprint>;
   updateSprint(projectId: string, sprintId: string, updates: UpdateSprintInput): Promise<Sprint>;
+  deleteSprint(projectId: string, sprintId: string): Promise<void>;
 
   createTask(projectId: string, sprintId: string, data: CreateTaskInput): Promise<Task>;
   updateTask(projectId: string, sprintId: string, taskId: string, updates: UpdateTaskInput): Promise<Task>;

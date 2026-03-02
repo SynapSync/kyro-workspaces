@@ -40,6 +40,24 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
   }
 }
 
+export async function DELETE(_req: NextRequest, { params }: RouteParams) {
+  try {
+    const { projectId, sprintId } = await params;
+    const workspacePath = getWorkspacePath();
+    const filePath = resolveAndGuard(workspacePath, "projects", projectId, "sprints", `${sprintId}.md`);
+
+    const fileExistsResult = await fileExists(filePath);
+    if (!fileExistsResult) {
+      return notFound("Sprint not found");
+    }
+
+    await fs.unlink(filePath);
+    return ok({ deleted: true }, 200);
+  } catch (err) {
+    return handleError(err);
+  }
+}
+
 export async function PUT(req: NextRequest, { params }: RouteParams) {
   try {
     const { projectId, sprintId } = await params;

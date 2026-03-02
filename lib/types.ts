@@ -99,13 +99,15 @@ export const AgentActivitySchema = z.object({
   metadata: z.record(z.string()).optional(),
 });
 
-export const DocumentVersionSchema = z.object({
-  id: z.string(),
-  docId: z.string(),
-  content: z.string(),
-  title: z.string(),
-  createdAt: z.string(),
-});
+// --- Git Types ---
+
+export interface GitCommit {
+  hash: string;       // full SHA-1
+  shortHash: string;  // first 7 chars
+  message: string;
+  authorName: string;
+  authorDate: string; // ISO 8601
+}
 
 // --- TypeScript Types ---
 
@@ -119,7 +121,6 @@ export type Column = z.infer<typeof ColumnSchema>;
 export type SprintMarkdownSections = z.infer<typeof SprintMarkdownSectionsSchema>;
 export type Sprint = z.infer<typeof SprintSchema>;
 export type Document = z.infer<typeof DocumentSchema>;
-export type DocumentVersion = z.infer<typeof DocumentVersionSchema>;
 export type Project = z.infer<typeof ProjectSchema>;
 export type AgentActivity = z.infer<typeof AgentActivitySchema>;
 

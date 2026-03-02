@@ -82,6 +82,12 @@ export class FileProjectsService implements ProjectsService {
     return sprint;
   }
 
+  async deleteSprint(projectId: string, sprintId: string): Promise<void> {
+    await localFetch(`/api/projects/${projectId}/sprints/${sprintId}`, {
+      method: "DELETE",
+    });
+  }
+
   async createTask(
     projectId: string,
     sprintId: string,

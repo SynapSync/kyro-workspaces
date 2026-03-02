@@ -7,12 +7,13 @@ import type {
   Sprint,
   SprintMarkdownSections,
   Document,
-  DocumentVersion,
   TeamMember,
   LoadingState,
 } from "./types";
-import { getInitialState } from "./services/mock/seed";
 import { services } from "./services";
+
+const errorMsg = (err: unknown) =>
+  err instanceof Error ? err.message : "Save failed";
 
 interface AppState {
   // Multi-project management
@@ -37,6 +38,7 @@ interface AppState {
   // Sprints (scoped to active project)
   addSprint: (sprint: Sprint) => void;
   updateSprint: (id: string, updates: Partial<Sprint>) => void;
+  deleteSprint: (sprintId: string) => void;
   updateSprintSection: (
     sprintId: string,
     sectionKey: keyof SprintMarkdownSections,
@@ -53,6 +55,11 @@ interface AppState {
   isInitializing: boolean;
   initError: string | null;
   initializeApp: () => Promise<void>;
+
+  // Saving state
+  isSaving: boolean;
+  saveError: string | null;
+  setSaveError: (msg: string | null) => void;
 
   // Team Members
   members: TeamMember[];
@@ -82,12 +89,6 @@ interface AppState {
   setColumnCollapsed: (sprintId: string, columnId: string, collapsed: boolean) => void;
   toggleColumnCollapsed: (sprintId: string, columnId: string) => void;
 
-  // Document Version History
-  documentVersions: Record<string, DocumentVersion[]>;
-  addDocumentVersion: (docId: string, content: string, title: string) => void;
-  restoreDocumentVersion: (docId: string, versionId: string) => void;
-  getDocumentVersions: (docId: string) => DocumentVersion[];
-
   // Focus Mode / Zen Mode
   focusMode: boolean;
   focusedColumnId: string | null;
@@ -115,36 +116,61 @@ function updateProjectSprints(
   );
 }
 
-const { projects: initialProjects, members: initialMembers, activities: initialActivities } = getInitialState();
-
 export const useAppStore = create<AppState>((set, get) => ({
-  projects: initialProjects,
-  activeProjectId: initialProjects[0].id,
+  projects: [],
+  activeProjectId: "",
 
   setActiveProjectId: (id) =>
     set({ activeProjectId: id, activeSprintId: null, activeSprintDetailId: null, activeSidebarItem: "overview" }),
 
-  addProject: (project) =>
-    set((state) => ({ projects: [...state.projects, project] })),
+  addProject: (project) => {
+    const prev = get().projects;
+    set((state) => ({ isSaving: true, saveError: null, projects: [...state.projects, project] }));
+    services.projects.createProject({
+      id: project.id,
+      name: project.name,
+      description: project.description,
+    })
+      .then(() => set({ isSaving: false }))
+      .catch((err) => set({ projects: prev, isSaving: false, saveError: errorMsg(err) }));
+  },
 
-  updateProject: (id, updates) =>
+  updateProject: (id, updates) => {
+    const prev = get().projects;
     set((state) => ({
+      isSaving: true,
+      saveError: null,
       projects: state.projects.map((p) =>
         p.id === id ? { ...p, ...updates, updatedAt: new Date().toISOString() } : p
       ),
-    })),
+    }));
+    services.projects.updateProject(id, {
+      name: updates.name,
+      description: updates.description,
+      readme: updates.readme,
+    })
+      .then(() => set({ isSaving: false }))
+      .catch((err) => set({ projects: prev, isSaving: false, saveError: errorMsg(err) }));
+  },
 
-  deleteProject: (id) =>
+  deleteProject: (id) => {
+    const prev = get().projects;
     set((state) => {
       const remaining = state.projects.filter((p) => p.id !== id);
       return {
+        isSaving: true,
+        saveError: null,
         projects: remaining,
         activeProjectId:
           state.activeProjectId === id
             ? remaining[0]?.id ?? ""
             : state.activeProjectId,
       };
-    }),
+    });
+    services.projects.deleteProject(id)
+      .then(() => set({ isSaving: false }))
+      .catch((err) => set({ projects: prev, isSaving: false, saveError: errorMsg(err) }));
+  },
 
   getActiveProject: () => {
     const state = get();
@@ -160,8 +186,13 @@ export const useAppStore = create<AppState>((set, get) => ({
       ),
     })),
 
+  // --- Documents (optimistic + rollback) ---
+
   addDocument: (doc) => {
+    const prev = get().projects;
     set((state) => ({
+      isSaving: true,
+      saveError: null,
       projects: state.projects.map((p) =>
         p.id === state.activeProjectId
           ? { ...p, documents: [...p.documents, doc], updatedAt: new Date().toISOString() }
@@ -171,11 +202,16 @@ export const useAppStore = create<AppState>((set, get) => ({
     services.projects.createDocument(get().activeProjectId, {
       title: doc.title,
       content: doc.content,
-    }).catch((err) => console.error("[store] createDocument failed:", err));
+    })
+      .then(() => set({ isSaving: false }))
+      .catch((err) => set({ projects: prev, isSaving: false, saveError: errorMsg(err) }));
   },
 
   updateDocument: (id, updates) => {
+    const prev = get().projects;
     set((state) => ({
+      isSaving: true,
+      saveError: null,
       projects: state.projects.map((p) =>
         p.id === state.activeProjectId
           ? {
@@ -191,11 +227,15 @@ export const useAppStore = create<AppState>((set, get) => ({
       ),
     }));
     services.projects.updateDocument(get().activeProjectId, id, updates)
-      .catch((err) => console.error("[store] updateDocument failed:", err));
+      .then(() => set({ isSaving: false }))
+      .catch((err) => set({ projects: prev, isSaving: false, saveError: errorMsg(err) }));
   },
 
   deleteDocument: (id) => {
+    const prev = get().projects;
     set((state) => ({
+      isSaving: true,
+      saveError: null,
       projects: state.projects.map((p) =>
         p.id === state.activeProjectId
           ? { ...p, documents: p.documents.filter((d) => d.id !== id) }
@@ -203,11 +243,17 @@ export const useAppStore = create<AppState>((set, get) => ({
       ),
     }));
     services.projects.deleteDocument(get().activeProjectId, id)
-      .catch((err) => console.error("[store] deleteDocument failed:", err));
+      .then(() => set({ isSaving: false }))
+      .catch((err) => set({ projects: prev, isSaving: false, saveError: errorMsg(err) }));
   },
 
+  // --- Sprints (optimistic + rollback) ---
+
   addSprint: (sprint) => {
+    const prev = get().projects;
     set((state) => ({
+      isSaving: true,
+      saveError: null,
       projects: updateProjectSprints(
         state.projects,
         state.activeProjectId,
@@ -222,11 +268,16 @@ export const useAppStore = create<AppState>((set, get) => ({
       startDate: sprint.startDate,
       endDate: sprint.endDate,
       version: sprint.version,
-    }).catch((err) => console.error("[store] createSprint failed:", err));
+    })
+      .then(() => set({ isSaving: false }))
+      .catch((err) => set({ projects: prev, isSaving: false, saveError: errorMsg(err) }));
   },
 
   updateSprint: (id, updates) => {
+    const prev = get().projects;
     set((state) => ({
+      isSaving: true,
+      saveError: null,
       projects: updateProjectSprints(
         state.projects,
         state.activeProjectId,
@@ -234,7 +285,24 @@ export const useAppStore = create<AppState>((set, get) => ({
       ),
     }));
     services.projects.updateSprint(get().activeProjectId, id, updates)
-      .catch((err) => console.error("[store] updateSprint failed:", err));
+      .then(() => set({ isSaving: false }))
+      .catch((err) => set({ projects: prev, isSaving: false, saveError: errorMsg(err) }));
+  },
+
+  deleteSprint: (sprintId) => {
+    const prev = get().projects;
+    set((state) => ({
+      isSaving: true,
+      saveError: null,
+      projects: updateProjectSprints(
+        state.projects,
+        state.activeProjectId,
+        (sprints) => sprints.filter((s) => s.id !== sprintId)
+      ),
+    }));
+    services.projects.deleteSprint(get().activeProjectId, sprintId)
+      .then(() => set({ isSaving: false }))
+      .catch((err) => set({ projects: prev, isSaving: false, saveError: errorMsg(err) }));
   },
 
   updateSprintSection: (sprintId, sectionKey, content) =>
@@ -257,8 +325,13 @@ export const useAppStore = create<AppState>((set, get) => ({
       ),
     })),
 
+  // --- Tasks (optimistic + rollback) ---
+
   addTask: (sprintId, task) => {
+    const prev = get().projects;
     set((state) => ({
+      isSaving: true,
+      saveError: null,
       projects: updateProjectSprints(
         state.projects,
         state.activeProjectId,
@@ -275,11 +348,16 @@ export const useAppStore = create<AppState>((set, get) => ({
       priority: task.priority,
       assignee: task.assignee,
       tags: task.tags,
-    }).catch((err) => console.error("[store] createTask failed:", err));
+    })
+      .then(() => set({ isSaving: false }))
+      .catch((err) => set({ projects: prev, isSaving: false, saveError: errorMsg(err) }));
   },
 
   updateTask: (sprintId, taskId, updates) => {
+    const prev = get().projects;
     set((state) => ({
+      isSaving: true,
+      saveError: null,
       projects: updateProjectSprints(
         state.projects,
         state.activeProjectId,
@@ -299,11 +377,15 @@ export const useAppStore = create<AppState>((set, get) => ({
       ),
     }));
     services.projects.updateTask(get().activeProjectId, sprintId, taskId, updates)
-      .catch((err) => console.error("[store] updateTask failed:", err));
+      .then(() => set({ isSaving: false }))
+      .catch((err) => set({ projects: prev, isSaving: false, saveError: errorMsg(err) }));
   },
 
   moveTask: (sprintId, taskId, newStatus) => {
+    const prev = get().projects;
     set((state) => ({
+      isSaving: true,
+      saveError: null,
       projects: updateProjectSprints(
         state.projects,
         state.activeProjectId,
@@ -323,11 +405,15 @@ export const useAppStore = create<AppState>((set, get) => ({
       ),
     }));
     services.projects.moveTask(get().activeProjectId, sprintId, taskId, newStatus)
-      .catch((err) => console.error("[store] moveTask failed:", err));
+      .then(() => set({ isSaving: false }))
+      .catch((err) => set({ projects: prev, isSaving: false, saveError: errorMsg(err) }));
   },
 
   deleteTask: (sprintId, taskId) => {
+    const prev = get().projects;
     set((state) => ({
+      isSaving: true,
+      saveError: null,
       projects: updateProjectSprints(
         state.projects,
         state.activeProjectId,
@@ -340,10 +426,13 @@ export const useAppStore = create<AppState>((set, get) => ({
       ),
     }));
     services.projects.deleteTask(get().activeProjectId, sprintId, taskId)
-      .catch((err) => console.error("[store] deleteTask failed:", err));
+      .then(() => set({ isSaving: false }))
+      .catch((err) => set({ projects: prev, isSaving: false, saveError: errorMsg(err) }));
   },
 
-  isInitializing: false,
+  // --- Async init ---
+
+  isInitializing: true,
   initError: null,
   initializeApp: async () => {
     set({ isInitializing: true, initError: null });
@@ -353,7 +442,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         services.members.list(),
         services.activities.list(),
       ]);
-      set({ projects, members, activities, isInitializing: false });
+      set({ projects, members, activities, activeProjectId: projects[0]?.id ?? "", isInitializing: false });
     } catch (err) {
       set({
         isInitializing: false,
@@ -362,7 +451,15 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
-  members: initialMembers,
+  // --- Saving state ---
+
+  isSaving: false,
+  saveError: null,
+  setSaveError: (msg) => set({ saveError: msg }),
+
+  // --- Team Members ---
+
+  members: [],
   addMember: (member) =>
     set((state) => ({ members: [...state.members, member] })),
   updateMember: (name, updates) =>
@@ -372,9 +469,13 @@ export const useAppStore = create<AppState>((set, get) => ({
   removeMember: (name) =>
     set((state) => ({ members: state.members.filter((m) => m.name !== name) })),
 
-  activities: initialActivities,
+  // --- Activities ---
+
+  activities: [],
   addActivity: (activity) =>
     set((state) => ({ activities: [activity, ...state.activities] })),
+
+  // --- UI State ---
 
   activeSidebarItem: "overview",
   setActiveSidebarItem: (item) => set({ activeSidebarItem: item }),
@@ -404,56 +505,6 @@ export const useAppStore = create<AppState>((set, get) => ({
         [`${sprintId}-${columnId}`]: !state.collapsedColumns[`${sprintId}-${columnId}`],
       },
     })),
-
-  // Document Version History
-  documentVersions: {},
-  addDocumentVersion: (docId, content, title) =>
-    set((state) => {
-      const newVersion: DocumentVersion = {
-        id: `ver-${Date.now()}`,
-        docId,
-        content,
-        title,
-        createdAt: new Date().toISOString(),
-      };
-      const existingVersions = state.documentVersions[docId] || [];
-      const updatedVersions = [newVersion, ...existingVersions].slice(0, 10);
-      return {
-        documentVersions: {
-          ...state.documentVersions,
-          [docId]: updatedVersions,
-        },
-      };
-    }),
-  restoreDocumentVersion: (docId, versionId) =>
-    set((state) => {
-      const versions = state.documentVersions[docId] || [];
-      const version = versions.find((v) => v.id === versionId);
-      if (!version) return state;
-      
-      const activeProject = state.projects.find((p) => p.id === state.activeProjectId);
-      if (!activeProject) return state;
-      
-      return {
-        projects: state.projects.map((p) =>
-          p.id === state.activeProjectId
-            ? {
-                ...p,
-                documents: p.documents.map((d) =>
-                  d.id === docId
-                    ? { ...d, content: version.content, title: version.title, updatedAt: new Date().toISOString() }
-                    : d
-                ),
-                updatedAt: new Date().toISOString(),
-              }
-            : p
-        ),
-      };
-    }),
-  getDocumentVersions: (docId) => {
-    const state = get();
-    return state.documentVersions[docId] || [];
-  },
 
   // Focus Mode / Zen Mode
   focusMode: false,

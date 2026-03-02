@@ -1,4 +1,5 @@
 import * as fs from "fs/promises";
+import * as path from "path";
 import { NextRequest } from "next/server";
 import {
   getWorkspacePath,
@@ -8,6 +9,7 @@ import {
   notFound,
   handleError,
 } from "@/lib/api";
+import { getGit } from "@/lib/git";
 import {
   parseDocumentFile,
 } from "@/lib/file-format/parsers";
@@ -63,6 +65,16 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
 
     const newContent = serializeDocumentFile(updated);
     await fs.writeFile(filePath, newContent, "utf-8");
+
+    // Auto-commit document changes to git
+    try {
+      const git = getGit();
+      const relativePath = path.relative(workspacePath, filePath);
+      await git.add(relativePath);
+      await git.commit(`docs: update ${updated.title}`);
+    } catch {
+      // Git errors should not fail the document save
+    }
 
     return ok({ document: updated }, 200);
   } catch (err) {
