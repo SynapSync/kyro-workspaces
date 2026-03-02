@@ -8,4 +8,4 @@ export {
   ensureDir,
 } from "./workspace-guard";
 
-export { ok, notFound, handleError } from "./response-helpers";
+export { ok, notFound, handleError, validateBody } from "./response-helpers";

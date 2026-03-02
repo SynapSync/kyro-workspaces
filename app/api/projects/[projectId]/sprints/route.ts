@@ -7,6 +7,7 @@ import {
   WorkspaceError,
   ok,
   handleError,
+  validateBody,
 } from "@/lib/api";
 import {
   parseSprintFile,
@@ -53,10 +54,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     const { projectId } = await params;
     const workspacePath = getWorkspacePath();
     const body = await req.json();
-
-    if (!body.id || typeof body.id !== "string") {
-      throw new WorkspaceError("INVALID_FORMAT", "Sprint ID is required");
-    }
+    validateBody<{ id: string; name: string }>(body, ["id", "name"]);
 
     if (body.id.includes("/") || body.id.includes("..")) {
       throw new WorkspaceError(

@@ -12,6 +12,21 @@ export function notFound(message: string): NextResponse {
   );
 }
 
+export function validateBody<T extends object>(
+  body: unknown,
+  required: (keyof T)[]
+): T {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    throw new WorkspaceError("INVALID_FORMAT", "Request body must be a JSON object");
+  }
+  for (const field of required) {
+    if ((body as Record<string, unknown>)[field as string] === undefined) {
+      throw new WorkspaceError("INVALID_FORMAT", `Missing required field: ${String(field)}`);
+    }
+  }
+  return body as T;
+}
+
 export function handleError(err: unknown): NextResponse {
   if (err instanceof WorkspaceError) {
     const { status, body } = toHttpResponse(err);

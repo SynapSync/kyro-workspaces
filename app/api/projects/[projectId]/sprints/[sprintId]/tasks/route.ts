@@ -7,6 +7,7 @@ import {
   ok,
   notFound,
   handleError,
+  validateBody,
 } from "@/lib/api";
 import {
   parseSprintFile,
@@ -56,6 +57,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     }
 
     const body = await req.json();
+    validateBody<{ title: string }>(body, ["title"]);
     const content = await fs.readFile(filePath, "utf-8");
     const sprint = parseSprintFile(content);
 

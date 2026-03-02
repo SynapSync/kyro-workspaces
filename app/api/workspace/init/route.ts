@@ -6,7 +6,7 @@ import {
   ensureDir,
   ok,
   handleError,
-  WorkspaceError,
+  validateBody,
 } from "@/lib/api";
 import {
   serializeWorkspaceConfig,
@@ -18,10 +18,7 @@ export async function POST(req: NextRequest) {
   try {
     const workspacePath = getWorkspacePath();
     const body = await req.json();
-
-    if (!body.name || typeof body.name !== "string") {
-      throw new WorkspaceError("INVALID_FORMAT", "Name is required");
-    }
+    validateBody<{ name: string }>(body, ["name"]);
 
     const now = new Date().toISOString();
     const workspaceId = `ws-${Date.now().toString(36)}`;

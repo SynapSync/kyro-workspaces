@@ -160,16 +160,21 @@ export const useAppStore = create<AppState>((set, get) => ({
       ),
     })),
 
-  addDocument: (doc) =>
+  addDocument: (doc) => {
     set((state) => ({
       projects: state.projects.map((p) =>
         p.id === state.activeProjectId
           ? { ...p, documents: [...p.documents, doc], updatedAt: new Date().toISOString() }
           : p
       ),
-    })),
+    }));
+    services.projects.createDocument(get().activeProjectId, {
+      title: doc.title,
+      content: doc.content,
+    }).catch((err) => console.error("[store] createDocument failed:", err));
+  },
 
-  updateDocument: (id, updates) =>
+  updateDocument: (id, updates) => {
     set((state) => ({
       projects: state.projects.map((p) =>
         p.id === state.activeProjectId
@@ -184,34 +189,53 @@ export const useAppStore = create<AppState>((set, get) => ({
             }
           : p
       ),
-    })),
+    }));
+    services.projects.updateDocument(get().activeProjectId, id, updates)
+      .catch((err) => console.error("[store] updateDocument failed:", err));
+  },
 
-  deleteDocument: (id) =>
+  deleteDocument: (id) => {
     set((state) => ({
       projects: state.projects.map((p) =>
         p.id === state.activeProjectId
           ? { ...p, documents: p.documents.filter((d) => d.id !== id) }
           : p
       ),
-    })),
+    }));
+    services.projects.deleteDocument(get().activeProjectId, id)
+      .catch((err) => console.error("[store] deleteDocument failed:", err));
+  },
 
-  addSprint: (sprint) =>
+  addSprint: (sprint) => {
     set((state) => ({
       projects: updateProjectSprints(
         state.projects,
         state.activeProjectId,
         (sprints) => [...sprints, sprint]
       ),
-    })),
+    }));
+    services.projects.createSprint(get().activeProjectId, {
+      id: sprint.id,
+      name: sprint.name,
+      objective: sprint.objective,
+      status: sprint.status,
+      startDate: sprint.startDate,
+      endDate: sprint.endDate,
+      version: sprint.version,
+    }).catch((err) => console.error("[store] createSprint failed:", err));
+  },
 
-  updateSprint: (id, updates) =>
+  updateSprint: (id, updates) => {
     set((state) => ({
       projects: updateProjectSprints(
         state.projects,
         state.activeProjectId,
         (sprints) => sprints.map((s) => (s.id === id ? { ...s, ...updates } : s))
       ),
-    })),
+    }));
+    services.projects.updateSprint(get().activeProjectId, id, updates)
+      .catch((err) => console.error("[store] updateSprint failed:", err));
+  },
 
   updateSprintSection: (sprintId, sectionKey, content) =>
     set((state) => ({
@@ -233,7 +257,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       ),
     })),
 
-  addTask: (sprintId, task) =>
+  addTask: (sprintId, task) => {
     set((state) => ({
       projects: updateProjectSprints(
         state.projects,
@@ -243,9 +267,18 @@ export const useAppStore = create<AppState>((set, get) => ({
             s.id === sprintId ? { ...s, tasks: [...s.tasks, task] } : s
           )
       ),
-    })),
+    }));
+    services.projects.createTask(get().activeProjectId, sprintId, {
+      title: task.title,
+      description: task.description,
+      status: task.status,
+      priority: task.priority,
+      assignee: task.assignee,
+      tags: task.tags,
+    }).catch((err) => console.error("[store] createTask failed:", err));
+  },
 
-  updateTask: (sprintId, taskId, updates) =>
+  updateTask: (sprintId, taskId, updates) => {
     set((state) => ({
       projects: updateProjectSprints(
         state.projects,
@@ -264,9 +297,12 @@ export const useAppStore = create<AppState>((set, get) => ({
               : s
           )
       ),
-    })),
+    }));
+    services.projects.updateTask(get().activeProjectId, sprintId, taskId, updates)
+      .catch((err) => console.error("[store] updateTask failed:", err));
+  },
 
-  moveTask: (sprintId, taskId, newStatus) =>
+  moveTask: (sprintId, taskId, newStatus) => {
     set((state) => ({
       projects: updateProjectSprints(
         state.projects,
@@ -285,9 +321,12 @@ export const useAppStore = create<AppState>((set, get) => ({
               : s
           )
       ),
-    })),
+    }));
+    services.projects.moveTask(get().activeProjectId, sprintId, taskId, newStatus)
+      .catch((err) => console.error("[store] moveTask failed:", err));
+  },
 
-  deleteTask: (sprintId, taskId) =>
+  deleteTask: (sprintId, taskId) => {
     set((state) => ({
       projects: updateProjectSprints(
         state.projects,
@@ -299,7 +338,10 @@ export const useAppStore = create<AppState>((set, get) => ({
               : s
           )
       ),
-    })),
+    }));
+    services.projects.deleteTask(get().activeProjectId, sprintId, taskId)
+      .catch((err) => console.error("[store] deleteTask failed:", err));
+  },
 
   isInitializing: false,
   initError: null,

@@ -8,6 +8,7 @@ import {
   WorkspaceError,
   ok,
   handleError,
+  validateBody,
 } from "@/lib/api";
 import {
   parseProjectReadme,
@@ -52,10 +53,7 @@ export async function POST(req: NextRequest) {
   try {
     const workspacePath = getWorkspacePath();
     const body = await req.json();
-
-    if (!body.id || typeof body.id !== "string") {
-      throw new WorkspaceError("INVALID_FORMAT", "Project ID is required");
-    }
+    validateBody<{ id: string; name?: string }>(body, ["id"]);
 
     if (body.id.includes("/") || body.id.includes("..")) {
       throw new WorkspaceError(

@@ -7,6 +7,7 @@ import {
   ok,
   notFound,
   handleError,
+  validateBody,
 } from "@/lib/api";
 import {
   parseSprintFile,
@@ -51,6 +52,7 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
     }
 
     const body = await req.json();
+    validateBody<{ status?: string }>(body, []);
     const existingContent = await fs.readFile(filePath, "utf-8");
     const existing = parseSprintFile(existingContent);
 

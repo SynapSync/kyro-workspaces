@@ -9,6 +9,7 @@ import {
   ok,
   notFound,
   handleError,
+  validateBody,
 } from "@/lib/api";
 import {
   parseProjectReadme,
@@ -57,6 +58,7 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
     }
 
     const body = await req.json();
+    validateBody<{ name?: string }>(body, []);
     const existingContent = await fs.readFile(readmePath, "utf-8");
     const existing = parseProjectReadme(existingContent, projectId);
 

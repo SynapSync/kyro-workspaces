@@ -8,6 +8,7 @@ import {
   ok,
   notFound,
   handleError,
+  validateBody,
 } from "@/lib/api";
 import {
   parseMembersFile,
@@ -43,10 +44,7 @@ export async function POST(req: NextRequest) {
   try {
     const workspacePath = getWorkspacePath();
     const body = await req.json();
-
-    if (!body.name || typeof body.name !== "string") {
-      throw new WorkspaceError("INVALID_FORMAT", "Name is required");
-    }
+    validateBody<{ name: string }>(body, ["name"]);
 
     const membersPath = resolveAndGuard(workspacePath, ".kyro", "members.json");
     const fileExistsResult = await fileExists(membersPath);

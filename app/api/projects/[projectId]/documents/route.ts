@@ -7,6 +7,7 @@ import {
   WorkspaceError,
   ok,
   handleError,
+  validateBody,
 } from "@/lib/api";
 import {
   parseDocumentFile,
@@ -67,10 +68,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     const { projectId } = await params;
     const workspacePath = getWorkspacePath();
     const body = await req.json();
-
-    if (!body.title || typeof body.title !== "string") {
-      throw new WorkspaceError("INVALID_FORMAT", "Title is required");
-    }
+    validateBody<{ title: string }>(body, ["title"]);
 
     const docsDir = resolveAndGuard(workspacePath, "projects", projectId, "documents");
     await fs.mkdir(docsDir, { recursive: true });
