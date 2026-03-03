@@ -112,7 +112,7 @@ export const SPRINT_SECTIONS: SprintSectionMeta[] = [
 
 export const APP_NAME = "Kyro";
 export const APP_DESCRIPTION =
-  "An AI-native Kanban project management platform with intelligent task automation and sprint planning.";
+  "Kyro is an agentic execution kernel for structured work. A self-optimizing system where AI agents and humans collaborate through markdown files inside a shared workspace.";
 
 // --- Sprint Status Config ---
 

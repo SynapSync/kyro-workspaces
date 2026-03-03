@@ -285,13 +285,15 @@ const botTasks: Task[] = [
 export const mockProjects: Project[] = [
   {
     id: "proj-1",
-    name: "Clever Platform",
+    name: "Kyro",
     description:
-      "An AI-native project management platform with intelligent task automation, smart sprint planning, and collaborative document editing.",
+      "An agentic execution kernel for structured work. A self-optimizing system where AI agents and humans collaborate through markdown files inside a shared workspace.",
     color: "bg-primary",
-    readme: `# Clever Platform
+    readme: `# Kyro
 
-Welcome to the **Clever Platform** - an AI-native project management tool built for modern development teams.
+Knowledge → Yield → Run → Optimize
+
+Kyro is an agentic execution kernel for structured work. A self-optimizing system where AI agents and humans collaborate through markdown files inside a shared workspace.
 
 ## Getting Started
 
