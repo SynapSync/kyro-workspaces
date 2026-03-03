@@ -53,6 +53,10 @@ It is derived, executed, and refined.
   - Recommendations
 - **Documents** --- Create and manage project documentation
 - **Project README** --- Editable README per project
+- **Workspace Bootstrap for Agents** --- `README.md` + `AGENTS.md` generated at workspace init
+- **Project Agent Templates** --- New projects get `README.md`, `ROADMAP.md`, `RE-ENTRY-PROMPTS.md`
+- **Agent Context Panel** --- Topbar shows active project, active sprint, and last active agent
+- **Workspace Onboarding UI** --- Guided setup when workspace is missing or not initialized
 - **Agents Activity** --- Track AI agent activities within projects
 - **Dark/Light Theme** --- Full theme support with system preference
   detection
@@ -120,6 +124,7 @@ pnpm dev
 # 1. Set environment variables in .env.local:
 #    NEXT_PUBLIC_USE_MOCK_DATA=false
 #    KYRO_WORKSPACE_PATH=/path/to/workspace
+# 2. Open Kyro and initialize workspace from onboarding UI
 
 # Build for production
 pnpm build
@@ -136,6 +141,8 @@ pnpm lint
 ## Workspace Structure
 
     {KYRO_WORKSPACE_PATH}/
+    ├── README.md             # Workspace index + agent protocol
+    ├── AGENTS.md             # Workspace-wide agent execution rules
     ├── .kyro/
     │   ├── config.json          # Workspace metadata
     │   ├── members.json         # Team members
@@ -144,10 +151,32 @@ pnpm lint
         └── {project-slug}/
             ├── README.md         # Project overview
             ├── ROADMAP.md        # Sprint roadmap
+            ├── RE-ENTRY-PROMPTS.md  # Session recovery prompts
             ├── sprints/
             │   └── SPRINT-NN.md  # Sprint with tasks (markdown checkboxes)
             └── documents/
                 └── {doc}.md     # Project documentation
+
+---
+
+## Agent Workflow
+
+When an agent receives _\"work on project X, sprint Y\"_, use this read order:
+
+1. `projects/{slug}/README.md`
+2. `projects/{slug}/ROADMAP.md`
+3. latest sprint in `projects/{slug}/sprints/`
+4. `projects/{slug}/RE-ENTRY-PROMPTS.md`
+
+Task state symbols in sprint files:
+
+- `[ ]` pending
+- `[~]` in progress
+- `[x]` done
+- `[!]` blocked
+- `[>]` carry-over
+
+Activities are persisted in `.kyro/activities.json` and surfaced in the UI.
 
 ---
 

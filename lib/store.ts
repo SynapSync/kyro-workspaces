@@ -11,11 +11,14 @@ import type {
   LoadingState,
 } from "./types";
 import { services } from "./services";
+import { APP_NAME } from "./config";
 
 const errorMsg = (err: unknown) =>
   err instanceof Error ? err.message : "Save failed";
 
 interface AppState {
+  workspaceName: string;
+
   // Multi-project management
   projects: Project[];
   activeProjectId: string;
@@ -117,6 +120,7 @@ function updateProjectSprints(
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
+  workspaceName: APP_NAME,
   projects: [],
   activeProjectId: "",
 
@@ -177,14 +181,21 @@ export const useAppStore = create<AppState>((set, get) => ({
     return state.projects.find((p) => p.id === state.activeProjectId) ?? state.projects[0];
   },
 
-  updateReadme: (content) =>
+  updateReadme: (content) => {
+    const prev = get().projects;
     set((state) => ({
+      isSaving: true,
+      saveError: null,
       projects: state.projects.map((p) =>
         p.id === state.activeProjectId
           ? { ...p, readme: content, updatedAt: new Date().toISOString() }
           : p
       ),
-    })),
+    }));
+    services.projects.updateProject(get().activeProjectId, { readme: content })
+      .then(() => set({ isSaving: false }))
+      .catch((err) => set({ projects: prev, isSaving: false, saveError: errorMsg(err) }));
+  },
 
   // --- Documents (optimistic + rollback) ---
 
@@ -437,12 +448,30 @@ export const useAppStore = create<AppState>((set, get) => ({
   initializeApp: async () => {
     set({ isInitializing: true, initError: null });
     try {
-      const [projects, members, activities] = await Promise.all([
+      const workspaceNamePromise = fetch("/api/workspace")
+        .then(async (response) => {
+          if (!response.ok) return null;
+          const json = (await response.json()) as {
+            data?: { workspace?: { name?: string } };
+          };
+          return json.data?.workspace?.name ?? null;
+        })
+        .catch(() => null);
+
+      const [projects, members, activities, workspaceName] = await Promise.all([
         services.projects.list(),
         services.members.list(),
         services.activities.list(),
+        workspaceNamePromise,
       ]);
-      set({ projects, members, activities, activeProjectId: projects[0]?.id ?? "", isInitializing: false });
+      set({
+        projects,
+        members,
+        activities,
+        workspaceName: workspaceName ?? APP_NAME,
+        activeProjectId: projects[0]?.id ?? "",
+        isInitializing: false,
+      });
     } catch (err) {
       set({
         isInitializing: false,

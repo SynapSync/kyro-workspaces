@@ -17,6 +17,10 @@ import {
 import {
   serializeProjectReadme,
 } from "@/lib/file-format/serializers";
+import {
+  syncProjectReentryPrompts,
+  syncWorkspaceAgentDocs,
+} from "@/lib/file-format/templates";
 
 interface RouteParams {
   params: Promise<{ projectId: string }>;
@@ -72,6 +76,8 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
 
     const newContent = serializeProjectReadme(updated);
     await fs.writeFile(readmePath, newContent, "utf-8");
+    await syncProjectReentryPrompts(workspacePath, projectId, updated.name);
+    await syncWorkspaceAgentDocs(workspacePath);
 
     return ok({ project: updated }, 200);
   } catch (err) {
@@ -92,6 +98,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
     }
 
     await fs.rm(projectDir, { recursive: true });
+    await syncWorkspaceAgentDocs(workspacePath);
 
     return ok({ deleted: true }, 200);
   } catch (err) {

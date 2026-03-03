@@ -16,6 +16,12 @@ import {
 import {
   serializeProjectReadme,
 } from "@/lib/file-format/serializers";
+import {
+  buildDefaultProjectReadmeBody,
+  buildDefaultProjectRoadmap,
+  syncProjectReentryPrompts,
+  syncWorkspaceAgentDocs,
+} from "@/lib/file-format/templates";
 
 export async function GET(req: NextRequest) {
   try {
@@ -53,7 +59,7 @@ export async function POST(req: NextRequest) {
   try {
     const workspacePath = getWorkspacePath();
     const body = await req.json();
-    validateBody<{ id: string; name?: string }>(body, ["id"]);
+    validateBody<{ id: string; name?: string; description?: string; readme?: string }>(body, ["id"]);
 
     if (body.id.includes("/") || body.id.includes("..")) {
       throw new WorkspaceError(
@@ -71,21 +77,33 @@ export async function POST(req: NextRequest) {
     }
 
     await fs.mkdir(projectDir, { recursive: true });
+    await fs.mkdir(resolveAndGuard(projectDir, "documents"), { recursive: true });
+    await fs.mkdir(resolveAndGuard(projectDir, "sprints"), { recursive: true });
 
     const now = new Date().toISOString();
+    const projectName = body.name ?? body.id;
+    const projectDescription = body.description ?? "";
     const readmeContent = serializeProjectReadme({
       id: body.id,
-      name: body.name ?? body.id,
-      description: body.description ?? "",
-      readme: body.readme ?? "",
+      name: projectName,
+      description: projectDescription,
+      readme: body.readme ?? buildDefaultProjectReadmeBody(projectName),
       createdAt: now,
       updatedAt: now,
     });
 
     const readmePath = resolveAndGuard(projectDir, "README.md");
     await fs.writeFile(readmePath, readmeContent, "utf-8");
+    await fs.writeFile(
+      resolveAndGuard(projectDir, "ROADMAP.md"),
+      buildDefaultProjectRoadmap(projectName),
+      "utf-8"
+    );
 
-    return ok({ project: { id: body.id, name: body.name ?? body.id } }, 201);
+    await syncProjectReentryPrompts(workspacePath, body.id, projectName);
+    await syncWorkspaceAgentDocs(workspacePath);
+
+    return ok({ project: { id: body.id, name: projectName } }, 201);
   } catch (err) {
     return handleError(err);
   }

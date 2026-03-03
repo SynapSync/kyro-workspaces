@@ -15,6 +15,8 @@ import {
 import {
   serializeSprintFile,
 } from "@/lib/file-format/serializers";
+import { appendActivity } from "@/lib/api/activities-log";
+import { syncProjectReentryPrompts } from "@/lib/file-format/templates";
 
 interface RouteParams {
   params: Promise<{ projectId: string }>;
@@ -81,6 +83,14 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     const content = serializeSprintFile(sprint);
     const filePath = resolveAndGuard(sprintsDir, `${body.id}.md`);
     await fs.writeFile(filePath, content, "utf-8");
+    await syncProjectReentryPrompts(workspacePath, projectId);
+
+    await appendActivity(workspacePath, {
+      projectId,
+      actionType: "created_sprint",
+      description: `Created sprint ${sprint.name}`,
+      metadata: { agent: "Kyro UI", sprintId: sprint.id },
+    });
 
     return ok({ sprint }, 201);
   } catch (err) {

@@ -51,11 +51,31 @@ function taskToSymbol(task: Task): string {
   return `- [${symbol}] ${task.title}`;
 }
 
+function phaseFromTask(task: Task): string {
+  const description = task.description?.trim();
+  if (!description) return "General";
+
+  const match = description.match(/^\[phase:(.+?)\]/i);
+  if (!match) return "General";
+
+  return match[1].trim() || "General";
+}
+
 export function serializeSprintFile(sprint: Sprint): string {
-  // Group tasks by phase (stored in description field as "phase: Phase Name")
-  // For now, emit all tasks under a single "Tasks" section.
-  // Future: when tasks carry phase metadata, group them.
-  const taskLines = sprint.tasks.map(taskToSymbol).join("\n");
+  const grouped = new Map<string, string[]>();
+  for (const task of sprint.tasks) {
+    const phase = phaseFromTask(task);
+    const existing = grouped.get(phase) ?? [];
+    existing.push(taskToSymbol(task));
+    grouped.set(phase, existing);
+  }
+
+  const taskBlocks =
+    grouped.size > 0
+      ? [...grouped.entries()]
+          .map(([phase, lines]) => `### ${phase}\n${lines.join("\n")}`)
+          .join("\n\n")
+      : "_(sin tareas aún)_";
 
   const body = `# ${sprint.name}
 
@@ -63,7 +83,7 @@ export function serializeSprintFile(sprint: Sprint): string {
 ${sprint.objective ?? ""}
 
 ## Tareas
-${taskLines || "_(sin tareas aún)_"}
+${taskBlocks}
 
 ## Retrospectiva
 

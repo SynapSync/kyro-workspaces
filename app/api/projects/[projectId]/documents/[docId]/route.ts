@@ -9,6 +9,7 @@ import {
   notFound,
   handleError,
 } from "@/lib/api";
+import { appendActivity } from "@/lib/api/activities-log";
 import { getGit } from "@/lib/git";
 import {
   parseDocumentFile,
@@ -72,8 +73,31 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
       const relativePath = path.relative(workspacePath, filePath);
       await git.add(relativePath);
       await git.commit(`docs: update ${updated.title}`);
-    } catch {
-      // Git errors should not fail the document save
+
+      await appendActivity(workspacePath, {
+        projectId,
+        actionType: "edited_doc",
+        description: `Updated document ${updated.title}`,
+        metadata: { agent: "Kyro UI", docId: updated.id },
+      });
+    } catch (gitErr) {
+      const message =
+        gitErr instanceof Error ? gitErr.message : "Unknown git error";
+      console.error("Git auto-commit failed:", message);
+      try {
+        await appendActivity(workspacePath, {
+          projectId,
+          actionType: "edited_doc",
+          description: `Git auto-commit failed for ${updated.title}`,
+          metadata: {
+            agent: "system",
+            docId: updated.id,
+            error: message.slice(0, 240),
+          },
+        });
+      } catch (activityErr) {
+        console.error("Failed to append git error activity:", activityErr);
+      }
     }
 
     return ok({ document: updated }, 200);

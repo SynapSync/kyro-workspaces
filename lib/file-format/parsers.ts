@@ -127,7 +127,7 @@ export function parseSprintFile(content: string): Sprint {
   const tasks: Task[] = rawTasks.map((raw, index) => ({
     id: `${(data.id as string | undefined) ?? "sprint"}-task-${index}`,
     title: raw.title,
-    description: undefined,
+    description: raw.phase === "General" ? undefined : `[phase:${raw.phase}]`,
     priority: "medium",
     status: symbolToStatus(raw.symbol),
     tags: [],

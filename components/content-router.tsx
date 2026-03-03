@@ -4,7 +4,6 @@ import { useEffect } from "react";
 import { Loader2, X } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { NAV_ITEMS } from "@/lib/config";
-import { Button } from "@/components/ui/button";
 import { ProjectOverview } from "@/components/pages/project-overview";
 import { ReadmePage } from "@/components/pages/readme-page";
 import { DocumentsPage } from "@/components/pages/documents-page";
@@ -13,6 +12,7 @@ import { SprintBoard } from "@/components/pages/sprint-board";
 import { SprintDetailPage } from "@/components/pages/sprint-detail-page";
 import { AgentsActivityPage } from "@/components/pages/agents-activity-page";
 import { CommandPalette } from "@/components/command-palette";
+import { WorkspaceOnboarding } from "@/components/workspace-onboarding";
 
 const PAGE_MAP: Record<string, React.ReactNode> = {
   overview:  <ProjectOverview />,
@@ -55,30 +55,12 @@ export function ContentRouter() {
     );
   }
 
-  if (initError) {
+  if (!isInitializing && (initError || projects.length === 0)) {
     return (
-      <div className="flex h-full items-center justify-center text-destructive">
-        <div className="flex flex-col items-center gap-3 text-center max-w-sm">
-          <p className="text-sm font-medium">Failed to load workspace</p>
-          <p className="text-xs text-muted-foreground">{initError}</p>
-          <Button variant="outline" size="sm" onClick={() => initializeApp()}>
-            Try again
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isInitializing && !initError && projects.length === 0) {
-    return (
-      <div className="flex h-full items-center justify-center text-muted-foreground">
-        <div className="flex flex-col items-center gap-3 text-center max-w-sm">
-          <p className="text-sm font-medium">No projects found</p>
-          <p className="text-xs">
-            Set the <code className="font-mono bg-muted px-1 rounded">KYRO_WORKSPACE_PATH</code> environment variable to point to your workspace directory.
-          </p>
-        </div>
-      </div>
+      <WorkspaceOnboarding
+        initError={initError}
+        onInitialized={() => initializeApp()}
+      />
     );
   }
 

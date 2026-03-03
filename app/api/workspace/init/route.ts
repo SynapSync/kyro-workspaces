@@ -13,6 +13,7 @@ import {
   serializeMembersFile,
   serializeActivitiesFile,
 } from "@/lib/file-format/serializers";
+import { syncWorkspaceAgentDocs } from "@/lib/file-format/templates";
 
 export async function POST(req: NextRequest) {
   try {
@@ -45,6 +46,8 @@ export async function POST(req: NextRequest) {
 
     const projectsDir = path.join(workspacePath, "projects");
     await ensureDir(projectsDir);
+
+    await syncWorkspaceAgentDocs(workspacePath);
 
     return ok({ initialized: true }, 201);
   } catch (err) {

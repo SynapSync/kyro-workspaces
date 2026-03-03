@@ -32,6 +32,7 @@ import type { Project } from "@/lib/types";
 export function AppSidebar() {
   const isMobile = useIsMobile();
   const {
+    workspaceName,
     projects,
     activeProjectId,
     setActiveProjectId,
@@ -85,7 +86,22 @@ export function AppSidebar() {
       id: `proj-${Date.now()}`,
       name: "New Project",
       description: "A new project. Edit this description.",
-      readme: "# New Project\n\nWelcome to your new project.",
+      readme: `# Proyecto: New Project
+
+## Objetivo del Proyecto
+Describe aquí el objetivo principal, entregables y criterios de éxito.
+
+## Stack Técnico
+- Framework:
+- Lenguaje:
+- Persistencia:
+- Testing:
+
+## Cómo Trabajar (Agentes + Humanos)
+1. Lee ROADMAP.md para entender el plan de sprints.
+2. Lee el último sprint en sprints/.
+3. Usa RE-ENTRY-PROMPTS.md para retomar contexto.
+`,
       documents: [],
       sprints: [],
       createdAt: new Date().toISOString(),
@@ -110,7 +126,7 @@ export function AppSidebar() {
           </div>
           {!sidebarCollapsed && (
             <span className="text-lg font-semibold tracking-tight text-sidebar-foreground">
-              Kyro
+              {workspaceName}
             </span>
           )}
           <Button

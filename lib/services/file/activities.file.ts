@@ -1,10 +1,12 @@
 import type { ActivitiesService } from "../types";
 import type { AgentActivity } from "@/lib/types";
+import { localFetch } from "./fetch";
 
 export class FileActivitiesService implements ActivitiesService {
   async list(): Promise<AgentActivity[]> {
-    // Activities API not yet implemented — return empty array
-    // Will be implemented in Sprint 5 (Agent Infrastructure)
-    return [];
+    const { activities } = await localFetch<{ activities: AgentActivity[] }>(
+      "/api/activities"
+    );
+    return activities;
   }
 }

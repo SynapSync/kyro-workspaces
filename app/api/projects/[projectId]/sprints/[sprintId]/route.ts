@@ -15,6 +15,7 @@ import {
 import {
   serializeSprintFile,
 } from "@/lib/file-format/serializers";
+import { syncProjectReentryPrompts } from "@/lib/file-format/templates";
 
 interface RouteParams {
   params: Promise<{ projectId: string; sprintId: string }>;
@@ -52,6 +53,7 @@ export async function DELETE(_req: NextRequest, { params }: RouteParams) {
     }
 
     await fs.unlink(filePath);
+    await syncProjectReentryPrompts(workspacePath, projectId);
     return ok({ deleted: true }, 200);
   } catch (err) {
     return handleError(err);
@@ -87,6 +89,7 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
 
     const newContent = serializeSprintFile(updated);
     await fs.writeFile(filePath, newContent, "utf-8");
+    await syncProjectReentryPrompts(workspacePath, projectId);
 
     return ok({ sprint: updated }, 200);
   } catch (err) {
