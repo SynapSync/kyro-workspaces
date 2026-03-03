@@ -1,4 +1,4 @@
-import type { ActivitiesService } from "../types";
+import type { ActivitiesService, CreateActivityInput } from "../types";
 import type { AgentActivity } from "@/lib/types";
 import { localFetch } from "./fetch";
 
@@ -8,5 +8,16 @@ export class FileActivitiesService implements ActivitiesService {
       "/api/activities"
     );
     return activities;
+  }
+
+  async createActivity(data: CreateActivityInput): Promise<AgentActivity> {
+    const { activity } = await localFetch<{ activity: AgentActivity }>(
+      "/api/activities",
+      {
+        method: "POST",
+        body: JSON.stringify(data),
+      }
+    );
+    return activity;
   }
 }

@@ -5,6 +5,7 @@ import type {
   TaskStatus,
   Document,
   TeamMember,
+  AgentActionType,
   AgentActivity,
 } from "@/lib/types";
 
@@ -82,6 +83,13 @@ export interface UpdateMemberInput {
   color?: string;
 }
 
+export interface CreateActivityInput {
+  projectId: string;
+  actionType: AgentActionType;
+  description: string;
+  metadata?: Record<string, string>;
+}
+
 // --- Service Interfaces ---
 // These contracts must be implemented by both mock and real (file) services.
 // All methods are async to ensure file implementations can be swapped in without
@@ -117,6 +125,7 @@ export interface MembersService {
 
 export interface ActivitiesService {
   list(): Promise<AgentActivity[]>;
+  createActivity(data: CreateActivityInput): Promise<AgentActivity>;
 }
 
 // Registry type used by the service factory

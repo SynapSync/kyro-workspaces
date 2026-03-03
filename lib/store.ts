@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type {
   Project,
   AgentActivity,
+  AgentActionType,
   Task,
   TaskStatus,
   Sprint,
@@ -15,6 +16,17 @@ import { APP_NAME } from "./config";
 
 const errorMsg = (err: unknown) =>
   err instanceof Error ? err.message : "Save failed";
+
+function recordActivity(input: {
+  projectId: string;
+  actionType: AgentActionType;
+  description: string;
+  metadata?: Record<string, string>;
+}) {
+  services.activities
+    .createActivity(input)
+    .catch(() => undefined);
+}
 
 interface AppState {
   workspaceName: string;
@@ -219,6 +231,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   updateDocument: (id, updates) => {
+    const projectId = get().activeProjectId;
     const prev = get().projects;
     set((state) => ({
       isSaving: true,
@@ -237,8 +250,16 @@ export const useAppStore = create<AppState>((set, get) => ({
           : p
       ),
     }));
-    services.projects.updateDocument(get().activeProjectId, id, updates)
-      .then(() => set({ isSaving: false }))
+    services.projects.updateDocument(projectId, id, updates)
+      .then(() => {
+        set({ isSaving: false });
+        recordActivity({
+          projectId,
+          actionType: "edited_doc",
+          description: `Updated document ${updates.title ?? id}`,
+          metadata: { docId: id, agent: "Kyro UI" },
+        });
+      })
       .catch((err) => set({ projects: prev, isSaving: false, saveError: errorMsg(err) }));
   },
 
@@ -261,6 +282,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   // --- Sprints (optimistic + rollback) ---
 
   addSprint: (sprint) => {
+    const projectId = get().activeProjectId;
     const prev = get().projects;
     set((state) => ({
       isSaving: true,
@@ -271,7 +293,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         (sprints) => [...sprints, sprint]
       ),
     }));
-    services.projects.createSprint(get().activeProjectId, {
+    services.projects.createSprint(projectId, {
       id: sprint.id,
       name: sprint.name,
       objective: sprint.objective,
@@ -280,7 +302,15 @@ export const useAppStore = create<AppState>((set, get) => ({
       endDate: sprint.endDate,
       version: sprint.version,
     })
-      .then(() => set({ isSaving: false }))
+      .then(() => {
+        set({ isSaving: false });
+        recordActivity({
+          projectId,
+          actionType: "created_sprint",
+          description: `Created sprint ${sprint.name}`,
+          metadata: { sprintId: sprint.id, agent: "Kyro UI" },
+        });
+      })
       .catch((err) => set({ projects: prev, isSaving: false, saveError: errorMsg(err) }));
   },
 
@@ -339,6 +369,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   // --- Tasks (optimistic + rollback) ---
 
   addTask: (sprintId, task) => {
+    const projectId = get().activeProjectId;
     const prev = get().projects;
     set((state) => ({
       isSaving: true,
@@ -352,7 +383,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           )
       ),
     }));
-    services.projects.createTask(get().activeProjectId, sprintId, {
+    services.projects.createTask(projectId, sprintId, {
       title: task.title,
       description: task.description,
       status: task.status,
@@ -360,7 +391,15 @@ export const useAppStore = create<AppState>((set, get) => ({
       assignee: task.assignee,
       tags: task.tags,
     })
-      .then(() => set({ isSaving: false }))
+      .then(() => {
+        set({ isSaving: false });
+        recordActivity({
+          projectId,
+          actionType: "created_task",
+          description: `Created task ${task.title}`,
+          metadata: { sprintId, taskId: task.id, agent: "Kyro UI" },
+        });
+      })
       .catch((err) => set({ projects: prev, isSaving: false, saveError: errorMsg(err) }));
   },
 
@@ -393,6 +432,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   moveTask: (sprintId, taskId, newStatus) => {
+    const projectId = get().activeProjectId;
     const prev = get().projects;
     set((state) => ({
       isSaving: true,
@@ -415,8 +455,19 @@ export const useAppStore = create<AppState>((set, get) => ({
           )
       ),
     }));
-    services.projects.moveTask(get().activeProjectId, sprintId, taskId, newStatus)
-      .then(() => set({ isSaving: false }))
+    services.projects.moveTask(projectId, sprintId, taskId, newStatus)
+      .then(() => {
+        set({ isSaving: false });
+        const isDone = newStatus === "done";
+        recordActivity({
+          projectId,
+          actionType: isDone ? "completed_task" : "moved_task",
+          description: isDone
+            ? `Completed task ${taskId}`
+            : `Moved task ${taskId} to ${newStatus}`,
+          metadata: { sprintId, taskId, status: newStatus, agent: "Kyro UI" },
+        });
+      })
       .catch((err) => set({ projects: prev, isSaving: false, saveError: errorMsg(err) }));
   },
 
@@ -501,8 +552,15 @@ export const useAppStore = create<AppState>((set, get) => ({
   // --- Activities ---
 
   activities: [],
-  addActivity: (activity) =>
-    set((state) => ({ activities: [activity, ...state.activities] })),
+  addActivity: (activity) => {
+    set((state) => ({ activities: [activity, ...state.activities] }));
+    recordActivity({
+      projectId: activity.projectId,
+      actionType: activity.actionType,
+      description: activity.description,
+      metadata: activity.metadata,
+    });
+  },
 
   // --- UI State ---
 

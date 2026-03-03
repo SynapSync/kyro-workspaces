@@ -9,6 +9,7 @@ import {
   handleError,
   validateBody,
 } from "@/lib/api";
+import { buildCanonicalSprintFileName } from "@/lib/api/sprint-files";
 import {
   parseSprintFile,
 } from "@/lib/file-format/parsers";
@@ -33,12 +34,12 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       return ok({ sprints: [] }, 200);
     }
 
-    const entries = await fs.readdir(sprintsDir, { withFileTypes: true });
+    const entries = (await fs.readdir(sprintsDir, { withFileTypes: true }))
+      .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))
+      .sort((a, b) => a.name.localeCompare(b.name));
     const sprints = [];
 
     for (const entry of entries) {
-      if (!entry.isFile() || !entry.name.endsWith(".md")) continue;
-
       const filePath = resolveAndGuard(sprintsDir, entry.name);
       const content = await fs.readFile(filePath, "utf-8");
       const sprint = parseSprintFile(content);
@@ -81,7 +82,12 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     };
 
     const content = serializeSprintFile(sprint);
-    const filePath = resolveAndGuard(sprintsDir, `${body.id}.md`);
+    const fileName = await buildCanonicalSprintFileName(
+      workspacePath,
+      projectId,
+      sprint.name
+    );
+    const filePath = resolveAndGuard(sprintsDir, fileName);
     await fs.writeFile(filePath, content, "utf-8");
     await syncProjectReentryPrompts(workspacePath, projectId);
 

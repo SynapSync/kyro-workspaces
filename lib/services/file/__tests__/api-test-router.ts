@@ -5,6 +5,8 @@ import * as ProjectsRoute from "@/app/api/projects/route";
 import * as ProjectRoute from "@/app/api/projects/[projectId]/route";
 import * as SprintsRoute from "@/app/api/projects/[projectId]/sprints/route";
 import * as SprintRoute from "@/app/api/projects/[projectId]/sprints/[sprintId]/route";
+import * as TasksRoute from "@/app/api/projects/[projectId]/sprints/[sprintId]/tasks/route";
+import * as TaskRoute from "@/app/api/projects/[projectId]/sprints/[sprintId]/tasks/[taskId]/route";
 import * as DocumentsRoute from "@/app/api/projects/[projectId]/documents/route";
 import * as DocumentRoute from "@/app/api/projects/[projectId]/documents/[docId]/route";
 import * as MembersRoute from "@/app/api/members/route";
@@ -30,7 +32,24 @@ function routeFor(pathname: string):
   | { module: Record<string, unknown>; params?: Record<string, string> }
   | null {
   let match = pathname.match(/^\/api\/projects\/([^/]+)\/sprints\/([^/]+)\/tasks\/([^/]+)$/);
-  if (match) return null;
+  if (match) {
+    return {
+      module: TaskRoute,
+      params: {
+        projectId: decodeURIComponent(match[1]),
+        sprintId: decodeURIComponent(match[2]),
+        taskId: decodeURIComponent(match[3]),
+      },
+    };
+  }
+
+  match = pathname.match(/^\/api\/projects\/([^/]+)\/sprints\/([^/]+)\/tasks$/);
+  if (match) {
+    return {
+      module: TasksRoute,
+      params: { projectId: decodeURIComponent(match[1]), sprintId: decodeURIComponent(match[2]) },
+    };
+  }
 
   match = pathname.match(/^\/api\/projects\/([^/]+)\/sprints\/([^/]+)$/);
   if (match) {

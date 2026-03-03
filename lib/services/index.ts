@@ -41,4 +41,5 @@ export type {
   UpdateDocumentInput,
   CreateMemberInput,
   UpdateMemberInput,
+  CreateActivityInput,
 } from "./types";

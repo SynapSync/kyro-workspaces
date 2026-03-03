@@ -2,12 +2,11 @@ import * as fs from "fs/promises";
 import { NextRequest } from "next/server";
 import {
   getWorkspacePath,
-  resolveAndGuard,
-  fileExists,
   ok,
   notFound,
   handleError,
 } from "@/lib/api";
+import { resolveSprintFilePath } from "@/lib/api/sprint-files";
 import {
   parseSprintFile,
 } from "@/lib/file-format/parsers";
@@ -23,12 +22,7 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
   try {
     const { projectId, sprintId, taskId } = await params;
     const workspacePath = getWorkspacePath();
-    const filePath = resolveAndGuard(workspacePath, "projects", projectId, "sprints", `${sprintId}.md`);
-
-    const fileExistsResult = await fileExists(filePath);
-    if (!fileExistsResult) {
-      return notFound("Sprint not found");
-    }
+    const filePath = await resolveSprintFilePath(workspacePath, projectId, sprintId);
 
     const body = await req.json();
     const content = await fs.readFile(filePath, "utf-8");
@@ -64,12 +58,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
   try {
     const { projectId, sprintId, taskId } = await params;
     const workspacePath = getWorkspacePath();
-    const filePath = resolveAndGuard(workspacePath, "projects", projectId, "sprints", `${sprintId}.md`);
-
-    const fileExistsResult = await fileExists(filePath);
-    if (!fileExistsResult) {
-      return notFound("Sprint not found");
-    }
+    const filePath = await resolveSprintFilePath(workspacePath, projectId, sprintId);
 
     const content = await fs.readFile(filePath, "utf-8");
     const sprint = parseSprintFile(content);
