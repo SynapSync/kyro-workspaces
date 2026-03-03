@@ -8,6 +8,7 @@ import {
 } from "@/lib/api";
 import {
   appendActivity,
+  getActivitiesDiagnostics,
   isValidActionType,
   listActivities,
 } from "@/lib/api/activities-log";
@@ -83,8 +84,11 @@ function normalizeMetadata(value: unknown): Record<string, string> | undefined {
 export async function GET() {
   try {
     const workspacePath = getWorkspacePath();
-    const activities = await listActivities(workspacePath);
-    return ok({ activities }, 200);
+    const [activities, diagnostics] = await Promise.all([
+      listActivities(workspacePath),
+      getActivitiesDiagnostics(workspacePath),
+    ]);
+    return ok({ activities, diagnostics }, 200);
   } catch (err) {
     return handleError(err);
   }

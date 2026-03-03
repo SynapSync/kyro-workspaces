@@ -180,12 +180,21 @@ Activities are persisted in `.kyro/activities.json` and surfaced in the UI.
 Kyro retains only the latest 200 activity entries to keep workspace files
 bounded and fast for long-running projects.
 
+Retention can be tuned with `KYRO_ACTIVITIES_RETENTION_MAX_ENTRIES` (valid
+range: `1..5000`). Missing or invalid values fall back to `200`.
+
 `recordActivity` is non-blocking by design. If persistence fails, Kyro keeps the
 main user flow running and surfaces an in-app warning (`Activity log warning`)
 for local debugging.
 
 `/api/activities` enforces payload boundaries for `projectId`, `description`,
 and metadata key/value lengths to prevent oversized activity records.
+
+Operational diagnostics:
+- HTTP error (`4xx/5xx`): backend returned an explicit error body; warning message
+  includes that server-side reason.
+- Timeout: the client aborts the activity write request (currently after `1500ms`)
+  and surfaces a timeout warning, while the main UI flow remains available.
 
 ---
 

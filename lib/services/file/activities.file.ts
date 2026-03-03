@@ -2,9 +2,11 @@ import type { ActivitiesService, CreateActivityInput } from "../types";
 import type { AgentActivity } from "@/lib/types";
 import { localFetch } from "./fetch";
 
+const ACTIVITY_CREATE_TIMEOUT_MS = 1500;
+
 export class FileActivitiesService implements ActivitiesService {
   async list(): Promise<AgentActivity[]> {
-    const { activities } = await localFetch<{ activities: AgentActivity[] }>(
+    const { activities } = await localFetch<{ activities: AgentActivity[]; diagnostics: unknown }>(
       "/api/activities"
     );
     return activities;
@@ -16,7 +18,8 @@ export class FileActivitiesService implements ActivitiesService {
       {
         method: "POST",
         body: JSON.stringify(data),
-      }
+      },
+      { timeoutMs: ACTIVITY_CREATE_TIMEOUT_MS }
     );
     return activity;
   }

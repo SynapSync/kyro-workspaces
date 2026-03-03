@@ -43,6 +43,11 @@ export async function POST(req: NextRequest) {
 
     const activitiesContent = serializeActivitiesFile([]);
     await fs.writeFile(path.join(kyroDir, "activities.json"), activitiesContent, "utf-8");
+    await fs.writeFile(
+      path.join(kyroDir, "activities-metrics.json"),
+      JSON.stringify({ pruneEvents: 0, prunedEntriesTotal: 0 }, null, 2),
+      "utf-8"
+    );
 
     const projectsDir = path.join(workspacePath, "projects");
     await ensureDir(projectsDir);

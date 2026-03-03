@@ -1,19 +1,19 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 const now = new Date().toISOString();
 
-test("shows and dismisses activity warning when createActivity fails", async ({ page }) => {
-  const sprints: Array<{
-    id: string;
-    name: string;
-    status: "planned" | "active" | "closed";
-    objective?: string;
-    tasks: unknown[];
-    startDate?: string;
-    endDate?: string;
-    version?: string;
-  }> = [];
+type SprintRecord = {
+  id: string;
+  name: string;
+  status: "planned" | "active" | "closed";
+  objective?: string;
+  tasks: unknown[];
+  startDate?: string;
+  endDate?: string;
+  version?: string;
+};
 
+async function setupCommonRoutes(page: Page, sprints: SprintRecord[]): Promise<void> {
   await page.route("**/api/workspace", async (route) => {
     await route.fulfill({
       status: 200,
@@ -115,6 +115,12 @@ test("shows and dismisses activity warning when createActivity fails", async ({ 
       body: JSON.stringify({ data: { members: [] } }),
     });
   });
+}
+
+test("shows and dismisses activity warning when createActivity fails", async ({ page }) => {
+  const sprints: SprintRecord[] = [];
+
+  await setupCommonRoutes(page, sprints);
 
   await page.route("**/api/activities", async (route) => {
     const method = route.request().method();
@@ -146,8 +152,71 @@ test("shows and dismisses activity warning when createActivity fails", async ({ 
   await expect(page.getByText("Activity log warning")).toBeVisible();
   await expect(page.getByText(/Project:\s*Alpha/)).toBeVisible();
   await expect(page.getByText(/Sprint:\s*E2E Warning Sprint/)).toBeVisible();
+  await expect(page.getByText(/Agent:\s*—/)).toBeVisible();
 
   await page.getByRole("button", { name: "Dismiss activity warning" }).click();
   await expect(page.getByText("Activity log warning")).toBeHidden();
   await expect(page.getByText(/Project:\s*Alpha/)).toBeVisible();
+  await expect(page.getByText(/Agent:\s*—/)).toBeVisible();
+});
+
+test("shows warning on /api/activities timeout and keeps context panel stable", async ({
+  page,
+}) => {
+  const sprints: SprintRecord[] = [];
+
+  await setupCommonRoutes(page, sprints);
+
+  await page.route("**/api/activities", async (route) => {
+    const method = route.request().method();
+    if (method === "GET") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ data: { activities: [] } }),
+      });
+      return;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 2_500));
+    try {
+      await route.fulfill({
+        status: 201,
+        contentType: "application/json",
+        body: JSON.stringify({
+          data: {
+            activity: {
+              id: "delayed-activity",
+              projectId: "proj-1",
+              actionType: "created_sprint",
+              description: "Delayed activity",
+              timestamp: now,
+              metadata: { agent: "timeout-route" },
+            },
+          },
+        }),
+      });
+    } catch {
+      // Request may already be aborted by client timeout.
+    }
+  });
+
+  await page.goto("/");
+
+  await page.getByRole("button", { name: "Sprints" }).first().click();
+  await expect(page.getByRole("heading", { name: "Sprints" })).toBeVisible();
+  await page.getByRole("button", { name: "Create Sprint" }).first().click();
+  await page.getByLabel("Sprint Name").fill("Timeout Warning Sprint");
+  await page.getByLabel("Sprint Name").press("Enter");
+
+  await expect(page.getByText("Activity log warning")).toBeVisible();
+  await expect(page.getByText(/Project:\s*Alpha/)).toBeVisible();
+  await expect(page.getByText(/Sprint:\s*Timeout Warning Sprint/)).toBeVisible();
+  await expect(page.getByText(/Agent:\s*—/)).toBeVisible();
+
+  await page.getByRole("button", { name: "Dismiss activity warning" }).click();
+  await expect(page.getByText("Activity log warning")).toBeHidden();
+  await expect(page.getByText(/Project:\s*Alpha/)).toBeVisible();
+  await expect(page.getByText(/Sprint:\s*Timeout Warning Sprint/)).toBeVisible();
+  await expect(page.getByText(/Agent:\s*—/)).toBeVisible();
 });
