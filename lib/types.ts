@@ -172,10 +172,11 @@ export type Workspace = z.infer<typeof WorkspaceSchema>;
 // --- Sprint Task Symbol System ---
 // Maps the checkbox symbols used in sprint markdown files to TaskStatus values.
 
-export type SprintTaskSymbol = " " | "~" | "x" | "!" | "-" | ">";
+export type SprintTaskSymbol = " " | "_" | "~" | "x" | "!" | "-" | ">";
 
 export const SYMBOL_TO_STATUS: Record<SprintTaskSymbol, TaskStatus> = {
   " ": "todo",        // [ ] Pending
+  "_": "backlog",     // [_] Backlog
   "~": "in_progress", // [~] In Progress
   "x": "done",        // [x] Done
   "!": "blocked",     // [!] Blocked
@@ -196,6 +197,6 @@ export const STATUS_TO_SYMBOL: Partial<Record<TaskStatus, SprintTaskSymbol>> = {
   done:        "x",
   blocked:     "!",
   skipped:     "-",
-  backlog:     " ",
+  backlog:     "_",
   review:      "~",
 };

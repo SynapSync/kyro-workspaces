@@ -22,10 +22,16 @@ function recordActivity(input: {
   actionType: AgentActionType;
   description: string;
   metadata?: Record<string, string>;
-}) {
+}, setWarning?: (value: string | null) => void) {
   services.activities
     .createActivity(input)
-    .catch(() => undefined);
+    .then(() => setWarning?.(null))
+    .catch((err) => {
+      const message = errorMsg(err);
+      const warning = `Activity log unavailable: ${message}`;
+      setWarning?.(warning);
+      console.warn("[activity-trace]", warning, input);
+    });
 }
 
 interface AppState {
@@ -85,6 +91,8 @@ interface AppState {
   // Agent Activity
   activities: AgentActivity[];
   addActivity: (activity: AgentActivity) => void;
+  activityWriteWarning: string | null;
+  clearActivityWriteWarning: () => void;
 
   // UI State
   activeSidebarItem: string;
@@ -258,7 +266,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           actionType: "edited_doc",
           description: `Updated document ${updates.title ?? id}`,
           metadata: { docId: id, agent: "Kyro UI" },
-        });
+        }, (warning) => set({ activityWriteWarning: warning }));
       })
       .catch((err) => set({ projects: prev, isSaving: false, saveError: errorMsg(err) }));
   },
@@ -309,7 +317,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           actionType: "created_sprint",
           description: `Created sprint ${sprint.name}`,
           metadata: { sprintId: sprint.id, agent: "Kyro UI" },
-        });
+        }, (warning) => set({ activityWriteWarning: warning }));
       })
       .catch((err) => set({ projects: prev, isSaving: false, saveError: errorMsg(err) }));
   },
@@ -398,7 +406,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           actionType: "created_task",
           description: `Created task ${task.title}`,
           metadata: { sprintId, taskId: task.id, agent: "Kyro UI" },
-        });
+        }, (warning) => set({ activityWriteWarning: warning }));
       })
       .catch((err) => set({ projects: prev, isSaving: false, saveError: errorMsg(err) }));
   },
@@ -466,7 +474,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             ? `Completed task ${taskId}`
             : `Moved task ${taskId} to ${newStatus}`,
           metadata: { sprintId, taskId, status: newStatus, agent: "Kyro UI" },
-        });
+        }, (warning) => set({ activityWriteWarning: warning }));
       })
       .catch((err) => set({ projects: prev, isSaving: false, saveError: errorMsg(err) }));
   },
@@ -552,6 +560,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   // --- Activities ---
 
   activities: [],
+  activityWriteWarning: null,
+  clearActivityWriteWarning: () => set({ activityWriteWarning: null }),
   addActivity: (activity) => {
     set((state) => ({ activities: [activity, ...state.activities] }));
     recordActivity({
@@ -559,7 +569,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       actionType: activity.actionType,
       description: activity.description,
       metadata: activity.metadata,
-    });
+    }, (warning) => set({ activityWriteWarning: warning }));
   },
 
   // --- UI State ---

@@ -4,6 +4,8 @@ import { parseActivitiesFile } from "@/lib/file-format/parsers";
 import { serializeActivitiesFile } from "@/lib/file-format/serializers";
 import type { AgentActionType, AgentActivity } from "@/lib/types";
 
+export const MAX_ACTIVITY_ENTRIES = 200;
+
 const ACTION_TYPES: AgentActionType[] = [
   "created_task",
   "moved_task",
@@ -33,9 +35,17 @@ async function readActivitiesFile(workspacePath: string): Promise<AgentActivity[
   return parseActivitiesFile(content);
 }
 
+function sortActivitiesByTimestampDesc(activities: AgentActivity[]): AgentActivity[] {
+  return [...activities].sort((a, b) => {
+    const byTimestamp = b.timestamp.localeCompare(a.timestamp);
+    if (byTimestamp !== 0) return byTimestamp;
+    return b.id.localeCompare(a.id);
+  });
+}
+
 export async function listActivities(workspacePath: string): Promise<AgentActivity[]> {
   const activities = await readActivitiesFile(workspacePath);
-  return activities.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+  return sortActivitiesByTimestampDesc(activities);
 }
 
 export async function appendActivity(
@@ -54,8 +64,11 @@ export async function appendActivity(
     metadata: input.metadata,
   };
 
-  activities.unshift(activity);
-  await fs.writeFile(activitiesPath, serializeActivitiesFile(activities), "utf-8");
+  const retained = sortActivitiesByTimestampDesc([activity, ...activities]).slice(
+    0,
+    MAX_ACTIVITY_ENTRIES
+  );
+  await fs.writeFile(activitiesPath, serializeActivitiesFile(retained), "utf-8");
 
   return activity;
 }

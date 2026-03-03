@@ -1,9 +1,10 @@
 import * as fs from "fs/promises";
 import * as os from "os";
 import * as path from "path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FileActivitiesService } from "@/lib/services/file/activities.file";
 import { useAppStore } from "@/lib/store";
+import { services } from "@/lib/services";
 import { installApiFetchMock } from "./api-test-router";
 
 async function ensureWorkspace(): Promise<void> {
@@ -40,10 +41,11 @@ describe("activities trace integration", () => {
     restoreFetch = mocked.restore;
 
     await ensureWorkspace();
-    useAppStore.setState({ activities: [] });
+    useAppStore.setState({ activities: [], activityWriteWarning: null });
   });
 
   afterEach(async () => {
+    vi.restoreAllMocks();
     if (restoreFetch) {
       restoreFetch();
       restoreFetch = null;
@@ -96,5 +98,31 @@ describe("activities trace integration", () => {
     const found = persisted.find((entry) => entry.description === "store-level activity");
     expect(found).toBeDefined();
     expect(found?.metadata?.agent).toBe("store-test");
+  });
+
+  it("keeps UI flow non-blocking and surfaces warning when activity persistence fails", async () => {
+    const createSpy = vi
+      .spyOn(services.activities, "createActivity")
+      .mockRejectedValueOnce(new Error("activity write failed"));
+
+    useAppStore.getState().addActivity({
+      id: "local-failure-activity",
+      projectId: "proj-store",
+      actionType: "created_task",
+      description: "store activity with failing persistence",
+      timestamp: new Date().toISOString(),
+      metadata: { agent: "store-test" },
+    });
+
+    await waitFor(async () => {
+      return useAppStore.getState().activityWriteWarning !== null;
+    });
+
+    const state = useAppStore.getState();
+    expect(state.activities[0]?.description).toBe("store activity with failing persistence");
+    expect(state.activityWriteWarning).toContain("Activity log unavailable");
+    expect(createSpy).toHaveBeenCalledTimes(1);
+
+    createSpy.mockRestore();
   });
 });

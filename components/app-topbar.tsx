@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { Search, Bell, Plus } from "lucide-react";
+import { Search, Bell, Plus, AlertTriangle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -29,6 +29,8 @@ export function AppTopbar() {
     activeSprintId,
     activeSprintDetailId,
     activities,
+    activityWriteWarning,
+    clearActivityWriteWarning,
   } = useAppStore();
 
   const activeProject = useMemo(
@@ -128,6 +130,20 @@ export function AppTopbar() {
 
       {/* Right: actions */}
       <div className="flex items-center gap-2">
+        {activityWriteWarning ? (
+          <div className="hidden md:flex items-center gap-1 rounded-md border border-amber-300/70 bg-amber-50 px-2 py-1 text-[11px] text-amber-900">
+            <AlertTriangle className="h-3.5 w-3.5" />
+            <span>Activity log warning</span>
+            <button
+              type="button"
+              aria-label="Dismiss activity warning"
+              className="rounded p-0.5 hover:bg-amber-100"
+              onClick={clearActivityWriteWarning}
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        ) : null}
         <Button variant="ghost" size="icon" className="h-9 w-9 relative">
           <Bell className="h-4 w-4" />
           <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary" />

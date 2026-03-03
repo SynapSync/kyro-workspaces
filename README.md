@@ -177,6 +177,15 @@ Task state symbols in sprint files:
 - `[>]` carry-over
 
 Activities are persisted in `.kyro/activities.json` and surfaced in the UI.
+Kyro retains only the latest 200 activity entries to keep workspace files
+bounded and fast for long-running projects.
+
+`recordActivity` is non-blocking by design. If persistence fails, Kyro keeps the
+main user flow running and surfaces an in-app warning (`Activity log warning`)
+for local debugging.
+
+`/api/activities` enforces payload boundaries for `projectId`, `description`,
+and metadata key/value lengths to prevent oversized activity records.
 
 ---
 
@@ -217,6 +226,11 @@ Command Description
 `pnpm start` Start production server
 `pnpm lint` Run ESLint
 `pnpm test` Run unit tests
+`pnpm run test:e2e:list` List Playwright E2E tests
+`pnpm run test:e2e` Run Playwright E2E suite
+
+For clean local E2E runs, Kyro uses `http://127.0.0.1:4173` in Playwright and
+sets `allowedDevOrigins` in Next.js config to avoid cross-origin dev warnings.
 
 ---
 
