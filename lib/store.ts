@@ -1,8 +1,10 @@
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 import type {
   Project,
   AgentActivity,
   AgentActionType,
+  ActivitiesDiagnostics,
   Task,
   TaskStatus,
   Sprint,
@@ -90,6 +92,7 @@ interface AppState {
 
   // Agent Activity
   activities: AgentActivity[];
+  activitiesDiagnostics: ActivitiesDiagnostics | null;
   addActivity: (activity: AgentActivity) => void;
   activityWriteWarning: string | null;
   clearActivityWriteWarning: () => void;
@@ -139,7 +142,9 @@ function updateProjectSprints(
   );
 }
 
-export const useAppStore = create<AppState>((set, get) => ({
+export const useAppStore = create<AppState>()(
+  persist(
+    (set, get) => ({
   workspaceName: APP_NAME,
   projects: [],
   activeProjectId: "",
@@ -517,20 +522,24 @@ export const useAppStore = create<AppState>((set, get) => ({
         })
         .catch(() => null);
 
-      const [projects, members, activities, workspaceName] = await Promise.all([
+      const [projects, members, activitiesResult, workspaceName] = await Promise.all([
         services.projects.list(),
         services.members.list(),
         services.activities.list(),
         workspaceNamePromise,
       ]);
-      set({
+      set((state) => ({
         projects,
         members,
-        activities,
+        activities: activitiesResult.activities,
+        activitiesDiagnostics: activitiesResult.diagnostics,
         workspaceName: workspaceName ?? APP_NAME,
-        activeProjectId: projects[0]?.id ?? "",
+        activeProjectId:
+          state.activeProjectId && projects.some((p) => p.id === state.activeProjectId)
+            ? state.activeProjectId
+            : projects[0]?.id ?? "",
         isInitializing: false,
-      });
+      }));
     } catch (err) {
       set({
         isInitializing: false,
@@ -560,6 +569,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   // --- Activities ---
 
   activities: [],
+  activitiesDiagnostics: null,
   activityWriteWarning: null,
   clearActivityWriteWarning: () => set({ activityWriteWarning: null }),
   addActivity: (activity) => {
@@ -615,4 +625,17 @@ export const useAppStore = create<AppState>((set, get) => ({
   commandPaletteOpen: false,
   setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
   toggleCommandPalette: () => set((state) => ({ commandPaletteOpen: !state.commandPaletteOpen })),
-}));
+    }),
+    {
+      name: "kyro-nav-state",
+      storage: createJSONStorage(() => sessionStorage),
+      partialize: (state) => ({
+        activeProjectId: state.activeProjectId,
+        activeSidebarItem: state.activeSidebarItem,
+        activeSprintId: state.activeSprintId,
+        activeSprintDetailId: state.activeSprintDetailId,
+        sidebarCollapsed: state.sidebarCollapsed,
+      }),
+    }
+  )
+);

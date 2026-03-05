@@ -1,4 +1,5 @@
 import type { ActivitiesService, CreateActivityInput } from "../types";
+import type { ActivitiesListResult } from "@/lib/types";
 import { mockActivities } from "@/lib/mock-data";
 
 const DELAY_MS =
@@ -12,9 +13,9 @@ const delay = (ms: number) =>
 const inMemoryActivities = [...mockActivities];
 
 export class MockActivitiesService implements ActivitiesService {
-  async list() {
+  async list(): Promise<ActivitiesListResult> {
     await delay(DELAY_MS);
-    return inMemoryActivities;
+    return { activities: inMemoryActivities, diagnostics: null };
   }
 
   async createActivity(data: CreateActivityInput) {

@@ -7,6 +7,7 @@ import type {
   TeamMember,
   AgentActionType,
   AgentActivity,
+  ActivitiesListResult,
 } from "@/lib/types";
 
 // --- Input Types ---
@@ -124,7 +125,7 @@ export interface MembersService {
 }
 
 export interface ActivitiesService {
-  list(): Promise<AgentActivity[]>;
+  list(): Promise<ActivitiesListResult>;
   createActivity(data: CreateActivityInput): Promise<AgentActivity>;
 }
 

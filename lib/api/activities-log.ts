@@ -2,7 +2,13 @@ import * as fs from "fs/promises";
 import { fileExists, resolveAndGuard } from "@/lib/api";
 import { parseActivitiesFile } from "@/lib/file-format/parsers";
 import { serializeActivitiesFile } from "@/lib/file-format/serializers";
-import type { AgentActionType, AgentActivity } from "@/lib/types";
+import type {
+  AgentActionType,
+  AgentActivity,
+  ActivityRetentionSource,
+  ActivitiesDiagnostics,
+  PruneMetrics,
+} from "@/lib/types";
 
 export const DEFAULT_MAX_ACTIVITY_ENTRIES = 200;
 // Kept for backward compatibility with existing imports/tests.
@@ -11,27 +17,16 @@ export const ACTIVITIES_RETENTION_ENV_KEY = "KYRO_ACTIVITIES_RETENTION_MAX_ENTRI
 export const ACTIVITIES_RETENTION_MIN_ENTRIES = 1;
 export const ACTIVITIES_RETENTION_MAX_ENTRIES = 5000;
 
-type ActivityRetentionSource = "default" | "env" | "default_invalid_env";
-
 interface ActivityRetentionConfig {
   limit: number;
   source: ActivityRetentionSource;
   rawValue?: string;
 }
 
-interface PersistedPruneMetrics {
-  pruneEvents: number;
-  prunedEntriesTotal: number;
-  lastPrunedAt?: string;
-}
-
-export interface ActivitiesDiagnostics {
-  retentionLimit: number;
-  retentionSource: ActivityRetentionSource;
-  retentionEnvKey: string;
-  retentionRawValue?: string;
-  pruneMetrics: PersistedPruneMetrics;
-}
+const DEFAULT_PRUNE_METRICS: PruneMetrics = {
+  pruneEvents: 0,
+  prunedEntriesTotal: 0,
+};
 
 const ACTION_TYPES: AgentActionType[] = [
   "created_task",
@@ -52,10 +47,6 @@ export interface AppendActivityInput {
   metadata?: Record<string, string>;
 }
 
-const DEFAULT_PRUNE_METRICS: PersistedPruneMetrics = {
-  pruneEvents: 0,
-  prunedEntriesTotal: 0,
-};
 
 function resolveRetentionConfig(): ActivityRetentionConfig {
   const rawValue = process.env[ACTIVITIES_RETENTION_ENV_KEY];
@@ -106,11 +97,11 @@ function sortActivitiesByTimestampDesc(activities: AgentActivity[]): AgentActivi
   });
 }
 
-function isValidPruneMetrics(value: unknown): value is PersistedPruneMetrics {
+function isValidPruneMetrics(value: unknown): value is PruneMetrics {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return false;
   }
-  const candidate = value as Partial<PersistedPruneMetrics>;
+  const candidate = value as Partial<PruneMetrics>;
   const pruneEventsValid =
     typeof candidate.pruneEvents === "number" &&
     Number.isFinite(candidate.pruneEvents) &&
@@ -125,11 +116,38 @@ function isValidPruneMetrics(value: unknown): value is PersistedPruneMetrics {
   return pruneEventsValid && totalValid && lastPrunedAtValid;
 }
 
+/**
+ * Lifecycle of `.kyro/activities-metrics.json`
+ *
+ * This file tracks cumulative prune counters for the activities retention
+ * policy. Key properties:
+ *
+ * - **Bounded size**: The file always contains the same fixed set of fields
+ *   (`pruneEvents`, `prunedEntriesTotal`, `lastPrunedAt`). It does NOT grow
+ *   linearly with activity volume — only the counter values increase.
+ *
+ * - **Cumulative counters**: Values accumulate across the workspace lifetime.
+ *   They are intentionally never auto-reset; resetting would obscure historical
+ *   prune patterns.
+ *
+ * - **Manual reset**: Delete or zero out the file if you want fresh counters
+ *   (e.g., after migrating a workspace or archiving old data). The runtime
+ *   reads defensively and falls back to DEFAULT_PRUNE_METRICS on missing or
+ *   invalid content.
+ *
+ * - **Workspace wipe**: Deleting `.kyro/` (which includes both
+ *   `activities.json` and `activities-metrics.json`) produces a clean slate.
+ *   The next append will recreate both files.
+ *
+ * - **Future instrumentation**: If new counter fields are added, they must
+ *   remain additive (never remove existing fields) and the `isValidPruneMetrics`
+ *   guard must be kept in sync so existing files continue to parse correctly.
+ */
 function getMetricsPath(workspacePath: string): string {
   return resolveAndGuard(workspacePath, ".kyro", "activities-metrics.json");
 }
 
-async function readPruneMetrics(workspacePath: string): Promise<PersistedPruneMetrics> {
+async function readPruneMetrics(workspacePath: string): Promise<PruneMetrics> {
   const metricsPath = getMetricsPath(workspacePath);
   if (!(await fileExists(metricsPath))) {
     return DEFAULT_PRUNE_METRICS;
@@ -153,7 +171,7 @@ async function readPruneMetrics(workspacePath: string): Promise<PersistedPruneMe
 
 async function writePruneMetrics(
   workspacePath: string,
-  metrics: PersistedPruneMetrics
+  metrics: PruneMetrics
 ): Promise<void> {
   const metricsPath = getMetricsPath(workspacePath);
   await fs.writeFile(metricsPath, JSON.stringify(metrics, null, 2), "utf-8");

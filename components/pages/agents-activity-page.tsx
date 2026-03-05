@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
 import {
@@ -11,6 +11,8 @@ import {
   Zap,
   CheckCircle2,
   Undo2,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -55,7 +57,8 @@ const actionConfig: Record<
 };
 
 export function AgentsActivityPage() {
-  const { activities, activeProjectId } = useAppStore();
+  const { activities, activitiesDiagnostics, activeProjectId } = useAppStore();
+  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
 
   const projectActivities = useMemo(
     () => activities.filter((a) => a.projectId === activeProjectId),
@@ -154,6 +157,55 @@ export function AgentsActivityPage() {
           </p>
         </div>
       )}
+
+      {/* Activity Diagnostics */}
+      <div className="mt-8 border rounded-lg overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setDiagnosticsOpen((o) => !o)}
+          className="flex w-full items-center justify-between px-4 py-2.5 text-xs font-medium text-muted-foreground bg-muted/40 hover:bg-muted/70 transition-colors"
+        >
+          <span>Activity Diagnostics</span>
+          {diagnosticsOpen ? (
+            <ChevronDown className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronRight className="h-3.5 w-3.5" />
+          )}
+        </button>
+        {diagnosticsOpen && (
+          <div className="grid grid-cols-2 gap-x-8 gap-y-2 px-4 py-3 text-xs">
+            {activitiesDiagnostics ? (
+              <>
+                <DiagRow label="Retention limit" value={String(activitiesDiagnostics.retentionLimit)} />
+                <DiagRow label="Retention source" value={activitiesDiagnostics.retentionSource} />
+                <DiagRow label="Env key" value={activitiesDiagnostics.retentionEnvKey} />
+                <DiagRow label="Env value" value={activitiesDiagnostics.retentionRawValue ?? "—"} />
+                <DiagRow label="Prune events" value={String(activitiesDiagnostics.pruneMetrics.pruneEvents)} />
+                <DiagRow label="Pruned total" value={String(activitiesDiagnostics.pruneMetrics.prunedEntriesTotal)} />
+                <DiagRow
+                  label="Last pruned at"
+                  value={
+                    activitiesDiagnostics.pruneMetrics.lastPrunedAt
+                      ? formatDistanceToNow(new Date(activitiesDiagnostics.pruneMetrics.lastPrunedAt), { addSuffix: true })
+                      : "—"
+                  }
+                />
+              </>
+            ) : (
+              <span className="col-span-2 text-muted-foreground">No diagnostics available (mock mode).</span>
+            )}
+          </div>
+        )}
+      </div>
     </div>
+  );
+}
+
+function DiagRow({ label, value }: { label: string; value: string }) {
+  return (
+    <>
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-mono text-foreground truncate">{value}</span>
+    </>
   );
 }

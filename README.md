@@ -196,6 +196,23 @@ Operational diagnostics:
 - Timeout: the client aborts the activity write request (currently after `1500ms`)
   and surfaces a timeout warning, while the main UI flow remains available.
 
+### Metrics lifecycle — `activities-metrics.json`
+
+`.kyro/activities-metrics.json` tracks cumulative prune counters for the
+activities retention policy. It has a fixed, bounded size regardless of
+workspace activity volume — only counter values grow, not the file structure.
+
+| Scenario | Behavior |
+|----------|----------|
+| Normal operation | Counters accumulate. File stays small (~80 bytes). |
+| Manual reset | Delete or zero out the file. Next append recreates it from defaults. |
+| Workspace wipe | Deleting `.kyro/` removes both `activities.json` and `activities-metrics.json`. Both are recreated on the next write. |
+| Future instrumentation | New fields may be added additively. Removing existing fields is a breaking change — update `isValidPruneMetrics` in `lib/api/activities-log.ts` to stay in sync. |
+
+The `GET /api/activities` response includes a `diagnostics` field with current
+retention config and prune metrics. This is also surfaced in the
+**Agent Activity** page under "Activity Diagnostics".
+
 ---
 
 ## Project Structure

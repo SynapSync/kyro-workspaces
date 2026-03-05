@@ -82,7 +82,7 @@ describe("FileMembersService + FileActivitiesService integration", () => {
 
     expect(create.ok).toBe(true);
 
-    const activities = await activitiesService.list();
+    const { activities } = await activitiesService.list();
     expect(activities.length).toBe(1);
     expect(activities[0].actionType).toBe("created_sprint");
     expect(activities[0].metadata?.agent).toBe("Sprint Forge");

@@ -124,6 +124,29 @@ export type Document = z.infer<typeof DocumentSchema>;
 export type Project = z.infer<typeof ProjectSchema>;
 export type AgentActivity = z.infer<typeof AgentActivitySchema>;
 
+// --- Activities Diagnostics ---
+
+export type ActivityRetentionSource = "default" | "env" | "default_invalid_env";
+
+export interface PruneMetrics {
+  pruneEvents: number;
+  prunedEntriesTotal: number;
+  lastPrunedAt?: string;
+}
+
+export interface ActivitiesDiagnostics {
+  retentionLimit: number;
+  retentionSource: ActivityRetentionSource;
+  retentionEnvKey: string;
+  retentionRawValue?: string;
+  pruneMetrics: PruneMetrics;
+}
+
+export interface ActivitiesListResult {
+  activities: AgentActivity[];
+  diagnostics: ActivitiesDiagnostics | null;
+}
+
 // --- Async State ---
 
 export interface LoadingState {
