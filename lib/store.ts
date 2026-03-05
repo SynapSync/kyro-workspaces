@@ -5,13 +5,9 @@ import type {
   AgentActivity,
   AgentActionType,
   ActivitiesDiagnostics,
-  Task,
-  TaskStatus,
-  Sprint,
-  SprintMarkdownSections,
-  Document,
+  Finding,
+  RoadmapSprintEntry,
   TeamMember,
-  LoadingState,
 } from "./types";
 import { services } from "./services";
 import { APP_NAME } from "./config";
@@ -43,36 +39,22 @@ interface AppState {
   projects: Project[];
   activeProjectId: string;
   setActiveProjectId: (id: string) => void;
-  addProject: (project: Project) => void;
-  updateProject: (id: string, updates: Partial<Project>) => void;
+  addProject: (path: string, name?: string, color?: string) => void;
+  updateProject: (id: string, updates: { name?: string; color?: string }) => void;
   deleteProject: (id: string) => void;
 
   // Current project helper
   getActiveProject: () => Project;
 
-  // README (scoped to active project)
-  updateReadme: (content: string) => void;
+  // Findings (per-project, loaded on demand)
+  findings: Record<string, Finding[]>;
+  findingsLoading: Record<string, boolean>;
+  loadFindings: (projectId: string) => Promise<void>;
 
-  // Documents (scoped to active project)
-  addDocument: (doc: Document) => void;
-  updateDocument: (id: string, updates: Partial<Document>) => void;
-  deleteDocument: (id: string) => void;
-
-  // Sprints (scoped to active project)
-  addSprint: (sprint: Sprint) => void;
-  updateSprint: (id: string, updates: Partial<Sprint>) => void;
-  deleteSprint: (sprintId: string) => void;
-  updateSprintSection: (
-    sprintId: string,
-    sectionKey: keyof SprintMarkdownSections,
-    content: string
-  ) => void;
-
-  // Tasks (scoped to active project)
-  addTask: (sprintId: string, task: Task) => void;
-  updateTask: (sprintId: string, taskId: string, updates: Partial<Task>) => void;
-  moveTask: (sprintId: string, taskId: string, newStatus: TaskStatus) => void;
-  deleteTask: (sprintId: string, taskId: string) => void;
+  // Roadmap (per-project, loaded on demand)
+  roadmaps: Record<string, { raw: string; sprints: RoadmapSprintEntry[] }>;
+  roadmapLoading: Record<string, boolean>;
+  loadRoadmap: (projectId: string) => Promise<void>;
 
   // Async initialization state
   isInitializing: boolean;
@@ -127,19 +109,10 @@ interface AppState {
   commandPaletteOpen: boolean;
   setCommandPaletteOpen: (open: boolean) => void;
   toggleCommandPalette: () => void;
-}
 
-// Helper to update sprints inside a project
-function updateProjectSprints(
-  projects: Project[],
-  projectId: string,
-  updater: (sprints: Sprint[]) => Sprint[]
-): Project[] {
-  return projects.map((p) =>
-    p.id === projectId
-      ? { ...p, sprints: updater(p.sprints), updatedAt: new Date().toISOString() }
-      : p
-  );
+  // Add Project Dialog
+  addProjectDialogOpen: boolean;
+  setAddProjectDialogOpen: (open: boolean) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -152,16 +125,22 @@ export const useAppStore = create<AppState>()(
   setActiveProjectId: (id) =>
     set({ activeProjectId: id, activeSprintId: null, activeSprintDetailId: null, activeSidebarItem: "overview" }),
 
-  addProject: (project) => {
-    const prev = get().projects;
-    set((state) => ({ isSaving: true, saveError: null, projects: [...state.projects, project] }));
-    services.projects.createProject({
-      id: project.id,
-      name: project.name,
-      description: project.description,
-    })
-      .then(() => set({ isSaving: false }))
-      .catch((err) => set({ projects: prev, isSaving: false, saveError: errorMsg(err) }));
+  addProject: (path, name, color) => {
+    set({ isSaving: true, saveError: null });
+    services.projects.createProject({ path, name, color })
+      .then((entry) => {
+        // The POST response is a registry entry, not a full Project.
+        // Re-fetch to get the fully parsed project with sprints, documents, etc.
+        return services.projects.getProject(entry.id).then((full) => full ?? entry);
+      })
+      .then((project) => {
+        set((state) => ({
+          projects: [...state.projects, project],
+          activeProjectId: project.id,
+          isSaving: false,
+        }));
+      })
+      .catch((err) => set({ isSaving: false, saveError: errorMsg(err) }));
   },
 
   updateProject: (id, updates) => {
@@ -173,11 +152,7 @@ export const useAppStore = create<AppState>()(
         p.id === id ? { ...p, ...updates, updatedAt: new Date().toISOString() } : p
       ),
     }));
-    services.projects.updateProject(id, {
-      name: updates.name,
-      description: updates.description,
-      readme: updates.readme,
-    })
+    services.projects.updateProject(id, updates)
       .then(() => set({ isSaving: false }))
       .catch((err) => set({ projects: prev, isSaving: false, saveError: errorMsg(err) }));
   },
@@ -206,303 +181,48 @@ export const useAppStore = create<AppState>()(
     return state.projects.find((p) => p.id === state.activeProjectId) ?? state.projects[0];
   },
 
-  updateReadme: (content) => {
-    const prev = get().projects;
+  // --- Findings ---
+
+  findings: {},
+  findingsLoading: {},
+  loadFindings: async (projectId) => {
     set((state) => ({
-      isSaving: true,
-      saveError: null,
-      projects: state.projects.map((p) =>
-        p.id === state.activeProjectId
-          ? { ...p, readme: content, updatedAt: new Date().toISOString() }
-          : p
-      ),
+      findingsLoading: { ...state.findingsLoading, [projectId]: true },
     }));
-    services.projects.updateProject(get().activeProjectId, { readme: content })
-      .then(() => set({ isSaving: false }))
-      .catch((err) => set({ projects: prev, isSaving: false, saveError: errorMsg(err) }));
+    try {
+      const findings = await services.projects.getFindings(projectId);
+      set((state) => ({
+        findings: { ...state.findings, [projectId]: findings },
+        findingsLoading: { ...state.findingsLoading, [projectId]: false },
+      }));
+    } catch (err) {
+      set((state) => ({
+        findingsLoading: { ...state.findingsLoading, [projectId]: false },
+      }));
+      console.warn("[findings] Failed to load:", errorMsg(err));
+    }
   },
 
-  // --- Documents (optimistic + rollback) ---
+  // --- Roadmaps ---
 
-  addDocument: (doc) => {
-    const prev = get().projects;
+  roadmaps: {},
+  roadmapLoading: {},
+  loadRoadmap: async (projectId) => {
     set((state) => ({
-      isSaving: true,
-      saveError: null,
-      projects: state.projects.map((p) =>
-        p.id === state.activeProjectId
-          ? { ...p, documents: [...p.documents, doc], updatedAt: new Date().toISOString() }
-          : p
-      ),
+      roadmapLoading: { ...state.roadmapLoading, [projectId]: true },
     }));
-    services.projects.createDocument(get().activeProjectId, {
-      title: doc.title,
-      content: doc.content,
-    })
-      .then(() => set({ isSaving: false }))
-      .catch((err) => set({ projects: prev, isSaving: false, saveError: errorMsg(err) }));
-  },
-
-  updateDocument: (id, updates) => {
-    const projectId = get().activeProjectId;
-    const prev = get().projects;
-    set((state) => ({
-      isSaving: true,
-      saveError: null,
-      projects: state.projects.map((p) =>
-        p.id === state.activeProjectId
-          ? {
-              ...p,
-              documents: p.documents.map((d) =>
-                d.id === id
-                  ? { ...d, ...updates, updatedAt: new Date().toISOString() }
-                  : d
-              ),
-              updatedAt: new Date().toISOString(),
-            }
-          : p
-      ),
-    }));
-    services.projects.updateDocument(projectId, id, updates)
-      .then(() => {
-        set({ isSaving: false });
-        recordActivity({
-          projectId,
-          actionType: "edited_doc",
-          description: `Updated document ${updates.title ?? id}`,
-          metadata: { docId: id, agent: "Kyro UI" },
-        }, (warning) => set({ activityWriteWarning: warning }));
-      })
-      .catch((err) => set({ projects: prev, isSaving: false, saveError: errorMsg(err) }));
-  },
-
-  deleteDocument: (id) => {
-    const prev = get().projects;
-    set((state) => ({
-      isSaving: true,
-      saveError: null,
-      projects: state.projects.map((p) =>
-        p.id === state.activeProjectId
-          ? { ...p, documents: p.documents.filter((d) => d.id !== id) }
-          : p
-      ),
-    }));
-    services.projects.deleteDocument(get().activeProjectId, id)
-      .then(() => set({ isSaving: false }))
-      .catch((err) => set({ projects: prev, isSaving: false, saveError: errorMsg(err) }));
-  },
-
-  // --- Sprints (optimistic + rollback) ---
-
-  addSprint: (sprint) => {
-    const projectId = get().activeProjectId;
-    const prev = get().projects;
-    set((state) => ({
-      isSaving: true,
-      saveError: null,
-      projects: updateProjectSprints(
-        state.projects,
-        state.activeProjectId,
-        (sprints) => [...sprints, sprint]
-      ),
-    }));
-    services.projects.createSprint(projectId, {
-      id: sprint.id,
-      name: sprint.name,
-      objective: sprint.objective,
-      status: sprint.status,
-      startDate: sprint.startDate,
-      endDate: sprint.endDate,
-      version: sprint.version,
-    })
-      .then(() => {
-        set({ isSaving: false });
-        recordActivity({
-          projectId,
-          actionType: "created_sprint",
-          description: `Created sprint ${sprint.name}`,
-          metadata: { sprintId: sprint.id, agent: "Kyro UI" },
-        }, (warning) => set({ activityWriteWarning: warning }));
-      })
-      .catch((err) => set({ projects: prev, isSaving: false, saveError: errorMsg(err) }));
-  },
-
-  updateSprint: (id, updates) => {
-    const prev = get().projects;
-    set((state) => ({
-      isSaving: true,
-      saveError: null,
-      projects: updateProjectSprints(
-        state.projects,
-        state.activeProjectId,
-        (sprints) => sprints.map((s) => (s.id === id ? { ...s, ...updates } : s))
-      ),
-    }));
-    services.projects.updateSprint(get().activeProjectId, id, updates)
-      .then(() => set({ isSaving: false }))
-      .catch((err) => set({ projects: prev, isSaving: false, saveError: errorMsg(err) }));
-  },
-
-  deleteSprint: (sprintId) => {
-    const prev = get().projects;
-    set((state) => ({
-      isSaving: true,
-      saveError: null,
-      projects: updateProjectSprints(
-        state.projects,
-        state.activeProjectId,
-        (sprints) => sprints.filter((s) => s.id !== sprintId)
-      ),
-    }));
-    services.projects.deleteSprint(get().activeProjectId, sprintId)
-      .then(() => set({ isSaving: false }))
-      .catch((err) => set({ projects: prev, isSaving: false, saveError: errorMsg(err) }));
-  },
-
-  updateSprintSection: (sprintId, sectionKey, content) =>
-    set((state) => ({
-      projects: updateProjectSprints(
-        state.projects,
-        state.activeProjectId,
-        (sprints) =>
-          sprints.map((s) =>
-            s.id === sprintId
-              ? {
-                  ...s,
-                  sections: {
-                    ...s.sections,
-                    [sectionKey]: content,
-                  },
-                }
-              : s
-          )
-      ),
-    })),
-
-  // --- Tasks (optimistic + rollback) ---
-
-  addTask: (sprintId, task) => {
-    const projectId = get().activeProjectId;
-    const prev = get().projects;
-    set((state) => ({
-      isSaving: true,
-      saveError: null,
-      projects: updateProjectSprints(
-        state.projects,
-        state.activeProjectId,
-        (sprints) =>
-          sprints.map((s) =>
-            s.id === sprintId ? { ...s, tasks: [...s.tasks, task] } : s
-          )
-      ),
-    }));
-    services.projects.createTask(projectId, sprintId, {
-      title: task.title,
-      description: task.description,
-      status: task.status,
-      priority: task.priority,
-      assignee: task.assignee,
-      tags: task.tags,
-    })
-      .then(() => {
-        set({ isSaving: false });
-        recordActivity({
-          projectId,
-          actionType: "created_task",
-          description: `Created task ${task.title}`,
-          metadata: { sprintId, taskId: task.id, agent: "Kyro UI" },
-        }, (warning) => set({ activityWriteWarning: warning }));
-      })
-      .catch((err) => set({ projects: prev, isSaving: false, saveError: errorMsg(err) }));
-  },
-
-  updateTask: (sprintId, taskId, updates) => {
-    const prev = get().projects;
-    set((state) => ({
-      isSaving: true,
-      saveError: null,
-      projects: updateProjectSprints(
-        state.projects,
-        state.activeProjectId,
-        (sprints) =>
-          sprints.map((s) =>
-            s.id === sprintId
-              ? {
-                  ...s,
-                  tasks: s.tasks.map((t) =>
-                    t.id === taskId
-                      ? { ...t, ...updates, updatedAt: new Date().toISOString() }
-                      : t
-                  ),
-                }
-              : s
-          )
-      ),
-    }));
-    services.projects.updateTask(get().activeProjectId, sprintId, taskId, updates)
-      .then(() => set({ isSaving: false }))
-      .catch((err) => set({ projects: prev, isSaving: false, saveError: errorMsg(err) }));
-  },
-
-  moveTask: (sprintId, taskId, newStatus) => {
-    const projectId = get().activeProjectId;
-    const prev = get().projects;
-    set((state) => ({
-      isSaving: true,
-      saveError: null,
-      projects: updateProjectSprints(
-        state.projects,
-        state.activeProjectId,
-        (sprints) =>
-          sprints.map((s) =>
-            s.id === sprintId
-              ? {
-                  ...s,
-                  tasks: s.tasks.map((t) =>
-                    t.id === taskId
-                      ? { ...t, status: newStatus, updatedAt: new Date().toISOString() }
-                      : t
-                  ),
-                }
-              : s
-          )
-      ),
-    }));
-    services.projects.moveTask(projectId, sprintId, taskId, newStatus)
-      .then(() => {
-        set({ isSaving: false });
-        const isDone = newStatus === "done";
-        recordActivity({
-          projectId,
-          actionType: isDone ? "completed_task" : "moved_task",
-          description: isDone
-            ? `Completed task ${taskId}`
-            : `Moved task ${taskId} to ${newStatus}`,
-          metadata: { sprintId, taskId, status: newStatus, agent: "Kyro UI" },
-        }, (warning) => set({ activityWriteWarning: warning }));
-      })
-      .catch((err) => set({ projects: prev, isSaving: false, saveError: errorMsg(err) }));
-  },
-
-  deleteTask: (sprintId, taskId) => {
-    const prev = get().projects;
-    set((state) => ({
-      isSaving: true,
-      saveError: null,
-      projects: updateProjectSprints(
-        state.projects,
-        state.activeProjectId,
-        (sprints) =>
-          sprints.map((s) =>
-            s.id === sprintId
-              ? { ...s, tasks: s.tasks.filter((t) => t.id !== taskId) }
-              : s
-          )
-      ),
-    }));
-    services.projects.deleteTask(get().activeProjectId, sprintId, taskId)
-      .then(() => set({ isSaving: false }))
-      .catch((err) => set({ projects: prev, isSaving: false, saveError: errorMsg(err) }));
+    try {
+      const roadmap = await services.projects.getRoadmap(projectId);
+      set((state) => ({
+        roadmaps: { ...state.roadmaps, [projectId]: roadmap },
+        roadmapLoading: { ...state.roadmapLoading, [projectId]: false },
+      }));
+    } catch (err) {
+      set((state) => ({
+        roadmapLoading: { ...state.roadmapLoading, [projectId]: false },
+      }));
+      console.warn("[roadmap] Failed to load:", errorMsg(err));
+    }
   },
 
   // --- Async init ---
@@ -625,6 +345,10 @@ export const useAppStore = create<AppState>()(
   commandPaletteOpen: false,
   setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
   toggleCommandPalette: () => set((state) => ({ commandPaletteOpen: !state.commandPaletteOpen })),
+
+  // Add Project Dialog
+  addProjectDialogOpen: false,
+  setAddProjectDialogOpen: (open) => set({ addProjectDialogOpen: open }),
     }),
     {
       name: "kyro-nav-state",

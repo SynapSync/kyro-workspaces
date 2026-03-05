@@ -27,10 +27,14 @@ export interface SprintDTO {
   objective?: string;
   tasks: TaskDTO[];
   sections?: {
-    retrospective?: string;
+    sprint_objective?: string;
+    disposition?: string;
+    phases?: string;
+    emergent_phases?: string;
+    findings_consolidation?: string;
     technical_debt?: string;
-    execution_metrics?: string;
-    findings?: string;
+    definition_of_done?: string;
+    retrospective?: string;
     recommendations?: string;
   };
   created_at: string;

@@ -1,14 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import {
-  Zap,
   Plus,
   Sidebar,
   Focus,
   EyeOff,
-  FilePlus,
 } from "lucide-react";
 import {
   CommandDialog,
@@ -20,31 +17,21 @@ import {
   CommandSeparator,
 } from "@/components/ui/command";
 import { useAppStore } from "@/lib/store";
-import { NAV_ITEMS, DEFAULT_PROJECT, DEFAULT_DOCUMENT, DEFAULT_SPRINT_NAME_PREFIX } from "@/lib/config";
-import type { Project, Document } from "@/lib/types";
+import { NAV_ITEMS } from "@/lib/config";
 
 export function CommandPalette() {
-  const router = useRouter();
   const {
     commandPaletteOpen,
     setCommandPaletteOpen,
     toggleCommandPalette,
-    projects,
-    activeProjectId,
-    setActiveProjectId,
     setActiveSidebarItem,
     setActiveSprintId,
-    addProject,
-    addDocument,
-    addSprint,
     toggleFocusMode,
     zenMode,
     setZenMode,
-    sidebarCollapsed,
     toggleSidebar,
+    setAddProjectDialogOpen,
   } = useAppStore();
-
-  const activeProject = projects.find((p) => p.id === activeProjectId);
 
   // Keyboard shortcut ⌘+K
   useEffect(() => {
@@ -59,50 +46,10 @@ export function CommandPalette() {
   }, [toggleCommandPalette]);
 
   const handleCreateProject = () => {
-    const newProject: Project = {
-      id: `proj-${Date.now()}`,
-      name: DEFAULT_PROJECT.name,
-      description: DEFAULT_PROJECT.description,
-      readme: DEFAULT_PROJECT.readme,
-      documents: [],
-      sprints: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    addProject(newProject);
-    setActiveProjectId(newProject.id);
     setCommandPaletteOpen(false);
+    setAddProjectDialogOpen(true);
   };
 
-  const handleCreateDocument = () => {
-    if (!activeProject) return;
-    const newDoc: Document = {
-      id: `doc-${Date.now()}`,
-      title: DEFAULT_DOCUMENT.title,
-      content: DEFAULT_DOCUMENT.content,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    addDocument(newDoc);
-    setActiveSidebarItem("documents"); // NAV_ITEMS id
-    setCommandPaletteOpen(false);
-  };
-
-  const handleCreateSprint = () => {
-    if (!activeProject) return;
-    const newSprint = {
-      id: `sprint-${Date.now()}`,
-      name: `${DEFAULT_SPRINT_NAME_PREFIX} ${activeProject.sprints.length + 1}`,
-      status: "planned" as const,
-      tasks: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    addSprint(newSprint);
-    setActiveSidebarItem("sprints"); // NAV_ITEMS id
-    setActiveSprintId(newSprint.id);
-    setCommandPaletteOpen(false);
-  };
 
   const handleNavigate = (item: string) => {
     setActiveSidebarItem(item);
@@ -134,15 +81,7 @@ export function CommandPalette() {
         <CommandGroup heading="Actions">
           <CommandItem onSelect={handleCreateProject}>
             <Plus className="mr-2 h-4 w-4" />
-            <span>Create New Project</span>
-          </CommandItem>
-          <CommandItem onSelect={handleCreateDocument}>
-            <FilePlus className="mr-2 h-4 w-4" />
-            <span>Create New Document</span>
-          </CommandItem>
-          <CommandItem onSelect={handleCreateSprint}>
-            <Zap className="mr-2 h-4 w-4" />
-            <span>Create New Sprint</span>
+            <span>Add Project</span>
           </CommandItem>
         </CommandGroup>
 

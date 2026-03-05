@@ -1,20 +1,14 @@
 import * as fs from "fs/promises";
 import * as path from "path";
 import { fileExists, resolveAndGuard } from "@/lib/api";
-import { parseProjectReadme, parseSprintFile, parseWorkspaceConfig } from "./parsers";
+import { parseWorkspaceConfig } from "./parsers";
+import { listProjects } from "./registry";
 
 interface ProjectSummary {
   id: string;
   name: string;
   description: string;
-  latestSprint: string;
-  sprintCount: number;
-}
-
-interface ProjectSprintSummary {
-  id: string;
-  fileName: string;
-  status: string;
+  path: string;
 }
 
 const EMPTY = "—";
@@ -36,55 +30,16 @@ async function readWorkspaceName(workspacePath: string): Promise<string> {
 }
 
 async function listProjectSummaries(workspacePath: string): Promise<ProjectSummary[]> {
-  const projectsDir = resolveAndGuard(workspacePath, "projects");
-  if (!(await fileExists(projectsDir))) {
-    return [];
-  }
+  const registryPath = resolveAndGuard(workspacePath, ".kyro", "projects.json");
+  if (!(await fileExists(registryPath))) return [];
 
-  const entries = await fs.readdir(projectsDir, { withFileTypes: true });
-  const summaries: ProjectSummary[] = [];
-
-  for (const entry of entries) {
-    if (!entry.isDirectory()) continue;
-
-    const projectId = entry.name;
-    const projectDir = resolveAndGuard(projectsDir, projectId);
-    const readmePath = resolveAndGuard(projectDir, "README.md");
-
-    let name = projectId;
-    let description = "";
-
-    if (await fileExists(readmePath)) {
-      const readmeContent = await fs.readFile(readmePath, "utf-8");
-      const parsed = parseProjectReadme(readmeContent, projectId);
-      name = parsed.name;
-      description = parsed.description;
-    }
-
-    const sprintsDir = resolveAndGuard(projectDir, "sprints");
-    let latestSprint = EMPTY;
-    let sprintCount = 0;
-
-    if (await fileExists(sprintsDir)) {
-      const sprintFiles = (await fs.readdir(sprintsDir))
-        .filter((file) => file.endsWith(".md"))
-        .sort();
-      sprintCount = sprintFiles.length;
-      if (sprintFiles.length > 0) {
-        latestSprint = sprintFiles[sprintFiles.length - 1].replace(/\.md$/, "");
-      }
-    }
-
-    summaries.push({
-      id: projectId,
-      name,
-      description,
-      latestSprint,
-      sprintCount,
-    });
-  }
-
-  return summaries.sort((a, b) => a.name.localeCompare(b.name));
+  const entries = await listProjects(registryPath);
+  return entries.map((entry) => ({
+    id: entry.id,
+    name: entry.name,
+    description: "",
+    path: entry.path,
+  }));
 }
 
 function workspaceReadmeContent(
@@ -95,12 +50,10 @@ function workspaceReadmeContent(
     ? projects
         .map(
           (project) =>
-            `| ${escapeTable(project.id)} | ${escapeTable(project.name)} | ${escapeTable(
-              project.latestSprint
-            )} | ${project.sprintCount} | ${escapeTable(project.description || EMPTY)} |`
+            `| ${escapeTable(project.id)} | ${escapeTable(project.name)} | ${escapeTable(project.path)} |`
         )
         .join("\n")
-    : `| ${EMPTY} | ${EMPTY} | ${EMPTY} | 0 | ${EMPTY} |`;
+    : `| ${EMPTY} | ${EMPTY} | ${EMPTY} |`;
 
   return `# ${workspaceName} — Workspace
 
@@ -110,62 +63,9 @@ function workspaceReadmeContent(
 
 ## Projects Index
 
-| Slug | Name | Latest Sprint | Sprint Files | Description |
-|------|------|---------------|--------------|-------------|
+| Slug | Name | Path |
+|------|------|------|
 ${projectRows}
-
----
-
-## Agent Protocol (Workspace Level)
-
-If an agent receives: **"work on project X, sprint Y"**, this is the required read order:
-
-1. \`projects/{slug}/README.md\`
-2. \`projects/{slug}/ROADMAP.md\`
-3. \`projects/{slug}/sprints/SPRINT-*.md\` (latest and/or target sprint)
-4. \`projects/{slug}/RE-ENTRY-PROMPTS.md\`
-
-Then execute the sprint and update tasks with symbols:\n\`[ ] -> [~] -> [x]\`\nUse \`[!]\` for blockers and \`[>]\` for carry-over.
-
----
-
-## Workspace Conventions
-
-- Source of truth is file-based under \`KYRO_WORKSPACE_PATH\`
-- Keep sprint files auditable (evidence inline)
-- Never delete debt rows; only update status
-- Re-entry prompts must be updated after each sprint execution
-`;
-}
-
-function workspaceAgentsContent(workspaceName: string): string {
-  return `# AGENTS.md — ${workspaceName}
-
-This protocol defines how agents must operate in this workspace.
-
-## Mandatory Read Order (per project)
-
-1. \`README.md\`
-2. \`ROADMAP.md\`
-3. Latest sprint file in \`sprints/\`
-4. \`RE-ENTRY-PROMPTS.md\`
-
-## Execution Rules
-
-1. Work sprint-by-sprint (no future sprint pre-generation)
-2. Move task symbols during execution: \`[ ]\` -> \`[~]\` -> \`[x]\`
-3. Record blockers with \`[!]\` and concrete reason
-4. Carry unfinished tasks with \`[>]\`
-5. Keep evidence for each task (commands, files, verifications)
-6. Update technical debt status explicitly; never delete debt history
-
-## Definition of Done
-
-A sprint is not done until:
-- Phase tasks are completed or explicitly marked blocked/carry-over
-- Retro is filled with real findings
-- Recommendations for next sprint are documented
-- Re-entry prompts are updated
 `;
 }
 
@@ -174,23 +74,17 @@ export function buildDefaultProjectReadmeBody(projectName: string): string {
   return `# Proyecto: ${projectName}
 
 ## Objetivo del Proyecto
-Describe aquí el objetivo principal, entregables y criterios de éxito.
+Describe aqui el objetivo principal, entregables y criterios de exito.
 
-## Stack Técnico
+## Stack Tecnico
 - Framework:
 - Lenguaje:
 - Persistencia:
 - Testing:
 
-## Cómo Trabajar (Agentes + Humanos)
-1. Lee \`ROADMAP.md\` para entender el plan de sprints.
-2. Lee el último sprint en \`sprints/\`.
-3. Usa \`RE-ENTRY-PROMPTS.md\` para retomar contexto.
-4. Ejecuta tareas con evidencia y actualiza símbolos de estado.
-
 ## Estado Actual
 - Sprint activo: _(pendiente)_
-- Última actualización: ${today}
+- Ultima actualizacion: ${today}
 `;
 }
 
@@ -200,7 +94,7 @@ export function buildDefaultProjectRoadmap(projectName: string): string {
 > Este roadmap es un documento vivo.
 
 ## Objetivo
-Definir y ejecutar sprints incrementales con trazabilidad de deuda técnica.
+Definir y ejecutar sprints incrementales con trazabilidad de deuda tecnica.
 
 ## Sprints
 
@@ -212,101 +106,8 @@ Definir y ejecutar sprints incrementales con trazabilidad de deuda técnica.
 
 1. Generar un sprint a la vez.
 2. La retro del sprint anterior alimenta el siguiente.
-3. La deuda técnica se hereda completa sprint a sprint.
+3. La deuda tecnica se hereda completa sprint a sprint.
 `;
-}
-
-function projectReentryPromptsContent(params: {
-  projectName: string;
-  projectPath: string;
-  sprintFiles: ProjectSprintSummary[];
-}): string {
-  const { projectName, projectPath, sprintFiles } = params;
-
-  const quickRows = sprintFiles.length
-    ? sprintFiles
-        .map(
-          (sprint, idx) =>
-            `| ${idx + 1} | \`sprints/${sprint.fileName}\` | ${sprint.status} |`
-        )
-        .join("\n")
-    : `| ${EMPTY} | ${EMPTY} | pending |`;
-
-  const latestSprintFile = sprintFiles.length
-    ? sprintFiles[sprintFiles.length - 1].fileName
-    : "(none yet)";
-
-  return `# ${projectName} — RE-ENTRY-PROMPTS
-
-> Last updated: ${nowDate()}
-
-## Quick Reference
-
-| # | Sprint File | Status |
-|---|-------------|--------|
-${quickRows}
-
-## Paths
-
-- Project root: \`${projectPath}\`
-- README: \`${projectPath}/README.md\`
-- ROADMAP: \`${projectPath}/ROADMAP.md\`
-- Latest sprint: \`${projectPath}/sprints/${latestSprintFile}\`
-
-## Scenario — Generate Next Sprint
-
-1. Read README, ROADMAP, latest sprint retro/recommendations.
-2. Use \`/sprint-forge\` to generate the next sprint.
-3. Ensure every previous recommendation is dispositioned.
-
-## Scenario — Execute Current Sprint
-
-1. Read current sprint file.
-2. Execute task-by-task and update symbols.
-3. Add emergent phase if required.
-4. Close with retro + recommendations.
-
-## Scenario — Project Status
-
-1. Read all sprint files.
-2. Summarize progress and debt trend.
-3. Identify next sprint focus.
-`;
-}
-
-async function listProjectSprints(
-  workspacePath: string,
-  projectId: string
-): Promise<ProjectSprintSummary[]> {
-  const sprintsDir = resolveAndGuard(workspacePath, "projects", projectId, "sprints");
-  if (!(await fileExists(sprintsDir))) {
-    return [];
-  }
-
-  const files = (await fs.readdir(sprintsDir)).filter((file) => file.endsWith(".md")).sort();
-  const result: ProjectSprintSummary[] = [];
-
-  for (const file of files) {
-    const fullPath = resolveAndGuard(sprintsDir, file);
-    const content = await fs.readFile(fullPath, "utf-8");
-
-    try {
-      const sprint = parseSprintFile(content);
-      result.push({
-        id: sprint.id,
-        fileName: file,
-        status: sprint.status,
-      });
-    } catch {
-      result.push({
-        id: file.replace(/\.md$/, ""),
-        fileName: file,
-        status: "planned",
-      });
-    }
-  }
-
-  return result;
 }
 
 export async function syncWorkspaceAgentDocs(workspacePath: string): Promise<void> {
@@ -314,33 +115,19 @@ export async function syncWorkspaceAgentDocs(workspacePath: string): Promise<voi
   const projects = await listProjectSummaries(workspacePath);
 
   const readmePath = resolveAndGuard(workspacePath, "README.md");
-  const agentsPath = resolveAndGuard(workspacePath, "AGENTS.md");
-
   await fs.writeFile(readmePath, workspaceReadmeContent(workspaceName, projects), "utf-8");
-  await fs.writeFile(agentsPath, workspaceAgentsContent(workspaceName), "utf-8");
 }
 
+/**
+ * No-op for external sprint-forge directories.
+ * Sprint-forge manages its own RE-ENTRY-PROMPTS.md.
+ * Kept as a stub for backward compatibility with callers.
+ */
 export async function syncProjectReentryPrompts(
-  workspacePath: string,
-  projectId: string,
-  fallbackProjectName?: string
+  _workspacePath: string,
+  _projectId: string,
+  _fallbackProjectName?: string
 ): Promise<void> {
-  const projectDir = resolveAndGuard(workspacePath, "projects", projectId);
-  const readmePath = resolveAndGuard(projectDir, "README.md");
-
-  let projectName = fallbackProjectName ?? projectId;
-  if (await fileExists(readmePath)) {
-    const readme = await fs.readFile(readmePath, "utf-8");
-    projectName = parseProjectReadme(readme, projectId).name;
-  }
-
-  const sprints = await listProjectSprints(workspacePath, projectId);
-  const content = projectReentryPromptsContent({
-    projectName,
-    projectPath: projectDir,
-    sprintFiles: sprints,
-  });
-
-  const reentryPath = resolveAndGuard(projectDir, "RE-ENTRY-PROMPTS.md");
-  await fs.writeFile(reentryPath, content, "utf-8");
+  // External sprint-forge directories manage their own re-entry prompts.
+  // Kyro does not write to external directories.
 }

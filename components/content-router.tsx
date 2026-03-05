@@ -11,14 +11,18 @@ import { SprintsPage } from "@/components/pages/sprints-page";
 import { SprintBoard } from "@/components/pages/sprint-board";
 import { SprintDetailPage } from "@/components/pages/sprint-detail-page";
 import { AgentsActivityPage } from "@/components/pages/agents-activity-page";
+import { FindingsPage } from "@/components/pages/findings-page";
+import { RoadmapPage } from "@/components/pages/roadmap-page";
 import { CommandPalette } from "@/components/command-palette";
 import { WorkspaceOnboarding } from "@/components/workspace-onboarding";
 
 const PAGE_MAP: Record<string, React.ReactNode> = {
   overview:  <ProjectOverview />,
   readme:    <ReadmePage />,
-  documents: <DocumentsPage />,
   sprints:   <SprintsPage />,
+  findings:  <FindingsPage />,
+  roadmap:   <RoadmapPage />,
+  documents: <DocumentsPage />,
   agents:    <AgentsActivityPage />,
 };
 

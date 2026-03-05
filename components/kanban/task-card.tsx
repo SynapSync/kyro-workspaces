@@ -3,15 +3,8 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { formatDistanceToNow } from "date-fns";
-import { GripVertical, MoreHorizontal, Pencil, Trash2, Ban, Sparkles } from "lucide-react";
+import { GripVertical, Ban, Sparkles, FileCode } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import type { Task } from "@/lib/types";
 import { PRIORITY_CONFIG, TAG_CONFIG, TASK_TAGS, NEW_TASK_THRESHOLD_MS } from "@/lib/config";
@@ -23,7 +16,7 @@ interface TaskCardProps {
   onDelete: (taskId: string) => void;
 }
 
-export function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
+export function TaskCard({ task }: TaskCardProps) {
   const {
     attributes,
     listeners,
@@ -48,6 +41,7 @@ export function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
 
   const isBlocked = task.tags.includes(TASK_TAGS.BLOCKED);
   const isAICreated = task.tags.includes(TASK_TAGS.AI_CREATED);
+  const isEmergent = task.taskRef?.startsWith("TE.");
 
   // Check if task was created recently (within last 5 seconds)
   const isNew = Date.now() - new Date(task.createdAt).getTime() < NEW_TASK_THRESHOLD_MS;
@@ -61,6 +55,7 @@ export function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
         isDragging && "opacity-50 rotate-2 scale-105 shadow-lg",
         isBlocked && "border-red-300 dark:border-red-800 bg-red-50/50 dark:bg-red-950/20",
         isAICreated && "border-purple-300 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-950/20",
+        isEmergent && !isBlocked && !isAICreated && "border-purple-200 dark:border-purple-900",
         isNew && "animate-pulse ring-2 ring-primary/30"
       )}
     >
@@ -74,35 +69,17 @@ export function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
           <span className="sr-only">Drag task</span>
         </button>
         <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 mb-0.5">
+            {task.taskRef && (
+              <Badge variant="outline" className="text-[10px] h-4 font-mono px-1.5 shrink-0">
+                {task.taskRef}
+              </Badge>
+            )}
+          </div>
           <p className="text-sm font-medium text-foreground leading-snug">
             {task.title}
           </p>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <MoreHorizontal className="h-3.5 w-3.5" />
-              <span className="sr-only">Task actions</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-36">
-            <DropdownMenuItem onClick={() => onEdit(task)}>
-              <Pencil className="mr-2 h-3.5 w-3.5" />
-              Edit
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => onDelete(task.id)}
-              className="text-destructive"
-            >
-              <Trash2 className="mr-2 h-3.5 w-3.5" />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
 
       {task.description && (
@@ -129,6 +106,17 @@ export function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
             <Badge className={`text-[10px] h-5 gap-1 ${TAG_CONFIG[TASK_TAGS.AI_CREATED].badgeClassName}`}>
               <Sparkles className="h-2.5 w-2.5" />
               {TAG_CONFIG[TASK_TAGS.AI_CREATED].label}
+            </Badge>
+          )}
+          {isEmergent && (
+            <Badge variant="secondary" className="text-[10px] h-5 bg-purple-500/10 text-purple-600 border-0">
+              Emergent
+            </Badge>
+          )}
+          {task.files && task.files.length > 0 && (
+            <Badge variant="outline" className="text-[10px] h-5 gap-1 text-muted-foreground">
+              <FileCode className="h-2.5 w-2.5" />
+              {task.files.length}
             </Badge>
           )}
           {task.tags.filter(t => t !== TASK_TAGS.BLOCKED && t !== TASK_TAGS.AI_CREATED).slice(0, 2).map((tag) => (

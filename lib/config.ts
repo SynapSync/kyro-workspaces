@@ -6,9 +6,12 @@ import {
   Bot,
   BookOpen,
   AlertTriangle,
-  BarChart2,
   Search,
   Lightbulb,
+  Target,
+  ArrowRightLeft,
+  Layers,
+  CheckSquare,
   Bold,
   Italic,
   Code,
@@ -18,6 +21,7 @@ import {
   List,
   ListOrdered,
   Quote,
+  Map,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type {
@@ -53,8 +57,10 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "readme", label: "README", icon: FileText },
-  { id: "documents", label: "Documents", icon: FolderOpen },
   { id: "sprints", label: "Sprints", icon: Zap },
+  { id: "findings", label: "Findings", icon: Search },
+  { id: "roadmap", label: "Roadmap", icon: Map },
+  { id: "documents", label: "Documents", icon: FolderOpen },
   { id: "agents", label: "Agents Activity", icon: Bot },
 ];
 
@@ -72,39 +78,49 @@ export const COLUMNS: { id: TaskStatus; title: string; color: string }[] = [
 
 export const SPRINT_SECTIONS: SprintSectionMeta[] = [
   {
-    key: "retrospective",
-    label: "Retrospective",
-    description: "What went well, what didn't, and surprises",
-    placeholder:
-      "## What Went Well\n\n- \n\n## What Didn't Go Well\n\n- \n\n## Surprises\n\n- ",
+    key: "sprintObjective",
+    label: "Objective",
+    description: "The sprint's primary goal and expected outcome",
+  },
+  {
+    key: "disposition",
+    label: "Disposition",
+    description: "How previous sprint's recommendations were handled",
+  },
+  {
+    key: "phases",
+    label: "Phases",
+    description: "Planned work phases with tasks",
+  },
+  {
+    key: "emergentPhases",
+    label: "Emergent Phases",
+    description: "Work discovered during execution",
+  },
+  {
+    key: "findingsConsolidation",
+    label: "Findings",
+    description: "Key discoveries and learnings from this sprint",
   },
   {
     key: "technicalDebt",
     label: "Technical Debt",
     description: "Accumulated debt items with status tracking",
-    placeholder:
-      "| # | Item | Origin | Priority | Status |\n|---|------|--------|----------|--------|\n| D1 | Description | Sprint X | HIGH | open |",
   },
   {
-    key: "executionMetrics",
-    label: "Execution Metrics",
-    description: "Tests, performance, and sprint execution data",
-    placeholder:
-      "## Metrics\n\n- Tests: \n- Files modified: \n- Files created: \n\n## Results\n\n| Metric | Value |\n|--------|-------|\n| | |",
+    key: "definitionOfDone",
+    label: "Definition of Done",
+    description: "Completion criteria checklist",
   },
   {
-    key: "findings",
-    label: "Findings",
-    description: "Key discoveries and learnings from this sprint",
-    placeholder:
-      "## Key Findings\n\n1. **Finding 1**: Description\n2. **Finding 2**: Description",
+    key: "retrospective",
+    label: "Retrospective",
+    description: "What went well, what didn't, and surprises",
   },
   {
     key: "recommendations",
     label: "Recommendations",
     description: "Suggestions and priorities for upcoming sprints",
-    placeholder:
-      "## Recommendations for Next Sprint\n\n1. **[CRITICAL]** Description\n2. **[HIGH]** Description\n3. **[MEDIUM]** Description",
   },
 ];
 
@@ -157,18 +173,46 @@ export const TAG_CONFIG: Record<TaskTagKey, TagStyle> = {
 // --- Sprint Section Icons ---
 
 export type SprintSectionKey =
-  | "retrospective"
+  | "sprintObjective"
+  | "disposition"
+  | "phases"
+  | "emergentPhases"
+  | "findingsConsolidation"
   | "technicalDebt"
-  | "executionMetrics"
-  | "findings"
+  | "definitionOfDone"
+  | "retrospective"
   | "recommendations";
 
 export const SPRINT_SECTION_ICONS: Record<SprintSectionKey, LucideIcon> = {
-  retrospective: BookOpen,
+  sprintObjective: Target,
+  disposition: ArrowRightLeft,
+  phases: Layers,
+  emergentPhases: Layers,
+  findingsConsolidation: Search,
   technicalDebt: AlertTriangle,
-  executionMetrics: BarChart2,
-  findings: Search,
+  definitionOfDone: CheckSquare,
+  retrospective: BookOpen,
   recommendations: Lightbulb,
+};
+
+// --- Sprint Type Colors ---
+
+export const SPRINT_TYPE_COLORS: Record<string, string> = {
+  refactor: "bg-blue-500/10 text-blue-600",
+  feature: "bg-emerald-500/10 text-emerald-600",
+  bugfix: "bg-red-500/10 text-red-600",
+  audit: "bg-purple-500/10 text-purple-600",
+  debt: "bg-orange-500/10 text-orange-600",
+};
+
+// --- Finding Severity Colors ---
+
+export const FINDING_SEVERITY_COLORS: Record<string, string> = {
+  critical: "bg-red-500/10 text-red-600",
+  high: "bg-orange-500/10 text-orange-600",
+  medium: "bg-amber-500/10 text-amber-600",
+  low: "bg-blue-500/10 text-blue-600",
+  info: "bg-muted text-muted-foreground",
 };
 
 // --- Markdown Toolbar Items ---

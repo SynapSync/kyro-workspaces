@@ -2,15 +2,9 @@ import type {
   ProjectsService,
   CreateProjectInput,
   UpdateProjectInput,
-  CreateSprintInput,
-  UpdateSprintInput,
-  CreateTaskInput,
-  UpdateTaskInput,
-  CreateDocumentInput,
-  UpdateDocumentInput,
 } from "../types";
-import type { Project, Sprint, Task, TaskStatus, Document } from "@/lib/types";
-import { mockProjects } from "@/lib/mock-data";
+import type { Project, Finding, RoadmapSprintEntry } from "@/lib/types";
+import { mockProjects, mockFindings, mockRoadmapSprints } from "@/lib/mock-data";
 
 // Configurable artificial delay to simulate network latency in development.
 // Set NEXT_PUBLIC_MOCK_DELAY_MS in .env.local to enable (default: 0).
@@ -23,64 +17,60 @@ const delay = (ms: number) =>
   ms > 0 ? new Promise((r) => setTimeout(r, ms)) : Promise.resolve();
 
 export class MockProjectsService implements ProjectsService {
-  async list() {
+  private projects = [...mockProjects];
+
+  async list(): Promise<Project[]> {
     await delay(DELAY_MS);
-    return mockProjects;
+    return this.projects;
   }
 
-  async getProject(_id: string): Promise<Project | null> {
-    throw new Error("MockProjectsService: getProject not implemented");
+  async getProject(id: string): Promise<Project | null> {
+    await delay(DELAY_MS);
+    return this.projects.find((p) => p.id === id) ?? null;
   }
 
-  async createProject(_data: CreateProjectInput): Promise<Project> {
-    throw new Error("MockProjectsService: createProject not implemented");
+  async createProject(data: CreateProjectInput): Promise<Project> {
+    await delay(DELAY_MS);
+    const now = new Date().toISOString();
+    const dirName = data.path.split("/").filter(Boolean).pop() ?? "project";
+    const id = dirName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    const project: Project = {
+      id,
+      name: data.name ?? dirName,
+      description: "",
+      color: data.color,
+      readme: "",
+      documents: [],
+      sprints: [],
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.projects.push(project);
+    return project;
   }
 
-  async updateProject(_id: string, _updates: UpdateProjectInput): Promise<Project> {
-    throw new Error("MockProjectsService: updateProject not implemented");
+  async updateProject(id: string, updates: UpdateProjectInput): Promise<Project> {
+    await delay(DELAY_MS);
+    const project = this.projects.find((p) => p.id === id);
+    if (!project) throw new Error(`Project ${id} not found`);
+    if (updates.name !== undefined) project.name = updates.name;
+    if (updates.color !== undefined) project.color = updates.color;
+    project.updatedAt = new Date().toISOString();
+    return project;
   }
 
-  async deleteProject(_id: string): Promise<void> {
-    throw new Error("MockProjectsService: deleteProject not implemented");
+  async deleteProject(id: string): Promise<void> {
+    await delay(DELAY_MS);
+    this.projects = this.projects.filter((p) => p.id !== id);
   }
 
-  async createSprint(_projectId: string, _data: CreateSprintInput): Promise<Sprint> {
-    throw new Error("MockProjectsService: createSprint not implemented");
+  async getFindings(projectId: string): Promise<Finding[]> {
+    await delay(DELAY_MS);
+    return mockFindings[projectId] ?? [];
   }
 
-  async updateSprint(_projectId: string, _sprintId: string, _updates: UpdateSprintInput): Promise<Sprint> {
-    throw new Error("MockProjectsService: updateSprint not implemented");
-  }
-
-  async deleteSprint(_projectId: string, _sprintId: string): Promise<void> {
-    throw new Error("MockProjectsService: deleteSprint not implemented");
-  }
-
-  async createTask(_projectId: string, _sprintId: string, _data: CreateTaskInput): Promise<Task> {
-    throw new Error("MockProjectsService: createTask not implemented");
-  }
-
-  async updateTask(_projectId: string, _sprintId: string, _taskId: string, _updates: UpdateTaskInput): Promise<Task> {
-    throw new Error("MockProjectsService: updateTask not implemented");
-  }
-
-  async moveTask(_projectId: string, _sprintId: string, _taskId: string, _newStatus: TaskStatus): Promise<Task> {
-    throw new Error("MockProjectsService: moveTask not implemented");
-  }
-
-  async deleteTask(_projectId: string, _sprintId: string, _taskId: string): Promise<void> {
-    throw new Error("MockProjectsService: deleteTask not implemented");
-  }
-
-  async createDocument(_projectId: string, _data: CreateDocumentInput): Promise<Document> {
-    throw new Error("MockProjectsService: createDocument not implemented");
-  }
-
-  async updateDocument(_projectId: string, _docId: string, _updates: UpdateDocumentInput): Promise<Document> {
-    throw new Error("MockProjectsService: updateDocument not implemented");
-  }
-
-  async deleteDocument(_projectId: string, _docId: string): Promise<void> {
-    throw new Error("MockProjectsService: deleteDocument not implemented");
+  async getRoadmap(projectId: string): Promise<{ raw: string; sprints: RoadmapSprintEntry[] }> {
+    await delay(DELAY_MS);
+    return mockRoadmapSprints[projectId] ?? { raw: "", sprints: [] };
   }
 }

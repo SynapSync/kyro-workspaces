@@ -15,6 +15,7 @@ import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/lib/store";
+import { AddProjectDialog } from "@/components/dialogs/add-project-dialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -27,7 +28,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { Project } from "@/lib/types";
 
 export function AppSidebar() {
   const isMobile = useIsMobile();
@@ -39,10 +39,11 @@ export function AppSidebar() {
     activeSidebarItem,
     setActiveSidebarItem,
     setActiveSprintId,
-    addProject,
     sidebarCollapsed,
     setSidebarCollapsed,
     toggleSidebar,
+    addProjectDialogOpen,
+    setAddProjectDialogOpen,
   } = useAppStore();
 
   const activeProject = projects.find((p) => p.id === activeProjectId) ?? projects[0];
@@ -82,33 +83,7 @@ export function AppSidebar() {
   }, [handleToggleSidebar]);
 
   const handleCreateProject = () => {
-    const newProject: Project = {
-      id: `proj-${Date.now()}`,
-      name: "New Project",
-      description: "A new project. Edit this description.",
-      readme: `# Proyecto: New Project
-
-## Objetivo del Proyecto
-Describe aquí el objetivo principal, entregables y criterios de éxito.
-
-## Stack Técnico
-- Framework:
-- Lenguaje:
-- Persistencia:
-- Testing:
-
-## Cómo Trabajar (Agentes + Humanos)
-1. Lee ROADMAP.md para entender el plan de sprints.
-2. Lee el último sprint en sprints/.
-3. Usa RE-ENTRY-PROMPTS.md para retomar contexto.
-`,
-      documents: [],
-      sprints: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    addProject(newProject);
-    setActiveProjectId(newProject.id);
+    setAddProjectDialogOpen(true);
   };
 
   return (
@@ -190,7 +165,7 @@ Describe aquí el objetivo principal, entregables y criterios de éxito.
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleCreateProject}>
                   <Plus className="mr-2 h-3.5 w-3.5" />
-                  Create Project
+                  Add Project
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -282,7 +257,7 @@ Describe aquí el objetivo principal, entregables y criterios de éxito.
                   />
                   <span className="truncate">{project.name}</span>
                   <span className="ml-auto text-[10px] text-muted-foreground">
-                    {project.sprints.length}
+                    {project.sprints?.length ?? 0}
                   </span>
                 </button>
               ))}
@@ -317,6 +292,7 @@ Describe aquí el objetivo principal, entregables y criterios de éxito.
         </div>
       </div>
     </aside>
+    <AddProjectDialog open={addProjectDialogOpen} onOpenChange={setAddProjectDialogOpen} />
     </TooltipPrimitive.Provider>
   );
 }

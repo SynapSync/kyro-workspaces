@@ -1,8 +1,6 @@
 "use client";
 
-import { useState } from "react";
 import {
-  Plus,
   Zap,
   ArrowRight,
   CheckCircle2,
@@ -13,17 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { useAppStore } from "@/lib/store";
 import { SPRINT_SECTIONS, SPRINT_STATUS_CONFIG } from "@/lib/config";
 import { type SprintStatus } from "@/lib/types";
@@ -37,51 +24,21 @@ const statusIcons: Record<SprintStatus, typeof Zap> = {
 export function SprintsPage() {
   const {
     getActiveProject,
-    addSprint,
     setActiveSprintId,
     setActiveSprintDetailId,
   } = useAppStore();
   const project = getActiveProject();
-  const [createOpen, setCreateOpen] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [newObjective, setNewObjective] = useState("");
-  const [newVersion, setNewVersion] = useState("");
-
-  const handleCreate = () => {
-    if (!newName.trim()) return;
-    addSprint({
-      id: `sprint-${Date.now()}`,
-      name: newName.trim(),
-      status: "planned",
-      startDate: new Date().toISOString(),
-      endDate: undefined,
-      version: newVersion.trim() || undefined,
-      objective: newObjective.trim() || undefined,
-      tasks: [],
-      sections: {},
-    });
-    setNewName("");
-    setNewObjective("");
-    setNewVersion("");
-    setCreateOpen(false);
-  };
 
   return (
     <div className="p-6 max-w-5xl">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            Sprints
-          </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {project.sprints.length} sprint
-            {project.sprints.length !== 1 ? "s" : ""} total
-          </p>
-        </div>
-        <Button size="sm" onClick={() => setCreateOpen(true)} className="gap-1.5">
-          <Plus className="h-3.5 w-3.5" />
-          Create Sprint
-        </Button>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">
+          Sprints
+        </h1>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          {project.sprints.length} sprint
+          {project.sprints.length !== 1 ? "s" : ""} total
+        </p>
       </div>
 
       <div className="grid gap-4">
@@ -123,6 +80,11 @@ export function SprintsPage() {
                         {sprint.version && (
                           <Badge variant="outline" className="text-[10px] h-5 font-mono">
                             v{sprint.version}
+                          </Badge>
+                        )}
+                        {sprint.sprintType && (
+                          <Badge variant="outline" className="text-[10px] h-5">
+                            {sprint.sprintType}
                           </Badge>
                         )}
                         <span className="text-xs text-muted-foreground">
@@ -212,74 +174,11 @@ export function SprintsPage() {
               No sprints yet
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              Create your first sprint to start organizing tasks.
+              Sprints are read from sprint-forge project directories.
             </p>
           </div>
         )}
       </div>
-
-      {/* Create Sprint Dialog */}
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Create Sprint</DialogTitle>
-            <DialogDescription>
-              Add a new sprint to organize and track your tasks.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col gap-4 py-4">
-            <div>
-              <Label htmlFor="sprint-name" className="text-sm font-medium">
-                Sprint Name
-              </Label>
-              <Input
-                id="sprint-name"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                placeholder="e.g., Sprint 5 - Live Trading Wiring"
-                className="mt-2"
-                onKeyDown={(e) => e.key === "Enter" && handleCreate()}
-              />
-            </div>
-            <div>
-              <Label htmlFor="sprint-version" className="text-sm font-medium">
-                Version (optional)
-              </Label>
-              <Input
-                id="sprint-version"
-                value={newVersion}
-                onChange={(e) => setNewVersion(e.target.value)}
-                placeholder="e.g., 0.5.0"
-                className="mt-2"
-              />
-            </div>
-            <div>
-              <Label htmlFor="sprint-objective" className="text-sm font-medium">
-                Objective (optional)
-              </Label>
-              <Textarea
-                id="sprint-objective"
-                value={newObjective}
-                onChange={(e) => setNewObjective(e.target.value)}
-                placeholder="Describe the sprint's main goal..."
-                className="mt-2 min-h-[80px] resize-none"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCreateOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button size="sm" onClick={handleCreate} disabled={!newName.trim()}>
-              Create
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

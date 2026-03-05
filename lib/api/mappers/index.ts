@@ -36,10 +36,14 @@ export function taskFromDTO(dto: TaskDTO): Task {
 export function sprintFromDTO(dto: SprintDTO): Sprint {
   const sections: SprintMarkdownSections | undefined = dto.sections
     ? {
-        retrospective: dto.sections.retrospective,
+        sprintObjective: dto.sections.sprint_objective,
+        disposition: dto.sections.disposition,
+        phases: dto.sections.phases,
+        emergentPhases: dto.sections.emergent_phases,
+        findingsConsolidation: dto.sections.findings_consolidation,
         technicalDebt: dto.sections.technical_debt,
-        executionMetrics: dto.sections.execution_metrics,
-        findings: dto.sections.findings,
+        definitionOfDone: dto.sections.definition_of_done,
+        retrospective: dto.sections.retrospective,
         recommendations: dto.sections.recommendations,
       }
     : undefined;

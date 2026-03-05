@@ -1,9 +1,7 @@
 import type {
   Project,
-  Sprint,
-  Task,
-  TaskStatus,
-  Document,
+  Finding,
+  RoadmapSprintEntry,
   TeamMember,
   AgentActionType,
   AgentActivity,
@@ -13,63 +11,14 @@ import type {
 // --- Input Types ---
 
 export interface CreateProjectInput {
-  id: string;
-  name: string;
-  description?: string;
-  readme?: string;
+  path: string;
+  name?: string;
+  color?: string;
 }
 
 export interface UpdateProjectInput {
   name?: string;
-  description?: string;
-  readme?: string;
-}
-
-export interface CreateSprintInput {
-  id: string;
-  name: string;
-  objective?: string;
-  status?: string;
-  startDate?: string;
-  endDate?: string;
-  version?: string;
-}
-
-export interface UpdateSprintInput {
-  name?: string;
-  objective?: string;
-  status?: string;
-  startDate?: string;
-  endDate?: string;
-  version?: string;
-}
-
-export interface CreateTaskInput {
-  title: string;
-  description?: string;
-  status?: TaskStatus;
-  priority?: string;
-  assignee?: string;
-  tags?: string[];
-}
-
-export interface UpdateTaskInput {
-  title?: string;
-  description?: string;
-  status?: TaskStatus;
-  priority?: string;
-  assignee?: string;
-  tags?: string[];
-}
-
-export interface CreateDocumentInput {
-  title: string;
-  content?: string;
-}
-
-export interface UpdateDocumentInput {
-  title?: string;
-  content?: string;
+  color?: string;
 }
 
 export interface CreateMemberInput {
@@ -93,8 +42,7 @@ export interface CreateActivityInput {
 
 // --- Service Interfaces ---
 // These contracts must be implemented by both mock and real (file) services.
-// All methods are async to ensure file implementations can be swapped in without
-// changing the store or components.
+// Sprint-forge directories are read-only — no write methods for sprints, tasks, or documents.
 
 export interface ProjectsService {
   list(): Promise<Project[]>;
@@ -103,18 +51,8 @@ export interface ProjectsService {
   updateProject(id: string, updates: UpdateProjectInput): Promise<Project>;
   deleteProject(id: string): Promise<void>;
 
-  createSprint(projectId: string, data: CreateSprintInput): Promise<Sprint>;
-  updateSprint(projectId: string, sprintId: string, updates: UpdateSprintInput): Promise<Sprint>;
-  deleteSprint(projectId: string, sprintId: string): Promise<void>;
-
-  createTask(projectId: string, sprintId: string, data: CreateTaskInput): Promise<Task>;
-  updateTask(projectId: string, sprintId: string, taskId: string, updates: UpdateTaskInput): Promise<Task>;
-  moveTask(projectId: string, sprintId: string, taskId: string, newStatus: TaskStatus): Promise<Task>;
-  deleteTask(projectId: string, sprintId: string, taskId: string): Promise<void>;
-
-  createDocument(projectId: string, data: CreateDocumentInput): Promise<Document>;
-  updateDocument(projectId: string, docId: string, updates: UpdateDocumentInput): Promise<Document>;
-  deleteDocument(projectId: string, docId: string): Promise<void>;
+  getFindings(projectId: string): Promise<Finding[]>;
+  getRoadmap(projectId: string): Promise<{ raw: string; sprints: RoadmapSprintEntry[] }>;
 }
 
 export interface MembersService {

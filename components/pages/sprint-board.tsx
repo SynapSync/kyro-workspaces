@@ -12,16 +12,16 @@ import {
   type DragEndEvent,
   type DragOverEvent,
 } from "@dnd-kit/core";
-import { ArrowLeft, Plus, FileText, Focus, EyeOff } from "lucide-react";
+import { ArrowLeft, FileText, Focus, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { BoardColumn } from "@/components/kanban/board-column";
 import { TaskCard } from "@/components/kanban/task-card";
-import { TaskDialog } from "@/components/kanban/task-dialog";
 import { useAppStore } from "@/lib/store";
 import { COLUMNS, SPRINT_STATUS_CONFIG, ZEN_COLUMNS } from "@/lib/config";
-import { type Task, type TaskStatus } from "@/lib/types";
+import { type Task, type TaskStatus, type Phase } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 interface SprintBoardProps {
   sprintId: string;
@@ -30,10 +30,6 @@ interface SprintBoardProps {
 export function SprintBoard({ sprintId }: SprintBoardProps) {
   const {
     getActiveProject,
-    moveTask,
-    addTask,
-    updateTask,
-    deleteTask,
     setActiveSprintId,
     setActiveSprintDetailId,
     setActiveSidebarItem,
@@ -51,8 +47,6 @@ export function SprintBoard({ sprintId }: SprintBoardProps) {
   const project = getActiveProject();
   const sprint = project.sprints.find((s) => s.id === sprintId);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   // Load persisted column state on mount
   useEffect(() => {
@@ -117,54 +111,8 @@ export function SprintBoard({ sprintId }: SprintBoardProps) {
     // handled in dragEnd
   };
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = (_event: DragEndEvent) => {
     setActiveTask(null);
-    const { active, over } = event;
-    if (!over) return;
-
-    const taskId = active.id as string;
-    const overId = over.id as string;
-
-    const targetColumn = COLUMNS.find((c) => c.id === overId);
-    if (targetColumn) {
-      moveTask(sprintId, taskId, targetColumn.id);
-      return;
-    }
-
-    const overTask = sprint.tasks.find((t) => t.id === overId);
-    if (overTask && overTask.id !== taskId) {
-      moveTask(sprintId, taskId, overTask.status);
-    }
-  };
-
-  const handleCreateTask = () => {
-    setEditingTask(null);
-    setDialogOpen(true);
-  };
-
-  const handleEditTask = (task: Task) => {
-    setEditingTask(task);
-    setDialogOpen(true);
-  };
-
-  const handleDeleteTask = (taskId: string) => {
-    deleteTask(sprintId, taskId);
-  };
-
-  const handleSaveTask = (
-    data: Omit<Task, "id" | "createdAt" | "updatedAt">
-  ) => {
-    if (editingTask) {
-      updateTask(sprintId, editingTask.id, data);
-    } else {
-      const newTask: Task = {
-        ...data,
-        id: `task-${Date.now()}`,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      addTask(sprintId, newTask);
-    }
   };
 
   const handleBack = () => {
@@ -210,9 +158,33 @@ export function SprintBoard({ sprintId }: SprintBoardProps) {
                 </Badge>
               )}
             </div>
-            <p className="text-xs text-muted-foreground">
-              {sprint.tasks.length} tasks
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-muted-foreground">
+                {sprint.tasks.length} tasks
+              </p>
+              {sprint.phases && sprint.phases.length > 0 && (
+                <div className="flex items-center gap-1">
+                  {sprint.phases.map((phase: Phase) => {
+                    const phaseDone = phase.tasks.filter((t) => t.status === "done").length;
+                    return (
+                      <Badge
+                        key={phase.id}
+                        variant="outline"
+                        className={cn(
+                          "text-[10px] h-4 px-1.5",
+                          phase.isEmergent && "border-purple-300 text-purple-600"
+                        )}
+                        title={`${phase.name}: ${phaseDone}/${phase.tasks.length}`}
+                      >
+                        {phase.name.replace(/^Phase \d+ — /, "").substring(0, 12)}
+                        {" "}
+                        {phaseDone}/{phase.tasks.length}
+                      </Badge>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
         <div className="flex gap-2">
@@ -245,10 +217,6 @@ export function SprintBoard({ sprintId }: SprintBoardProps) {
             <FileText className="h-3.5 w-3.5" />
             Details
           </Button>
-          <Button size="sm" className="gap-1.5" onClick={handleCreateTask}>
-            <Plus className="h-3.5 w-3.5" />
-            Add Task
-          </Button>
         </div>
       </div>
 
@@ -270,7 +238,7 @@ export function SprintBoard({ sprintId }: SprintBoardProps) {
               }).map((col) => {
                 const isColumnCollapsed = collapsedColumns[`${sprintId}-${col.id}`] ?? false;
                 const shouldBeCollapsed = zenMode || (focusMode && focusedColumnId && focusedColumnId !== col.id);
-                
+
                 return (
                 <BoardColumn
                   key={col.id}
@@ -288,8 +256,8 @@ export function SprintBoard({ sprintId }: SprintBoardProps) {
                       toggleColumnCollapsed(sprintId, col.id);
                     }
                   }}
-                  onEditTask={handleEditTask}
-                  onDeleteTask={handleDeleteTask}
+                  onEditTask={() => {}}
+                  onDeleteTask={() => {}}
                 />
                 );
               })}
@@ -309,14 +277,6 @@ export function SprintBoard({ sprintId }: SprintBoardProps) {
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
       </div>
-
-      {/* Task Dialog */}
-      <TaskDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        task={editingTask}
-        onSave={handleSaveTask}
-      />
     </div>
   );
 }

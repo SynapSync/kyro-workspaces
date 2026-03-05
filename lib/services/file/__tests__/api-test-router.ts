@@ -11,6 +11,8 @@ import * as DocumentsRoute from "@/app/api/projects/[projectId]/documents/route"
 import * as DocumentRoute from "@/app/api/projects/[projectId]/documents/[docId]/route";
 import * as MembersRoute from "@/app/api/members/route";
 import * as MemberRoute from "@/app/api/members/[memberId]/route";
+import * as FindingsRoute from "@/app/api/projects/[projectId]/findings/route";
+import * as RoadmapRoute from "@/app/api/projects/[projectId]/roadmap/route";
 import * as ActivitiesRoute from "@/app/api/activities/route";
 
 type Method = "GET" | "POST" | "PUT" | "DELETE";
@@ -63,6 +65,22 @@ function routeFor(pathname: string):
   if (match) {
     return {
       module: SprintsRoute,
+      params: { projectId: decodeURIComponent(match[1]) },
+    };
+  }
+
+  match = pathname.match(/^\/api\/projects\/([^/]+)\/findings$/);
+  if (match) {
+    return {
+      module: FindingsRoute,
+      params: { projectId: decodeURIComponent(match[1]) },
+    };
+  }
+
+  match = pathname.match(/^\/api\/projects\/([^/]+)\/roadmap$/);
+  if (match) {
+    return {
+      module: RoadmapRoute,
       params: { projectId: decodeURIComponent(match[1]) },
     };
   }

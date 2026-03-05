@@ -13,7 +13,7 @@ import {
   serializeMembersFile,
   serializeActivitiesFile,
 } from "@/lib/file-format/serializers";
-import { syncWorkspaceAgentDocs } from "@/lib/file-format/templates";
+import { serializeProjectRegistry } from "@/lib/file-format/registry";
 
 export async function POST(req: NextRequest) {
   try {
@@ -49,10 +49,9 @@ export async function POST(req: NextRequest) {
       "utf-8"
     );
 
-    const projectsDir = path.join(workspacePath, "projects");
-    await ensureDir(projectsDir);
-
-    await syncWorkspaceAgentDocs(workspacePath);
+    // Create empty project registry (replaces projects/ directory)
+    const registryContent = serializeProjectRegistry({ version: 1, projects: [] });
+    await fs.writeFile(path.join(kyroDir, "projects.json"), registryContent, "utf-8");
 
     return ok({ initialized: true }, 201);
   } catch (err) {
