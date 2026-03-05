@@ -6,7 +6,7 @@ const hoursAgo = (h: number) =>
 const daysAgo = (d: number) =>
   new Date(Date.now() - d * 24 * 60 * 60 * 1000).toISOString();
 
-// ─── Clever Platform Tasks ───────────────────────────────────────────
+// ─── Kyro Platform Tasks ───────────────────────────────────────────
 
 const cleverTasks: Task[] = [
   {
@@ -285,13 +285,15 @@ const botTasks: Task[] = [
 export const mockProjects: Project[] = [
   {
     id: "proj-1",
-    name: "Clever Platform",
+    name: "Kyro",
     description:
-      "An AI-native project management platform with intelligent task automation, smart sprint planning, and collaborative document editing.",
+      "An agentic execution kernel for structured work. A self-optimizing system where AI agents and humans collaborate through markdown files inside a shared workspace.",
     color: "bg-primary",
-    readme: `# Clever Platform
+    readme: `# Kyro
 
-Welcome to the **Clever Platform** - an AI-native project management tool built for modern development teams.
+Knowledge → Yield → Run → Optimize
+
+Kyro is an agentic execution kernel for structured work. A self-optimizing system where AI agents and humans collaborate through markdown files inside a shared workspace.
 
 ## Getting Started
 
@@ -416,7 +418,15 @@ All API routes require a valid JWT token in the Authorization header.
         startDate: daysAgo(7),
         endDate: daysAgo(-7),
         tasks: cleverTasks.filter((t) =>
-          ["task-3", "task-4", "task-5", "task-6", "task-7", "task-11", "task-12"].includes(t.id)
+          [
+            "task-3",
+            "task-4",
+            "task-5",
+            "task-6",
+            "task-7",
+            "task-11",
+            "task-12",
+          ].includes(t.id),
         ),
       },
       {
@@ -426,7 +436,7 @@ All API routes require a valid JWT token in the Authorization header.
         startDate: daysAgo(-7),
         endDate: daysAgo(-21),
         tasks: cleverTasks.filter((t) =>
-          ["task-8", "task-9", "task-10"].includes(t.id)
+          ["task-8", "task-9", "task-10"].includes(t.id),
         ),
       },
     ],
@@ -519,7 +529,8 @@ Both systems feed \`sizeMultiplier\` into \`SignalContext\`. Effective multiplie
         version: "0.3.0",
         startDate: daysAgo(20),
         endDate: daysAgo(6),
-        objective: "Implement bidirectional trading with automatic S/R detection and multi-pair support.",
+        objective:
+          "Implement bidirectional trading with automatic S/R detection and multi-pair support.",
         tasks: [],
         sections: {
           retrospective: `## What Went Well\n\n- Bidirectional trading working correctly with SMA200 filter\n- S/R auto-detection produces clean zones\n- Multi-pair (SOL, BTC, ETH) added without major refactoring\n\n## What Didn't Go Well\n\n- SHORT trades losing money in SOL (-$38.25) and BTC (-$6.63)\n- Swing profile uses wrong entry TF (5m instead of 15m)\n\n## Surprises\n\n- ETH SHORT was profitable (+$17.86) while SOL/BTC were not`,
@@ -536,9 +547,17 @@ Both systems feed \`sizeMultiplier\` into \`SignalContext\`. Effective multiplie
         version: "0.4.0",
         startDate: daysAgo(5),
         endDate: daysAgo(1),
-        objective: "Implementar el Risk Engine completo que protege al bot contra drawdown y cascada de perdidas. DrawdownMonitor con 4 zonas de reduccion automatica, circuit breakers, time stop configurable, y optimizacion del SL para SHORT.",
+        objective:
+          "Implementar el Risk Engine completo que protege al bot contra drawdown y cascada de perdidas. DrawdownMonitor con 4 zonas de reduccion automatica, circuit breakers, time stop configurable, y optimizacion del SL para SHORT.",
         tasks: botTasks.filter((t) =>
-          ["bot-task-1", "bot-task-2", "bot-task-3", "bot-task-4", "bot-task-5", "bot-task-6"].includes(t.id)
+          [
+            "bot-task-1",
+            "bot-task-2",
+            "bot-task-3",
+            "bot-task-4",
+            "bot-task-5",
+            "bot-task-6",
+          ].includes(t.id),
         ),
         sections: {
           retrospective: `## What Went Well
@@ -613,9 +632,12 @@ Risk engine in GREEN zone entire period (DD < 1% < 10% yellow threshold).`,
         status: "active",
         version: "0.5.0",
         startDate: daysAgo(1),
-        objective: "Wire up the bot for live trading: BotOrchestrator, WebSocket feed, multi-pair loop, state persistence, and monitoring.",
+        objective:
+          "Wire up the bot for live trading: BotOrchestrator, WebSocket feed, multi-pair loop, state persistence, and monitoring.",
         tasks: botTasks.filter((t) =>
-          ["bot-task-7", "bot-task-8", "bot-task-9", "bot-task-10"].includes(t.id)
+          ["bot-task-7", "bot-task-8", "bot-task-9", "bot-task-10"].includes(
+            t.id,
+          ),
         ),
       },
     ],

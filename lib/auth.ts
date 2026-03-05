@@ -9,7 +9,7 @@ export interface User {
 
 export const currentUser: User = {
   name: "Tahlia Chen",
-  email: "tahlia@clever.dev",
+  email: "tahlia@kyro.dev",
   avatar: "TC",
   initials: "TC",
 };

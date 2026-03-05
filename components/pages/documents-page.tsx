@@ -21,18 +21,16 @@ import { Input } from "@/components/ui/input";
 import { useAppStore } from "@/lib/store";
 import { MarkdownEditor } from "@/components/editor/markdown-editor";
 import { VersionHistory } from "@/components/editor/version-history";
-import type { Document, DocumentVersion } from "@/lib/types";
+import type { Document } from "@/lib/types";
 import { DEFAULT_DOCUMENT } from "@/lib/config";
 
 export function DocumentsPage() {
   const {
     getActiveProject,
+    activeProjectId,
     addDocument,
     updateDocument,
     deleteDocument,
-    addDocumentVersion,
-    restoreDocumentVersion,
-    getDocumentVersions,
   } = useAppStore();
   
   const project = getActiveProject();
@@ -45,7 +43,6 @@ export function DocumentsPage() {
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const activeDoc = project.documents.find((d) => d.id === activeDocId);
-  const versions = activeDocId ? getDocumentVersions(activeDocId) : [];
 
   // Debounced autosave
   const handleAutoSave = useCallback(
@@ -57,16 +54,13 @@ export function DocumentsPage() {
       setIsSaving(true);
 
       saveTimeoutRef.current = setTimeout(() => {
-        // Create version before saving
-        addDocumentVersion(docId, content, title);
-        
         updateDocument(docId, { content, title });
         setIsSaving(false);
         setLastSaved(new Date());
         toast.success("Document saved", { duration: 1500 });
       }, 2000);
     },
-    [addDocumentVersion, updateDocument]
+    [updateDocument]
   );
 
   // Cleanup timeout on unmount
@@ -111,7 +105,6 @@ export function DocumentsPage() {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
-      addDocumentVersion(activeDoc.id, draft, draftTitle);
       updateDocument(activeDoc.id, { title: draftTitle, content: draft });
       setIsSaving(false);
       setLastSaved(new Date());
@@ -150,11 +143,10 @@ export function DocumentsPage() {
     setIsEditing(false);
   };
 
-  const handleRestore = (version: DocumentVersion) => {
+  const handleRestore = (content: string) => {
     if (activeDoc) {
-      restoreDocumentVersion(activeDoc.id, version.id);
-      setDraft(version.content);
-      setDraftTitle(version.title);
+      setDraft(content);
+      updateDocument(activeDoc.id, { content });
       toast.success("Version restored", { duration: 1500 });
     }
   };
@@ -212,9 +204,9 @@ export function DocumentsPage() {
               </span>
             )}
             <VersionHistory
-              versions={versions}
+              projectId={activeProjectId}
+              docId={activeDoc.id}
               onRestore={handleRestore}
-              currentContent={draft}
             />
             {isEditing ? (
               <>

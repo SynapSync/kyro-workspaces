@@ -1,6 +1,7 @@
 "use client";
 
-import { Search, Bell, Plus } from "lucide-react";
+import { useMemo } from "react";
+import { Search, Bell, Plus, AlertTriangle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -13,8 +14,60 @@ import {
 import { useAppStore } from "@/lib/store";
 import { currentUser } from "@/lib/auth";
 
+function getLastAgentName(description: string): string {
+  if (description.startsWith("Sprint Forge")) return "Sprint Forge";
+  if (description.startsWith("AI Agent")) return "AI Agent";
+  if (description.startsWith("Kyro UI")) return "Kyro UI";
+  return "Unknown";
+}
+
 export function AppTopbar() {
-  const members = useAppStore((s) => s.members);
+  const {
+    members,
+    projects,
+    activeProjectId,
+    activeSprintId,
+    activeSprintDetailId,
+    activities,
+    activityWriteWarning,
+    clearActivityWriteWarning,
+  } = useAppStore();
+
+  const activeProject = useMemo(
+    () => projects.find((project) => project.id === activeProjectId) ?? projects[0],
+    [projects, activeProjectId]
+  );
+
+  const activeSprint = useMemo(() => {
+    if (!activeProject) return null;
+    const selectedSprintId = activeSprintDetailId ?? activeSprintId;
+    if (selectedSprintId) {
+      return activeProject.sprints.find((sprint) => sprint.id === selectedSprintId) ?? null;
+    }
+    return (
+      activeProject.sprints.find((sprint) => sprint.status === "active") ??
+      activeProject.sprints[activeProject.sprints.length - 1] ??
+      null
+    );
+  }, [activeProject, activeSprintId, activeSprintDetailId]);
+
+  const lastActivity = useMemo(() => {
+    if (!activeProject) return null;
+    const filtered = activities
+      .filter((activity) => activity.projectId === activeProject.id)
+      .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+    return filtered[0] ?? null;
+  }, [activities, activeProject]);
+
+  const lastAgent = useMemo(() => {
+    if (!lastActivity) return "—";
+    return (
+      lastActivity.metadata?.agent ??
+      lastActivity.metadata?.actor ??
+      getLastAgentName(lastActivity.description)
+    );
+  }, [lastActivity]);
+
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-card px-6">
       {/* Left: team avatars */}
@@ -60,8 +113,37 @@ export function AppTopbar() {
         </div>
       </div>
 
+      {/* Agent Context */}
+      <div className="hidden xl:flex items-center gap-3 rounded-lg border bg-muted/30 px-3 py-1.5 mr-3">
+        <div className="text-[11px] text-muted-foreground">
+          <span className="font-medium text-foreground">Project:</span>{" "}
+          {activeProject?.name ?? "—"}
+        </div>
+        <div className="text-[11px] text-muted-foreground">
+          <span className="font-medium text-foreground">Sprint:</span>{" "}
+          {activeSprint?.name ?? "—"}
+        </div>
+        <div className="text-[11px] text-muted-foreground">
+          <span className="font-medium text-foreground">Agent:</span> {lastAgent}
+        </div>
+      </div>
+
       {/* Right: actions */}
       <div className="flex items-center gap-2">
+        {activityWriteWarning ? (
+          <div className="hidden md:flex items-center gap-1 rounded-md border border-amber-300/70 bg-amber-50 px-2 py-1 text-[11px] text-amber-900">
+            <AlertTriangle className="h-3.5 w-3.5" />
+            <span>Activity log warning</span>
+            <button
+              type="button"
+              aria-label="Dismiss activity warning"
+              className="rounded p-0.5 hover:bg-amber-100"
+              onClick={clearActivityWriteWarning}
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        ) : null}
         <Button variant="ghost" size="icon" className="h-9 w-9 relative">
           <Bell className="h-4 w-4" />
           <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary" />
