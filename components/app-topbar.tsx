@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { Search, Bell, Plus, AlertTriangle, X } from "lucide-react";
+import { Search, Bell, Plus, AlertTriangle, X, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useAppStore } from "@/lib/store";
 import { currentUser } from "@/lib/auth";
+import { NAV_ITEMS } from "@/lib/config";
 
 function getLastAgentName(description: string): string {
   if (description.startsWith("Sprint Forge")) return "Sprint Forge";
@@ -28,6 +29,8 @@ export function AppTopbar() {
     activeProjectId,
     activeSprintId,
     activeSprintDetailId,
+    activeSidebarItem,
+    activeFindingId,
     activities,
     activityWriteWarning,
     clearActivityWriteWarning,
@@ -68,38 +71,75 @@ export function AppTopbar() {
     );
   }, [lastActivity]);
 
+  const breadcrumbs = useMemo(() => {
+    const crumbs: string[] = [];
+    if (activeProject) crumbs.push(activeProject.name);
+    const navItem = NAV_ITEMS.find((item) => item.id === activeSidebarItem);
+    if (navItem) crumbs.push(navItem.label);
+    const selectedSprintId = activeSprintDetailId ?? activeSprintId;
+    if (selectedSprintId && activeProject) {
+      const sprint = activeProject.sprints.find((s) => s.id === selectedSprintId);
+      if (sprint) crumbs.push(sprint.name);
+    }
+    if (activeFindingId) {
+      crumbs.push(`Finding ${activeFindingId}`);
+    }
+    return crumbs;
+  }, [activeProject, activeSidebarItem, activeSprintId, activeSprintDetailId, activeFindingId]);
+
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-card px-6">
-      {/* Left: team avatars */}
-      <div className="flex items-center gap-2">
-        <TooltipProvider delayDuration={200}>
-          <div className="flex items-center -space-x-1.5">
-            {members.map((member) => (
-              <Tooltip key={member.name}>
-                <TooltipTrigger asChild>
-                  <Avatar className="h-7 w-7 border-2 border-card cursor-default">
-                    <AvatarFallback
-                      className={`${member.color} text-[10px] font-bold text-card`}
-                    >
-                      {member.avatar}
-                    </AvatarFallback>
-                  </Avatar>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">
-                  <p>{member.name}</p>
-                </TooltipContent>
-              </Tooltip>
-            ))}
-          </div>
-        </TooltipProvider>
-        <Button
-          variant="outline"
-          size="icon"
-          className="h-7 w-7 rounded-full"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          <span className="sr-only">Add team member</span>
-        </Button>
+      {/* Left: breadcrumb + team avatars */}
+      <div className="flex items-center gap-4 min-w-0">
+        {/* Breadcrumb */}
+        <nav className="flex items-center gap-1 text-sm min-w-0">
+          {breadcrumbs.map((crumb, i) => (
+            <span key={i} className="flex items-center gap-1 min-w-0">
+              {i > 0 && <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground/50" />}
+              <span
+                className={
+                  i === breadcrumbs.length - 1
+                    ? "font-medium text-foreground truncate"
+                    : "text-muted-foreground truncate"
+                }
+              >
+                {crumb}
+              </span>
+            </span>
+          ))}
+        </nav>
+
+        {/* Team avatars */}
+        <div className="hidden md:flex items-center gap-2 shrink-0">
+          <TooltipProvider delayDuration={200}>
+            <div className="flex items-center -space-x-1.5">
+              {members.map((member) => (
+                <Tooltip key={member.name}>
+                  <TooltipTrigger asChild>
+                    <Avatar className="h-7 w-7 border-2 border-card cursor-default">
+                      <AvatarFallback
+                        className={`${member.color} text-[10px] font-bold text-card`}
+                      >
+                        {member.avatar}
+                      </AvatarFallback>
+                    </Avatar>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>{member.name}</p>
+                  </TooltipContent>
+                </Tooltip>
+              ))}
+            </div>
+          </TooltipProvider>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-7 w-7 rounded-full"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            <span className="sr-only">Add team member</span>
+          </Button>
+        </div>
       </div>
 
       {/* Center: search */}

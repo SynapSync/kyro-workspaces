@@ -80,10 +80,14 @@ export function ContentRouter() {
     return PAGE_MAP[activeSidebarItem] ?? PAGE_MAP[NAV_ITEMS[0].id];
   };
 
+  const needsOwnScroll = !!activeSprintDetailId || !!activeSprintId;
+
   return (
-    <>
+    <div className="h-full flex flex-col overflow-hidden">
       <CommandPalette />
-      {renderContent()}
+      <div className={needsOwnScroll ? "flex-1 min-h-0 overflow-hidden" : "flex-1 min-h-0 overflow-auto"}>
+        {renderContent()}
+      </div>
       {/* Save indicator */}
       {(isSaving || saveError) && (
         <div className="fixed bottom-4 right-4 z-50 flex items-center gap-2 rounded-md border bg-background px-3 py-2 shadow-md text-sm">
@@ -103,6 +107,6 @@ export function ContentRouter() {
           )}
         </div>
       )}
-    </>
+    </div>
   );
 }

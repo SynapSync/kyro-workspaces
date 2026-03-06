@@ -10,7 +10,7 @@ export default function Home() {
         <AppSidebar />
         <div className="flex flex-1 flex-col overflow-hidden">
           <AppTopbar />
-          <main className="flex-1 overflow-auto">
+          <main className="flex-1 overflow-hidden">
             <ContentRouter />
           </main>
         </div>

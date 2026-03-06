@@ -131,7 +131,7 @@ export function SprintDetailPage({ sprintId }: SprintDetailPageProps) {
   };
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full min-h-0 flex-col">
       {/* Header */}
       <div className="border-b border-border px-6 py-4">
         <div className="flex items-center justify-between">
@@ -196,7 +196,7 @@ export function SprintDetailPage({ sprintId }: SprintDetailPageProps) {
       </div>
 
       {/* Content: section tabs + viewer */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Section Tabs (vertical) */}
         <div className="w-56 shrink-0 border-r border-border bg-muted/20">
           <ScrollArea className="h-full">
@@ -235,7 +235,7 @@ export function SprintDetailPage({ sprintId }: SprintDetailPageProps) {
         </div>
 
         {/* Section Content */}
-        <div className="flex-1 overflow-hidden flex flex-col">
+        <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
           <div className="border-b border-border px-6 py-3">
             <h2 className="text-sm font-semibold text-foreground">
               {currentSectionMeta.label}
@@ -245,7 +245,7 @@ export function SprintDetailPage({ sprintId }: SprintDetailPageProps) {
             </p>
           </div>
 
-          <ScrollArea className="flex-1">
+          <ScrollArea className="flex-1 min-h-0">
             <div className="p-6 max-w-4xl">
               {renderSectionContent()}
             </div>
