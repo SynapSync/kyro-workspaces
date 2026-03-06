@@ -150,6 +150,7 @@ export const SprintSchema = z.object({
   sprintType: SprintTypeSchema.optional(),
   tasks: z.array(TaskSchema),
   sections: SprintMarkdownSectionsSchema.optional(),
+  rawContent: z.string().optional(),
   // Sprint-forge structured data (optional — populated when parsed from sprint-forge files)
   source: z.string().optional(),
   previousSprint: z.string().optional(),

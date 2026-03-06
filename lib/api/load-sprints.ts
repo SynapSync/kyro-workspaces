@@ -29,9 +29,9 @@ export async function loadSprintsFromDir(projectRoot: string): Promise<Sprint[]>
     const content = await fs.readFile(filePath, "utf-8");
 
     if (detectSprintFormat(content) === "sprint-forge") {
-      sprints.push(parseSprintForgeFile(content));
+      sprints.push({ ...parseSprintForgeFile(content), rawContent: content });
     } else {
-      sprints.push(parseSprintFile(content));
+      sprints.push({ ...parseSprintFile(content), rawContent: content });
     }
   }
 

@@ -7,11 +7,11 @@ import { MarkdownRenderer } from "@/components/markdown-renderer";
 import {
   ArrowLeft,
   Target,
-  ChevronDown,
-  ChevronRight,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { DispositionTable } from "@/components/sprint/disposition-table";
@@ -36,8 +36,8 @@ export function SprintDetailPage({ sprintId }: SprintDetailPageProps) {
   const project = getActiveProject();
   const sprint = project.sprints.find((s) => s.id === sprintId);
 
-  const [activeSection, setActiveSection] = useState<keyof SprintMarkdownSections>("retrospective");
-  const [objectiveExpanded, setObjectiveExpanded] = useState(true);
+  const [activeSection, setActiveSection] = useState<keyof SprintMarkdownSections>("sprintObjective");
+  const [viewRaw, setViewRaw] = useState(false);
 
   if (!sprint) {
     return (
@@ -162,49 +162,36 @@ export function SprintDetailPage({ sprintId }: SprintDetailPageProps) {
               </div>
             </div>
           </div>
-          <Button variant="outline" size="sm" className="gap-1.5" asChild>
-            <Link href={`/${activeProjectId}/sprints/${sprintId}`}>
-              <Target className="h-3.5 w-3.5" />
-              Open Board
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            {sprint.rawContent && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => setViewRaw(true)}
+              >
+                <FileText className="h-3.5 w-3.5" />
+                View Raw
+              </Button>
+            )}
+            <Button variant="outline" size="sm" className="gap-1.5" asChild>
+              <Link href={`/${activeProjectId}/sprints/${sprintId}`}>
+                <Target className="h-3.5 w-3.5" />
+                Open Board
+              </Link>
+            </Button>
+          </div>
         </div>
 
-        {(sprint.objective || totalTasks > 0) && (
-          <div className="mt-4 flex flex-col gap-3 max-w-3xl">
-            {sprint.objective && (
-              <div>
-                <button
-                  type="button"
-                  onClick={() => setObjectiveExpanded(!objectiveExpanded)}
-                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  {objectiveExpanded ? (
-                    <ChevronDown className="h-3 w-3" />
-                  ) : (
-                    <ChevronRight className="h-3 w-3" />
-                  )}
-                  <span>Objective</span>
-                </button>
-                {objectiveExpanded && (
-                  <MarkdownRenderer
-                    content={sprint.objective}
-                    className="mt-1.5 text-sm text-muted-foreground leading-relaxed"
-                  />
-                )}
-              </div>
-            )}
-            {totalTasks > 0 && (
-              <div>
-                <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-                  <span>Sprint Progress</span>
-                  <span>
-                    {doneTasks}/{totalTasks} ({progress}%)
-                  </span>
-                </div>
-                <Progress value={progress} className="h-1.5" />
-              </div>
-            )}
+        {totalTasks > 0 && (
+          <div className="mt-4 max-w-3xl">
+            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+              <span>Sprint Progress</span>
+              <span>
+                {doneTasks}/{totalTasks} ({progress}%)
+              </span>
+            </div>
+            <Progress value={progress} className="h-1.5" />
           </div>
         )}
       </div>
@@ -266,6 +253,20 @@ export function SprintDetailPage({ sprintId }: SprintDetailPageProps) {
           </ScrollArea>
         </div>
       </div>
+
+      {/* Raw markdown modal */}
+      <Dialog open={viewRaw} onOpenChange={setViewRaw}>
+        <DialogContent className="sm:max-w-5xl h-[85vh] flex flex-col !p-0 !gap-0">
+          <DialogHeader className="px-6 py-4 border-b border-border shrink-0">
+            <DialogTitle>{sprint.name} — Raw Markdown</DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="flex-1 min-h-0">
+            <div className="px-6 py-6">
+              <MarkdownRenderer content={sprint.rawContent ?? ""} />
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
