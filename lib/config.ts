@@ -199,6 +199,8 @@ export const SPRINT_SECTION_ICONS: Record<SprintSectionKey, LucideIcon> = {
 
 // --- Sprint Type Colors ---
 
+export const AGENT_BADGE_STYLE = "bg-violet-500/10 text-violet-600 border-violet-200";
+
 export const SPRINT_TYPE_COLORS: Record<string, string> = {
   refactor: "bg-blue-500/10 text-blue-600",
   feature: "bg-emerald-500/10 text-emerald-600",

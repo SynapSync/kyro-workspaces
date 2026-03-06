@@ -162,6 +162,11 @@ export const SprintSchema = z.object({
   carryOverCount: z.number().optional(),
   executionDate: z.string().optional(),
   executedBy: z.string().optional(),
+  agents: z.array(z.string()).optional(),
+  updatedAt: z.string().optional(),
+  progress: z.number().optional(),
+  previousDoc: z.string().optional(),
+  nextDoc: z.string().optional(),
 });
 
 export const RoadmapSprintEntrySchema = z.object({

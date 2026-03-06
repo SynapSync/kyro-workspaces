@@ -8,6 +8,9 @@ import {
   ArrowLeft,
   Target,
   FileText,
+  Bot,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +23,7 @@ import { DoDChecklist } from "@/components/sprint/dod-checklist";
 import { FindingsConsolidationTable } from "@/components/sprint/findings-consolidation-table";
 import { PhasesList } from "@/components/sprint/phases-list";
 import { useAppStore } from "@/lib/store";
-import { SPRINT_SECTIONS, SPRINT_SECTION_ICONS, SPRINT_STATUS_CONFIG } from "@/lib/config";
+import { SPRINT_SECTIONS, SPRINT_SECTION_ICONS, SPRINT_STATUS_CONFIG, AGENT_BADGE_STYLE } from "@/lib/config";
 import type { SprintSectionKey } from "@/lib/config";
 import type { SprintMarkdownSections } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -54,9 +57,14 @@ export function SprintDetailPage({ sprintId }: SprintDetailPageProps) {
     router.push(`/${activeProjectId}/sprints`);
   };
 
+  const sprintIndex = project.sprints.findIndex((s) => s.id === sprintId);
+  const prevSprint = sprintIndex > 0 ? project.sprints[sprintIndex - 1] : null;
+  const nextSprint = sprintIndex < project.sprints.length - 1 ? project.sprints[sprintIndex + 1] : null;
+
   const doneTasks = sprint.tasks.filter((t) => t.status === "done").length;
   const totalTasks = sprint.tasks.length;
-  const progress = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
+  const computedProgress = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
+  const progress = sprint.progress ?? computedProgress;
 
   const filledSections = SPRINT_SECTIONS.filter(
     (s) => sprint.sections?.[s.key] && (sprint.sections[s.key] ?? "").trim().length > 0
@@ -151,6 +159,11 @@ export function SprintDetailPage({ sprintId }: SprintDetailPageProps) {
                     v{sprint.version}
                   </Badge>
                 )}
+                {sprint.agents?.map((agent) => (
+                  <Badge key={agent} variant="outline" className={cn("text-[10px] h-5 font-mono", AGENT_BADGE_STYLE)}>
+                    <Bot className="h-3 w-3 mr-1" />{agent}
+                  </Badge>
+                ))}
               </div>
               <div className="flex items-center gap-3 mt-0.5">
                 <span className="text-xs text-muted-foreground">
@@ -159,10 +172,29 @@ export function SprintDetailPage({ sprintId }: SprintDetailPageProps) {
                 <span className="text-xs text-muted-foreground">
                   {filledSections}/{SPRINT_SECTIONS.length} sections documented
                 </span>
+                {sprint.updatedAt && (
+                  <span className="text-xs text-muted-foreground">Updated {sprint.updatedAt}</span>
+                )}
               </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {prevSprint && (
+              <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                <Link href={`/${activeProjectId}/sprints/${prevSprint.id}/detail`}>
+                  <ChevronLeft className="h-4 w-4" />
+                  <span className="sr-only">Previous sprint</span>
+                </Link>
+              </Button>
+            )}
+            {nextSprint && (
+              <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                <Link href={`/${activeProjectId}/sprints/${nextSprint.id}/detail`}>
+                  <ChevronRight className="h-4 w-4" />
+                  <span className="sr-only">Next sprint</span>
+                </Link>
+              </Button>
+            )}
             {sprint.rawContent && (
               <Button
                 variant="outline"

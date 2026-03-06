@@ -24,13 +24,18 @@ const readFixture = (name: string) =>
 // ---------------------------------------------------------------------------
 
 describe("detectSprintFormat", () => {
-  it("detects YAML frontmatter", () => {
+  it("detects pure YAML frontmatter (no blockquote metadata)", () => {
     const content = `---
 id: sprint-1
 name: Sprint 1
 ---
 Body`;
     expect(detectSprintFormat(content)).toBe("frontmatter");
+  });
+
+  it("detects sprint-forge for hybrid files (frontmatter + blockquote metadata)", () => {
+    const content = readFixture("sample-sprint-with-frontmatter.md");
+    expect(detectSprintFormat(content)).toBe("sprint-forge");
   });
 
   it("detects sprint-forge format", () => {
@@ -299,6 +304,60 @@ describe("parseSprintForgeFile section expansion", () => {
         `Missing icon for '${key}'`
       ).toBeDefined();
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Sprint-Forge v1.9 Frontmatter
+// ---------------------------------------------------------------------------
+
+describe("sprint-forge v1.9 frontmatter", () => {
+  it("extracts frontmatter fields from hybrid file", () => {
+    const content = readFixture("sample-sprint-with-frontmatter.md");
+    const sprint = parseSprintForgeFile(content);
+
+    expect(sprint.agents).toEqual(["claude-sonnet-4-20250514", "claude-opus-4-20250514"]);
+    expect(sprint.updatedAt).toBe("2026-03-02");
+    expect(sprint.progress).toBe(80);
+    expect(sprint.nextDoc).toBe("SPRINT-02");
+    expect(sprint.previousDoc).toBeUndefined();
+  });
+
+  it("still parses rich sprint-forge data from body", () => {
+    const content = readFixture("sample-sprint-with-frontmatter.md");
+    const sprint = parseSprintForgeFile(content);
+
+    expect(sprint.id).toBe("sprint-1");
+    expect(sprint.name).toBe("Sprint 1 — Foundation");
+    expect(sprint.status).toBe("closed");
+    expect(sprint.phases).toBeDefined();
+    expect(sprint.phases!.length).toBeGreaterThanOrEqual(2);
+    expect(sprint.debtItems).toBeDefined();
+    expect(sprint.debtItems!.length).toBe(2);
+    expect(sprint.disposition).toBeUndefined(); // "N/A" section has no table
+    expect(sprint.findingsConsolidation).toBeDefined();
+    expect(sprint.findingsConsolidation!.length).toBe(2);
+    expect(sprint.definitionOfDone).toBeDefined();
+  });
+
+  it("files without frontmatter still work identically", () => {
+    const withFm = readFixture("sample-sprint-with-frontmatter.md");
+    const withoutFm = readFixture("sample-sprint.md");
+
+    const sprintWithFm = parseSprintForgeFile(withFm);
+    const sprintWithoutFm = parseSprintForgeFile(withoutFm);
+
+    // Core sprint data should match
+    expect(sprintWithFm.id).toBe(sprintWithoutFm.id);
+    expect(sprintWithFm.name).toBe(sprintWithoutFm.name);
+    expect(sprintWithFm.status).toBe(sprintWithoutFm.status);
+    expect(sprintWithFm.tasks.length).toBe(sprintWithoutFm.tasks.length);
+    expect(sprintWithFm.phases!.length).toBe(sprintWithoutFm.phases!.length);
+
+    // Without-frontmatter file should have no frontmatter fields
+    expect(sprintWithoutFm.agents).toBeUndefined();
+    expect(sprintWithoutFm.updatedAt).toBeUndefined();
+    expect(sprintWithoutFm.progress).toBeUndefined();
   });
 });
 

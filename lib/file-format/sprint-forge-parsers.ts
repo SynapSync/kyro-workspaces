@@ -6,6 +6,7 @@
  * - Sprint-forge README
  */
 
+import matter from "gray-matter";
 import { symbolToStatus } from "@/lib/types";
 import type {
   Task,
@@ -35,10 +36,41 @@ export function detectSprintFormat(
   content: string
 ): "frontmatter" | "sprint-forge" {
   const trimmed = content.trimStart();
-  if (trimmed.startsWith("---")) {
-    return "frontmatter";
-  }
-  return "sprint-forge";
+  if (!trimmed.startsWith("---")) return "sprint-forge";
+  const { content: body } = matter(trimmed);
+  return /^>\s*(Source|Type|Version Target|Previous Sprint|Execution Date):/m.test(body)
+    ? "sprint-forge"
+    : "frontmatter";
+}
+
+// ---------------------------------------------------------------------------
+// Frontmatter Extraction
+// ---------------------------------------------------------------------------
+
+function extractSprintFrontmatter(content: string): {
+  body: string;
+  agents?: string[];
+  updatedAt?: string;
+  progress?: number;
+  previousDoc?: string;
+  nextDoc?: string;
+} | null {
+  if (!content.trimStart().startsWith("---")) return null;
+  const { data, content: body } = matter(content);
+  return {
+    body,
+    agents: Array.isArray(data.agents) ? data.agents.map(String) : undefined,
+    updatedAt: typeof data.updated === "string" ? data.updated : undefined,
+    progress: typeof data.progress === "number" ? data.progress : undefined,
+    previousDoc: parseWikiLink(data.previous_doc),
+    nextDoc: parseWikiLink(data.next_doc),
+  };
+}
+
+function parseWikiLink(raw?: unknown): string | undefined {
+  if (typeof raw !== "string" || !raw) return undefined;
+  const match = /^\[\[(.+)\]\]$/.exec(raw.trim());
+  return match ? match[1] : raw.trim() || undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -354,8 +386,11 @@ function normalizeImpact(
 export function parseSprintForgeFile(
   content: string
 ): Sprint {
-  const metadata = parseSprintForgeMetadata(content);
-  const sections = extractSections(content);
+  const fm = extractSprintFrontmatter(content);
+  const body = fm?.body ?? content;
+
+  const metadata = parseSprintForgeMetadata(body);
+  const sections = extractSections(body);
 
   // Parse phases — combine "Phases" and "Emergent Phases" sections
   let allPhases: Phase[] = [];
@@ -409,6 +444,11 @@ export function parseSprintForgeFile(
 
   return {
     ...metadata,
+    ...(fm?.agents && { agents: fm.agents }),
+    ...(fm?.updatedAt && { updatedAt: fm.updatedAt }),
+    ...(fm?.progress !== undefined && { progress: fm.progress }),
+    ...(fm?.previousDoc && { previousDoc: fm.previousDoc }),
+    ...(fm?.nextDoc && { nextDoc: fm.nextDoc }),
     startDate: metadata.executionDate,
     tasks: allTasks,
     sections: sprintSections,
