@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { Map } from "lucide-react";
+import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -109,6 +110,16 @@ export function RoadmapPage() {
               );
             })}
           </div>
+
+          {/* Full roadmap markdown */}
+          {roadmap?.raw && (
+            <div className="mt-6">
+              <MarkdownRenderer
+                content={roadmap.raw}
+                className="rounded-xl border bg-card p-6"
+              />
+            </div>
+          )}
         </>
       ) : (
         <div className="flex flex-col items-center justify-center py-16 text-center">
