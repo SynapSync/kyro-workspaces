@@ -138,10 +138,6 @@ export const FindingsConsolidationEntrySchema = z.object({
   actionTaken: z.string(),
 });
 
-// SprintForgeMarkdownSections is now identical to SprintMarkdownSections
-// (base schema was expanded to include all sprint-forge keys).
-// Kept as alias for backward compatibility with existing code.
-export const SprintForgeMarkdownSectionsSchema = SprintMarkdownSectionsSchema;
 
 export const SprintSchema = z.object({
   id: z.string(),
@@ -155,23 +151,12 @@ export const SprintSchema = z.object({
   tasks: z.array(TaskSchema),
   sections: SprintMarkdownSectionsSchema.optional(),
   // Sprint-forge structured data (optional — populated when parsed from sprint-forge files)
+  source: z.string().optional(),
+  previousSprint: z.string().optional(),
   phases: z.array(PhaseSchema).optional(),
   disposition: z.array(DispositionEntrySchema).optional(),
   debtItems: z.array(DebtItemSchema).optional(),
   findingsConsolidation: z.array(FindingsConsolidationEntrySchema).optional(),
-  definitionOfDone: z.array(z.string()).optional(),
-});
-
-export const SprintForgeSprintSchema = SprintSchema.extend({
-  source: z.string().optional(),
-  previousSprint: z.string().optional(),
-  sprintType: SprintTypeSchema.optional(),
-  phases: z.array(PhaseSchema).optional(),
-  disposition: z.array(DispositionEntrySchema).optional(),
-  debtItems: z.array(DebtItemSchema).optional(),
-  findingsConsolidation: z
-    .array(FindingsConsolidationEntrySchema)
-    .optional(),
   definitionOfDone: z.array(z.string()).optional(),
   carryOverCount: z.number().optional(),
   executionDate: z.string().optional(),
@@ -277,10 +262,6 @@ export type DispositionEntry = z.infer<typeof DispositionEntrySchema>;
 export type FindingsConsolidationEntry = z.infer<
   typeof FindingsConsolidationEntrySchema
 >;
-export type SprintForgeMarkdownSections = z.infer<
-  typeof SprintForgeMarkdownSectionsSchema
->;
-export type SprintForgeSprint = z.infer<typeof SprintForgeSprintSchema>;
 export type RoadmapSprintEntry = z.infer<typeof RoadmapSprintEntrySchema>;
 export type ProjectRegistryEntry = z.infer<typeof ProjectRegistryEntrySchema>;
 export type ProjectRegistry = z.infer<typeof ProjectRegistrySchema>;

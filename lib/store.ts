@@ -56,6 +56,9 @@ interface AppState {
   roadmapLoading: Record<string, boolean>;
   loadRoadmap: (projectId: string) => Promise<void>;
 
+  activeFindingId: string | null;
+  setActiveFindingId: (id: string | null) => void;
+
   // Async initialization state
   isInitializing: boolean;
   initError: string | null;
@@ -224,6 +227,9 @@ export const useAppStore = create<AppState>()(
       console.warn("[roadmap] Failed to load:", errorMsg(err));
     }
   },
+
+  activeFindingId: null,
+  setActiveFindingId: (id) => set({ activeFindingId: id }),
 
   // --- Async init ---
 

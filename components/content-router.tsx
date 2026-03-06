@@ -13,6 +13,7 @@ import { SprintDetailPage } from "@/components/pages/sprint-detail-page";
 import { AgentsActivityPage } from "@/components/pages/agents-activity-page";
 import { FindingsPage } from "@/components/pages/findings-page";
 import { RoadmapPage } from "@/components/pages/roadmap-page";
+import { DebtDashboardPage } from "@/components/pages/debt-dashboard-page";
 import { CommandPalette } from "@/components/command-palette";
 import { WorkspaceOnboarding } from "@/components/workspace-onboarding";
 
@@ -22,6 +23,7 @@ const PAGE_MAP: Record<string, React.ReactNode> = {
   sprints:   <SprintsPage />,
   findings:  <FindingsPage />,
   roadmap:   <RoadmapPage />,
+  debt:      <DebtDashboardPage />,
   documents: <DocumentsPage />,
   agents:    <AgentsActivityPage />,
 };

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import ReactMarkdown from "react-markdown";
+import { MarkdownRenderer } from "@/components/markdown-renderer";
 import {
   ArrowLeft,
   Target,
@@ -104,9 +104,10 @@ export function SprintDetailPage({ sprintId }: SprintDetailPageProps) {
     // Fallback to markdown rendering
     if (currentContent) {
       return (
-        <div className="prose prose-sm max-w-none rounded-xl border bg-card p-6 dark:prose-invert prose-headings:font-semibold prose-h1:text-xl prose-h2:text-lg prose-h3:text-base prose-table:text-sm prose-th:text-left prose-th:font-semibold prose-th:px-3 prose-th:py-2 prose-td:px-3 prose-td:py-2 prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:before:content-none prose-code:after:content-none">
-          <ReactMarkdown>{currentContent}</ReactMarkdown>
-        </div>
+        <MarkdownRenderer
+          content={currentContent}
+          className="rounded-xl border bg-card p-6"
+        />
       );
     }
 

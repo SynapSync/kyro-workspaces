@@ -1,23 +1,99 @@
 "use client";
 
 import { useEffect } from "react";
-import { Search } from "lucide-react";
+import { ArrowLeft, FileCode, Search } from "lucide-react";
+import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { EntitySkeleton } from "@/components/ui/entity-skeleton";
 import { useAppStore } from "@/lib/store";
 import { FINDING_SEVERITY_COLORS } from "@/lib/config";
+import type { Finding } from "@/lib/types";
+
+function FindingDetail({ finding, onBack }: { finding: Finding; onBack: () => void }) {
+  return (
+    <div className="p-6 max-w-4xl">
+      <Button
+        variant="ghost"
+        size="sm"
+        className="mb-4 -ml-2 text-muted-foreground"
+        onClick={onBack}
+      >
+        <ArrowLeft className="h-4 w-4 mr-1" />
+        Back to findings
+      </Button>
+
+      <div className="flex items-center gap-3 mb-4">
+        <span className="text-xs font-mono text-muted-foreground">
+          #{String(finding.number).padStart(2, "0")}
+        </span>
+        <h1 className="text-xl font-bold tracking-tight text-foreground">
+          {finding.title}
+        </h1>
+        <Badge
+          variant="secondary"
+          className={`text-[10px] h-5 border-0 ${FINDING_SEVERITY_COLORS[finding.severity] ?? ""}`}
+        >
+          {finding.severity}
+        </Badge>
+      </div>
+
+      <p className="text-sm text-muted-foreground mb-6">{finding.summary}</p>
+
+      {finding.details && (
+        <div className="mb-6">
+          <h2 className="text-sm font-semibold text-foreground mb-2">Details</h2>
+          <MarkdownRenderer
+            content={finding.details}
+            className="bg-muted/50 rounded-lg p-4"
+          />
+        </div>
+      )}
+
+      {finding.affectedFiles.length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-sm font-semibold text-foreground mb-2">
+            Affected Files ({finding.affectedFiles.length})
+          </h2>
+          <div className="space-y-1">
+            {finding.affectedFiles.map((file) => (
+              <div
+                key={file}
+                className="flex items-center gap-2 text-xs font-mono text-muted-foreground py-1 px-2 rounded bg-muted/50"
+              >
+                <FileCode className="h-3 w-3 shrink-0" />
+                {file}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {finding.recommendations.length > 0 && (
+        <div>
+          <h2 className="text-sm font-semibold text-foreground mb-2">Recommendations</h2>
+          <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
+            {finding.recommendations.map((rec, i) => (
+              <li key={i}>{rec}</li>
+            ))}
+          </ol>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function FindingsPage() {
   const {
-    getActiveProject,
     activeProjectId,
     findings,
     findingsLoading,
     loadFindings,
+    activeFindingId,
+    setActiveFindingId,
   } = useAppStore();
 
-  const project = getActiveProject();
   const projectFindings = findings[activeProjectId] ?? [];
   const isLoading = findingsLoading[activeProjectId] ?? false;
 
@@ -26,6 +102,19 @@ export function FindingsPage() {
       loadFindings(activeProjectId);
     }
   }, [activeProjectId, findings, loadFindings]);
+
+  const activeFinding = activeFindingId
+    ? projectFindings.find((f) => f.id === activeFindingId)
+    : null;
+
+  if (activeFinding) {
+    return (
+      <FindingDetail
+        finding={activeFinding}
+        onBack={() => setActiveFindingId(null)}
+      />
+    );
+  }
 
   return (
     <div className="p-6 max-w-5xl">
@@ -43,7 +132,11 @@ export function FindingsPage() {
       ) : projectFindings.length > 0 ? (
         <div className="grid gap-3">
           {projectFindings.map((finding) => (
-            <Card key={finding.id} className="border shadow-sm">
+            <Card
+              key={finding.id}
+              className="border shadow-sm cursor-pointer hover:border-primary/50 transition-colors"
+              onClick={() => setActiveFindingId(finding.id)}
+            >
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">

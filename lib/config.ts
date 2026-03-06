@@ -60,6 +60,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: "sprints", label: "Sprints", icon: Zap },
   { id: "findings", label: "Findings", icon: Search },
   { id: "roadmap", label: "Roadmap", icon: Map },
+  { id: "debt", label: "Debt", icon: AlertTriangle },
   { id: "documents", label: "Documents", icon: FolderOpen },
   { id: "agents", label: "Agents Activity", icon: Bot },
 ];

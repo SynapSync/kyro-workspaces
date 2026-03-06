@@ -4,17 +4,19 @@ import { setupCommonRoutes } from "./helpers";
 const now = new Date().toISOString();
 
 test("agent context panel shows active project, sprint and agent", async ({ page }) => {
-  await setupCommonRoutes(page, [
-    {
-      id: "sprint-1",
-      name: "Sprint 1",
-      status: "active",
-      objective: "Validate context panel",
-      tasks: [],
-      startDate: now,
-      version: "1.5.0",
-    },
-  ]);
+  await setupCommonRoutes(page, {
+    sprints: [
+      {
+        id: "sprint-1",
+        name: "Sprint 1",
+        status: "active",
+        objective: "Validate context panel",
+        tasks: [],
+        startDate: now,
+        version: "1.5.0",
+      },
+    ],
+  });
 
   await page.route("**/api/activities", async (route) => {
     await route.fulfill({

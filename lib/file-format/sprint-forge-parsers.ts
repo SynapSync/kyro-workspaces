@@ -13,7 +13,7 @@ import type {
   DebtItem,
   DispositionEntry,
   FindingsConsolidationEntry,
-  SprintForgeSprint,
+  Sprint,
   Finding,
   FindingSeverity,
   RoadmapSprintEntry,
@@ -353,7 +353,7 @@ function normalizeImpact(
 
 export function parseSprintForgeFile(
   content: string
-): SprintForgeSprint {
+): Sprint {
   const metadata = parseSprintForgeMetadata(content);
   const sections = extractSections(content);
 
