@@ -15,33 +15,35 @@ import { cn } from "@/lib/utils";
 
 function FindingDetail({ finding, onBack }: { finding: Finding; onBack: () => void }) {
   return (
-    <div className="p-6 max-w-4xl">
-      <Button
-        variant="ghost"
-        size="sm"
-        className="mb-4 -ml-2 text-muted-foreground"
-        onClick={onBack}
-      >
-        <ArrowLeft className="h-4 w-4 mr-1" />
-        Back to findings
-      </Button>
-
-      <div className="flex items-center gap-3 mb-4">
-        <span className="text-xs font-mono text-muted-foreground">
-          #{String(finding.number).padStart(2, "0")}
-        </span>
-        <h1 className="text-xl font-bold tracking-tight text-foreground">
-          {finding.title}
-        </h1>
-        <Badge
-          variant="secondary"
-          className={cn("text-[10px] h-5 border-0", FINDING_SEVERITY_COLORS[finding.severity])}
+    <div className="flex h-full flex-col">
+      <div className="shrink-0 px-6 pt-6 pb-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="mb-3 -ml-2 text-muted-foreground"
+          onClick={onBack}
         >
-          {finding.severity}
-        </Badge>
+          <ArrowLeft className="h-4 w-4 mr-1" />
+          Back to findings
+        </Button>
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-mono text-muted-foreground">
+            #{String(finding.number).padStart(2, "0")}
+          </span>
+          <h1 className="text-xl font-bold tracking-tight text-foreground">
+            {finding.title}
+          </h1>
+          <Badge
+            variant="secondary"
+            className={cn("text-[10px] h-5 border-0", FINDING_SEVERITY_COLORS[finding.severity])}
+          >
+            {finding.severity}
+          </Badge>
+        </div>
+        <p className="text-sm text-muted-foreground mt-2">{finding.summary}</p>
       </div>
-
-      <p className="text-sm text-muted-foreground mb-6">{finding.summary}</p>
+      <div className="flex-1 min-h-0 overflow-auto px-6 pb-6">
+      <div className="max-w-4xl">
 
       {finding.details && (
         <div className="mb-6">
@@ -82,6 +84,8 @@ function FindingDetail({ finding, onBack }: { finding: Finding; onBack: () => vo
           </ol>
         </div>
       )}
+      </div>
+      </div>
     </div>
   );
 }
@@ -125,8 +129,8 @@ export function FindingsPage() {
   };
 
   return (
-    <div className="p-6 max-w-5xl">
-      <div className="mb-6">
+    <div className="flex h-full flex-col">
+      <div className="shrink-0 px-6 pt-6 pb-4">
         <h1 className="text-2xl font-bold tracking-tight text-foreground">
           Findings
         </h1>
@@ -134,6 +138,8 @@ export function FindingsPage() {
           Analysis findings from the sprint-forge project
         </p>
       </div>
+      <div className="flex-1 min-h-0 overflow-auto px-6 pb-6">
+      <div className="max-w-5xl">
 
       {isLoading ? (
         <EntitySkeleton rows={4} />
@@ -192,6 +198,8 @@ export function FindingsPage() {
           </p>
         </div>
       )}
+      </div>
+      </div>
     </div>
   );
 }

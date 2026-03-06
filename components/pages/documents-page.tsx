@@ -21,34 +21,42 @@ export function DocumentsPage() {
   // Document Viewer
   if (activeDoc) {
     return (
-      <div className="p-6 max-w-4xl">
-        <div className="flex items-center gap-3 mb-6">
-          <Button variant="ghost" size="icon" onClick={() => setActiveDocId(null)} className="h-8 w-8">
-            <ArrowLeft className="h-4 w-4" />
-            <span className="sr-only">Back to documents</span>
-          </Button>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            {activeDoc.title}
-          </h1>
+      <div className="flex h-full flex-col">
+        <div className="shrink-0 px-6 pt-6 pb-4">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => setActiveDocId(null)} className="h-8 w-8">
+              <ArrowLeft className="h-4 w-4" />
+              <span className="sr-only">Back to documents</span>
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                {activeDoc.title}
+              </h1>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Last updated{" "}
+                {formatDistanceToNow(new Date(activeDoc.updatedAt), {
+                  addSuffix: true,
+                })}
+              </p>
+            </div>
+          </div>
         </div>
-        <p className="text-xs text-muted-foreground mb-4">
-          Last updated{" "}
-          {formatDistanceToNow(new Date(activeDoc.updatedAt), {
-            addSuffix: true,
-          })}
-        </p>
-        <MarkdownRenderer
-          content={activeDoc.content}
-          className="rounded-xl border bg-card p-6"
-        />
+        <div className="flex-1 min-h-0 overflow-auto px-6 pb-6">
+          <div className="max-w-4xl">
+            <MarkdownRenderer
+              content={activeDoc.content}
+              className="rounded-xl border bg-card p-6"
+            />
+          </div>
+        </div>
       </div>
     );
   }
 
   // Document List View
   return (
-    <div className="p-6 max-w-5xl">
-      <div className="mb-6">
+    <div className="flex h-full flex-col">
+      <div className="shrink-0 px-6 pt-6 pb-4">
         <h1 className="text-2xl font-bold tracking-tight text-foreground">
           Documents
         </h1>
@@ -57,8 +65,8 @@ export function DocumentsPage() {
           {project.documents.length !== 1 ? "s" : ""} in this project
         </p>
       </div>
-
-      <div className="grid gap-3">
+      <div className="flex-1 min-h-0 overflow-auto px-6 pb-6">
+      <div className="max-w-5xl grid gap-3">
         {project.documents.map((doc) => (
           <Card
             key={doc.id}
@@ -99,6 +107,7 @@ export function DocumentsPage() {
             </p>
           </div>
         )}
+      </div>
       </div>
     </div>
   );

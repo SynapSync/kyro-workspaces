@@ -33,8 +33,8 @@ export function RoadmapPage() {
   const overallProgress = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
   return (
-    <div className="p-6 max-w-5xl">
-      <div className="mb-6">
+    <div className="flex h-full flex-col">
+      <div className="shrink-0 px-6 pt-6 pb-4">
         <h1 className="text-2xl font-bold tracking-tight text-foreground">
           Roadmap
         </h1>
@@ -42,6 +42,8 @@ export function RoadmapPage() {
           Sprint plan from the project&apos;s ROADMAP.md
         </p>
       </div>
+      <div className="flex-1 min-h-0 overflow-auto px-6 pb-6">
+      <div className="max-w-5xl">
 
       {isLoading ? (
         <EntitySkeleton rows={5} />
@@ -121,6 +123,8 @@ export function RoadmapPage() {
           </p>
         </div>
       )}
+      </div>
+      </div>
     </div>
   );
 }

@@ -28,8 +28,8 @@ export function SprintsPage() {
   const project = getActiveProject();
 
   return (
-    <div className="p-6 max-w-5xl">
-      <div className="mb-6">
+    <div className="flex h-full flex-col">
+      <div className="shrink-0 px-6 pt-6 pb-4">
         <h1 className="text-2xl font-bold tracking-tight text-foreground">
           Sprints
         </h1>
@@ -38,8 +38,8 @@ export function SprintsPage() {
           {project.sprints.length !== 1 ? "s" : ""} total
         </p>
       </div>
-
-      <div className="grid gap-4">
+      <div className="flex-1 min-h-0 overflow-auto px-6 pb-6">
+      <div className="max-w-5xl grid gap-4">
         {project.sprints.map((sprint) => {
           const config = SPRINT_STATUS_CONFIG[sprint.status];
           const Icon = statusIcons[sprint.status];
@@ -181,6 +181,7 @@ export function SprintsPage() {
             </p>
           </div>
         )}
+      </div>
       </div>
     </div>
   );

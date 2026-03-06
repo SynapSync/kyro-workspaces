@@ -73,9 +73,8 @@ export function ProjectOverviewPage() {
   );
 
   return (
-    <div className="p-6 max-w-5xl">
-      {/* Header */}
-      <div className="mb-8">
+    <div className="flex h-full flex-col">
+      <div className="shrink-0 px-6 pt-6 pb-4">
         <h1 className="text-2xl font-bold tracking-tight text-foreground">
           {project.name}
         </h1>
@@ -83,6 +82,8 @@ export function ProjectOverviewPage() {
           {project.description}
         </p>
       </div>
+      <div className="flex-1 min-h-0 overflow-auto px-6 pb-6">
+      <div className="max-w-5xl">
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 mb-8">
@@ -267,6 +268,8 @@ export function ProjectOverviewPage() {
             </Link>
           </Button>
         </div>
+      </div>
+      </div>
       </div>
     </div>
   );
