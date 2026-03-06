@@ -1,7 +1,7 @@
 "use client";
 
-import { CheckSquare, Square } from "lucide-react";
 import { InlineMarkdown } from "@/components/inline-markdown";
+import { cn } from "@/lib/utils";
 
 interface DoDChecklistProps {
   items: string[];
@@ -15,21 +15,19 @@ export function DoDChecklist({ items }: DoDChecklistProps) {
   }
 
   return (
-    <div className="rounded-lg border bg-card p-4 space-y-2">
+    <div className="rounded-lg border bg-card p-4 space-y-1">
       {items.map((item, i) => {
         const isChecked = item.startsWith("[x]") || item.startsWith("[X]");
         const label = item.replace(/^\[[ xX~!>\-]\]\s*/, "").trim();
 
         return (
-          <div key={i} className="flex items-start gap-2.5 py-1">
-            {isChecked ? (
-              <CheckSquare className="h-4 w-4 shrink-0 mt-0.5 text-emerald-500" />
-            ) : (
-              <Square className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />
-            )}
+          <div key={i} className="flex items-start gap-2 py-1">
+            <span className={cn("font-mono text-xs shrink-0 mt-0.5", isChecked ? "text-emerald-500" : "text-muted-foreground")}>
+              {isChecked ? "[x]" : "[ ]"}
+            </span>
             <InlineMarkdown
               content={label}
-              className={`text-sm ${isChecked ? "text-muted-foreground line-through" : "text-foreground"}`}
+              className={cn("text-sm", isChecked ? "text-muted-foreground line-through" : "text-foreground")}
             />
           </div>
         );

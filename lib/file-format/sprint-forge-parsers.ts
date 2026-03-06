@@ -390,7 +390,7 @@ export function parseSprintForgeFile(
   // Parse Definition of Done
   const definitionOfDone = sections["Definition of Done"]
     ? extractChecklistItems(sections["Definition of Done"]).map(
-        (item) => item.text
+        (item) => `${item.checked ? "[x]" : "[ ]"} ${item.text}`
       )
     : undefined;
 
