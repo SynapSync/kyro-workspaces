@@ -300,7 +300,7 @@ export const useAppStore = create<AppState>()(
   // --- UI State ---
 
   activeSidebarItem: "overview",
-  setActiveSidebarItem: (item) => set({ activeSidebarItem: item }),
+  setActiveSidebarItem: (item) => set({ activeSidebarItem: item, activeSprintId: null, activeSprintDetailId: null }),
   activeSprintId: null,
   setActiveSprintId: (id) => set({ activeSprintId: id }),
   activeSprintDetailId: null,
