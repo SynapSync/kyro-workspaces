@@ -165,6 +165,7 @@ export const SprintSchema = z.object({
 
 export const RoadmapSprintEntrySchema = z.object({
   number: z.number(),
+  sprintId: z.string(),
   findingSource: z.string(),
   version: z.string(),
   type: SprintTypeSchema,

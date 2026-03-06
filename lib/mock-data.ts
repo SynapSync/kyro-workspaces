@@ -761,11 +761,11 @@ export const mockRoadmapSprints: Record<string, { raw: string; sprints: RoadmapS
   "proj-2": {
     raw: "# Futures DCA Bot v2 — Adaptive Roadmap\n\n...",
     sprints: [
-      { number: 1, findingSource: "initial", version: "0.1.0", type: "feature", focus: "Core trading engine", dependencies: [], status: "closed" },
-      { number: 2, findingSource: "sprint-1-retro", version: "0.2.0", type: "feature", focus: "DCA + real-data backtest", dependencies: ["Sprint 1"], status: "closed" },
-      { number: 3, findingSource: "f-01", version: "0.3.0", type: "feature", focus: "Bidirectional S/R + multi-pair", dependencies: ["Sprint 2"], status: "closed" },
-      { number: 4, findingSource: "f-01, f-02", version: "0.4.0", type: "refactor", focus: "Risk Engine completo", dependencies: ["Sprint 3"], status: "closed" },
-      { number: 5, findingSource: "sprint-4-retro", version: "0.5.0", type: "feature", focus: "Live Trading Wiring", dependencies: ["Sprint 4"], status: "active" },
+      { number: 1, sprintId: "sprint-1", findingSource: "initial", version: "0.1.0", type: "feature", focus: "Core trading engine", dependencies: [], status: "closed" },
+      { number: 2, sprintId: "sprint-2", findingSource: "sprint-1-retro", version: "0.2.0", type: "feature", focus: "DCA + real-data backtest", dependencies: ["Sprint 1"], status: "closed" },
+      { number: 3, sprintId: "sprint-3", findingSource: "f-01", version: "0.3.0", type: "feature", focus: "Bidirectional S/R + multi-pair", dependencies: ["Sprint 2"], status: "closed" },
+      { number: 4, sprintId: "sprint-4", findingSource: "f-01, f-02", version: "0.4.0", type: "refactor", focus: "Risk Engine completo", dependencies: ["Sprint 3"], status: "closed" },
+      { number: 5, sprintId: "sprint-5", findingSource: "sprint-4-retro", version: "0.5.0", type: "feature", focus: "Live Trading Wiring", dependencies: ["Sprint 4"], status: "active" },
     ],
   },
 };

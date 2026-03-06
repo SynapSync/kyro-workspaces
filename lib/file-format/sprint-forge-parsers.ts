@@ -506,8 +506,11 @@ export function parseRoadmapSprintSummary(
 
   return rows
     .filter((r) => r["Sprint"])
-    .map((r) => ({
-      number: parseInt(r["Sprint"], 10) || 0,
+    .map((r) => {
+      const number = parseInt(r["Sprint"], 10) || 0;
+      return {
+      number,
+      sprintId: `sprint-${number}`,
       findingSource: r["Finding Source"] ?? "",
       version: r["Version"] ?? "",
       type: parseSprintType(r["Type"]) ?? ("refactor" as SprintType),
@@ -517,7 +520,8 @@ export function parseRoadmapSprintSummary(
         .map((d) => d.trim())
         .filter((d) => d && d !== "—"),
       status: r["Status"] ?? "pending",
-    }));
+    };
+    });
 }
 
 // ---------------------------------------------------------------------------

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
+import Link from "next/link";
 import { Map } from "lucide-react";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { Badge } from "@/components/ui/badge";
@@ -17,11 +18,27 @@ export function RoadmapPage() {
     roadmaps,
     roadmapLoading,
     loadRoadmap,
+    getActiveProject,
   } = useAppStore();
 
   const roadmap = roadmaps[activeProjectId];
   const isLoading = roadmapLoading[activeProjectId] ?? false;
   const sprints = roadmap?.sprints ?? [];
+  const project = getActiveProject();
+
+  const existingSprintIds = useMemo(
+    () => new Set(project.sprints.map((s) => s.id)),
+    [project.sprints],
+  );
+
+  const filteredRaw = useMemo(() => {
+    if (!roadmap?.raw) return "";
+    // Strip the ## Sprint Summary section and its preceding --- separator
+    return roadmap.raw
+      .replace(/\n---\n##\s+Sprint Summary[\s\S]*?(?=\n---\n|$)/, "")
+      .replace(/##\s+Sprint Summary[\s\S]*?(?=\n##\s|$)/, "")
+      .trim();
+  }, [roadmap?.raw]);
 
   useEffect(() => {
     if (activeProjectId && !roadmaps[activeProjectId]) {
@@ -66,11 +83,16 @@ export function RoadmapPage() {
             {sprints.map((entry) => {
               const typeColor = SPRINT_TYPE_COLORS[entry.type] ?? "";
               const isCompleted = entry.status === "completed";
+              const hasLink = existingSprintIds.has(entry.sprintId);
 
-              return (
+              const card = (
                 <Card
                   key={entry.number}
-                  className={cn("border shadow-sm", isCompleted && "opacity-75")}
+                  className={cn(
+                    "border shadow-sm",
+                    isCompleted && "opacity-75",
+                    hasLink && "cursor-pointer transition-colors hover:border-primary/50",
+                  )}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-center gap-3">
@@ -108,14 +130,22 @@ export function RoadmapPage() {
                   </CardContent>
                 </Card>
               );
+
+              return hasLink ? (
+                <Link key={entry.number} href={`/${activeProjectId}/sprints/${entry.sprintId}/detail`}>
+                  {card}
+                </Link>
+              ) : (
+                card
+              );
             })}
           </div>
 
-          {/* Full roadmap markdown */}
-          {roadmap?.raw && (
+          {/* Remaining roadmap markdown (Sprint Summary stripped) */}
+          {filteredRaw && (
             <div className="mt-6">
               <MarkdownRenderer
-                content={roadmap.raw}
+                content={filteredRaw}
                 className="rounded-xl border bg-card p-6"
               />
             </div>

@@ -342,14 +342,17 @@ describe("parseRoadmapSprintSummary", () => {
     expect(entries).toHaveLength(3);
     expect(entries[0]).toMatchObject({
       number: 1,
+      sprintId: "sprint-1",
       version: "0.2.0",
       type: "refactor",
       focus: "Domain types and parsers",
       status: "completed",
     });
     expect(entries[1].number).toBe(2);
+    expect(entries[1].sprintId).toBe("sprint-2");
     expect(entries[1].dependencies).toEqual(["Sprint 1"]);
     expect(entries[2].number).toBe(3);
+    expect(entries[2].sprintId).toBe("sprint-3");
   });
 });
 
