@@ -5,6 +5,8 @@ import { MarkdownRenderer } from "@/components/markdown-renderer";
 import {
   ArrowLeft,
   Target,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +39,7 @@ export function SprintDetailPage({ sprintId }: SprintDetailPageProps) {
   const sprint = project.sprints.find((s) => s.id === sprintId);
 
   const [activeSection, setActiveSection] = useState<keyof SprintMarkdownSections>("retrospective");
+  const [objectiveExpanded, setObjectiveExpanded] = useState(true);
 
   if (!sprint) {
     return (
@@ -176,9 +179,26 @@ export function SprintDetailPage({ sprintId }: SprintDetailPageProps) {
         {(sprint.objective || totalTasks > 0) && (
           <div className="mt-4 flex flex-col gap-3 max-w-3xl">
             {sprint.objective && (
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                {sprint.objective}
-              </p>
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setObjectiveExpanded(!objectiveExpanded)}
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {objectiveExpanded ? (
+                    <ChevronDown className="h-3 w-3" />
+                  ) : (
+                    <ChevronRight className="h-3 w-3" />
+                  )}
+                  <span>Objective</span>
+                </button>
+                {objectiveExpanded && (
+                  <MarkdownRenderer
+                    content={sprint.objective}
+                    className="mt-1.5 text-sm text-muted-foreground leading-relaxed"
+                  />
+                )}
+              </div>
             )}
             {totalTasks > 0 && (
               <div>
