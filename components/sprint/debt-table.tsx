@@ -1,6 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
+import { InlineMarkdown } from "@/components/inline-markdown";
 import type { DebtItem } from "@/lib/types";
 
 const STATUS_STYLES: Record<string, { label: string; className: string }> = {
@@ -41,7 +42,7 @@ export function DebtTable({ items }: DebtTableProps) {
             return (
               <tr key={item.number} className="border-b last:border-0">
                 <td className="px-4 py-2.5 text-muted-foreground">D{item.number}</td>
-                <td className="px-4 py-2.5">{item.item}</td>
+                <td className="px-4 py-2.5"><InlineMarkdown content={item.item} /></td>
                 <td className="px-4 py-2.5 text-muted-foreground text-xs">{item.origin}</td>
                 <td className="px-4 py-2.5 text-muted-foreground text-xs">{item.sprintTarget}</td>
                 <td className="px-4 py-2.5">

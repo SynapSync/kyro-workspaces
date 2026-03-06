@@ -1,6 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
+import { InlineMarkdown } from "@/components/inline-markdown";
 import type { FindingsConsolidationEntry } from "@/lib/types";
 
 const IMPACT_STYLES: Record<string, string> = {
@@ -36,14 +37,14 @@ export function FindingsConsolidationTable({ entries }: FindingsConsolidationTab
           {entries.map((entry) => (
             <tr key={entry.number} className="border-b last:border-0">
               <td className="px-4 py-2.5 text-muted-foreground">{entry.number}</td>
-              <td className="px-4 py-2.5">{entry.finding}</td>
+              <td className="px-4 py-2.5"><InlineMarkdown content={entry.finding} /></td>
               <td className="px-4 py-2.5 text-muted-foreground text-xs">{entry.originPhase}</td>
               <td className="px-4 py-2.5">
                 <Badge variant="secondary" className={`text-[10px] h-5 border-0 ${IMPACT_STYLES[entry.impact] ?? ""}`}>
                   {entry.impact}
                 </Badge>
               </td>
-              <td className="px-4 py-2.5 text-muted-foreground text-xs">{entry.actionTaken}</td>
+              <td className="px-4 py-2.5 text-muted-foreground text-xs"><InlineMarkdown content={entry.actionTaken} /></td>
             </tr>
           ))}
         </tbody>

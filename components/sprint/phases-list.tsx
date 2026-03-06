@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ChevronDown, ChevronRight, Layers, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { InlineMarkdown } from "@/components/inline-markdown";
 import type { Phase } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -85,7 +86,7 @@ export function PhasesList({ phases }: PhasesListProps) {
             {isOpen && (
               <div className="border-t px-4 py-3 space-y-1">
                 {phase.objective && (
-                  <p className="text-xs text-muted-foreground mb-3">{phase.objective}</p>
+                  <InlineMarkdown content={phase.objective} className="text-xs text-muted-foreground mb-3 block" />
                 )}
                 {phase.tasks.map((task) => {
                   const statusInfo = TASK_STATUS_ICONS[task.status] ?? TASK_STATUS_ICONS["todo"];
@@ -101,7 +102,7 @@ export function PhasesList({ phases }: PhasesListProps) {
                               {task.taskRef}
                             </Badge>
                           )}
-                          <span className="text-sm">{task.title}</span>
+                          <InlineMarkdown content={task.title} className="text-sm" />
                         </div>
                         {task.files && task.files.length > 0 && (
                           <p className="text-[10px] text-muted-foreground mt-0.5 font-mono">

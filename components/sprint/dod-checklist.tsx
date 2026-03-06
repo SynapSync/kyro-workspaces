@@ -1,6 +1,7 @@
 "use client";
 
 import { CheckSquare, Square } from "lucide-react";
+import { InlineMarkdown } from "@/components/inline-markdown";
 
 interface DoDChecklistProps {
   items: string[];
@@ -26,9 +27,10 @@ export function DoDChecklist({ items }: DoDChecklistProps) {
             ) : (
               <Square className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />
             )}
-            <span className={`text-sm ${isChecked ? "text-muted-foreground line-through" : "text-foreground"}`}>
-              {label}
-            </span>
+            <InlineMarkdown
+              content={label}
+              className={`text-sm ${isChecked ? "text-muted-foreground line-through" : "text-foreground"}`}
+            />
           </div>
         );
       })}
