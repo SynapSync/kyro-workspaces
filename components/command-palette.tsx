@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   Plus,
   Sidebar,
@@ -20,12 +21,12 @@ import { useAppStore } from "@/lib/store";
 import { NAV_ITEMS } from "@/lib/config";
 
 export function CommandPalette() {
+  const router = useRouter();
   const {
     commandPaletteOpen,
     setCommandPaletteOpen,
     toggleCommandPalette,
-    setActiveSidebarItem,
-    setActiveSprintId,
+    activeProjectId,
     toggleFocusMode,
     zenMode,
     setZenMode,
@@ -50,10 +51,11 @@ export function CommandPalette() {
     setAddProjectDialogOpen(true);
   };
 
-
   const handleNavigate = (item: string) => {
-    setActiveSidebarItem(item);
-    if (item !== "sprints") setActiveSprintId(null);
+    const navItem = NAV_ITEMS.find((n) => n.id === item);
+    if (navItem && activeProjectId) {
+      router.push(`/${activeProjectId}${navItem.href}`);
+    }
     setCommandPaletteOpen(false);
   };
 

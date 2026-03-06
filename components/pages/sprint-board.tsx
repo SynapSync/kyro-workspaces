@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   DndContext,
   DragOverlay,
@@ -28,11 +30,10 @@ interface SprintBoardProps {
 }
 
 export function SprintBoardPage({ sprintId }: SprintBoardProps) {
+  const router = useRouter();
   const {
     getActiveProject,
-    setActiveSprintId,
-    setActiveSprintDetailId,
-    setActiveSidebarItem,
+    activeProjectId,
     collapsedColumns,
     setColumnCollapsed,
     toggleColumnCollapsed,
@@ -120,13 +121,7 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
   };
 
   const handleBack = () => {
-    setActiveSprintId(null);
-    setActiveSidebarItem("sprints");
-  };
-
-  const handleViewDetails = () => {
-    setActiveSprintId(null);
-    setActiveSprintDetailId(sprintId);
+    router.push(`/${activeProjectId}/sprints`);
   };
 
   const statusCfg = SPRINT_STATUS_CONFIG[sprint.status];
@@ -216,10 +211,12 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
             variant="outline"
             size="sm"
             className="gap-1.5"
-            onClick={handleViewDetails}
+            asChild
           >
-            <FileText className="h-3.5 w-3.5" />
-            Details
+            <Link href={`/${activeProjectId}/sprints/${sprintId}/detail`}>
+              <FileText className="h-3.5 w-3.5" />
+              Details
+            </Link>
           </Button>
         </div>
       </div>

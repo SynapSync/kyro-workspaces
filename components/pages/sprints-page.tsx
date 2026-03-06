@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   Zap,
   ArrowRight,
@@ -23,11 +24,7 @@ const statusIcons: Record<SprintStatus, typeof Zap> = {
 };
 
 export function SprintsPage() {
-  const {
-    getActiveProject,
-    setActiveSprintId,
-    setActiveSprintDetailId,
-  } = useAppStore();
+  const { getActiveProject, activeProjectId } = useAppStore();
   const project = getActiveProject();
 
   return (
@@ -104,19 +101,23 @@ export function SprintsPage() {
                       variant="outline"
                       size="sm"
                       className="gap-1.5"
-                      onClick={() => setActiveSprintDetailId(sprint.id)}
+                      asChild
                     >
-                      <FileText className="h-3.5 w-3.5" />
-                      Details
+                      <Link href={`/${activeProjectId}/sprints/${sprint.id}/detail`}>
+                        <FileText className="h-3.5 w-3.5" />
+                        Details
+                      </Link>
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       className="gap-1.5"
-                      onClick={() => setActiveSprintId(sprint.id)}
+                      asChild
                     >
-                      Board
-                      <ArrowRight className="h-3.5 w-3.5" />
+                      <Link href={`/${activeProjectId}/sprints/${sprint.id}`}>
+                        Board
+                        <ArrowRight className="h-3.5 w-3.5" />
+                      </Link>
                     </Button>
                   </div>
                 </div>

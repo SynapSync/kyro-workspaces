@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import {
   ChevronDown,
   ChevronLeft,
@@ -31,14 +33,12 @@ import {
 
 export function AppSidebar() {
   const isMobile = useIsMobile();
+  const pathname = usePathname();
+  const router = useRouter();
   const {
     workspaceName,
     projects,
     activeProjectId,
-    setActiveProjectId,
-    activeSidebarItem,
-    setActiveSidebarItem,
-    setActiveSprintId,
     sidebarCollapsed,
     setSidebarCollapsed,
     toggleSidebar,
@@ -47,6 +47,13 @@ export function AppSidebar() {
   } = useAppStore();
 
   const activeProject = projects.find((p) => p.id === activeProjectId) ?? projects[0];
+
+  // Derive active nav item from pathname
+  const activeNavId = (() => {
+    const segments = pathname.split("/").filter(Boolean);
+    // pathname: /[projectId]/[section]/...
+    return segments[1] ?? "overview";
+  })();
 
   // Load persisted state on mount
   useEffect(() => {
@@ -88,6 +95,11 @@ export function AppSidebar() {
 
   const handleCreateProject = () => {
     setAddProjectDialogOpen(true);
+  };
+
+  const handleProjectSwitch = (projectId: string) => {
+    // Navigate to the same section in the new project
+    router.push(`/${projectId}/${activeNavId}`);
   };
 
   return (
@@ -149,7 +161,7 @@ export function AppSidebar() {
                 {projects.map((project) => (
                   <DropdownMenuItem
                     key={project.id}
-                    onClick={() => setActiveProjectId(project.id)}
+                    onClick={() => handleProjectSwitch(project.id)}
                     className="flex items-center gap-2"
                   >
                     <span
@@ -181,15 +193,13 @@ export function AppSidebar() {
         <nav className="flex flex-col gap-0.5">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
-            const isActive = activeSidebarItem === item.id;
-            
-            const navButton = (
-              <button
+            const isActive = activeNavId === item.id;
+            const href = activeProjectId ? `/${activeProjectId}${item.href}` : item.href;
+
+            const navLink = (
+              <Link
                 key={item.id}
-                onClick={() => {
-                  setActiveSidebarItem(item.id);
-                  if (item.id !== "sprints") setActiveSprintId(null);
-                }}
+                href={href}
                 className={cn(
                   "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                   isActive
@@ -208,14 +218,14 @@ export function AppSidebar() {
                     AI
                   </Badge>
                 )}
-              </button>
+              </Link>
             );
 
             if (sidebarCollapsed) {
               return (
                 <TooltipPrimitive.Root key={item.id}>
                   <TooltipPrimitive.Trigger asChild>
-                    {navButton}
+                    {navLink}
                   </TooltipPrimitive.Trigger>
                   <TooltipPrimitive.Portal>
                     <TooltipPrimitive.Content
@@ -231,7 +241,7 @@ export function AppSidebar() {
               );
             }
 
-            return navButton;
+            return navLink;
           })}
         </nav>
 
@@ -245,7 +255,7 @@ export function AppSidebar() {
               {projects.map((project) => (
                 <button
                   key={project.id}
-                  onClick={() => setActiveProjectId(project.id)}
+                  onClick={() => handleProjectSwitch(project.id)}
                   className={cn(
                     "flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm transition-colors",
                     project.id === activeProjectId

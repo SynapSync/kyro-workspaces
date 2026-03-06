@@ -56,9 +56,6 @@ interface AppState {
   roadmapLoading: Record<string, boolean>;
   loadRoadmap: (projectId: string) => Promise<void>;
 
-  activeFindingId: string | null;
-  setActiveFindingId: (id: string | null) => void;
-
   // Async initialization state
   isInitializing: boolean;
   initError: string | null;
@@ -78,14 +75,6 @@ interface AppState {
   addActivity: (activity: AgentActivity) => void;
   activityWriteWarning: string | null;
   clearActivityWriteWarning: () => void;
-
-  // UI State
-  activeSidebarItem: string;
-  setActiveSidebarItem: (item: string) => void;
-  activeSprintId: string | null;
-  setActiveSprintId: (id: string | null) => void;
-  activeSprintDetailId: string | null;
-  setActiveSprintDetailId: (id: string | null) => void;
 
   // Sidebar State
   sidebarCollapsed: boolean;
@@ -122,15 +111,12 @@ export const useAppStore = create<AppState>()(
   projects: [],
   activeProjectId: "",
 
-  setActiveProjectId: (id) =>
-    set({ activeProjectId: id, activeSprintId: null, activeSprintDetailId: null, activeSidebarItem: "overview" }),
+  setActiveProjectId: (id) => set({ activeProjectId: id }),
 
   addProject: (path, name, color) => {
     set({ isSaving: true, saveError: null });
     services.projects.createProject({ path, name, color })
       .then((entry) => {
-        // The POST response is a registry entry, not a full Project.
-        // Re-fetch to get the fully parsed project with sprints, documents, etc.
         return services.projects.getProject(entry.id).then((full) => full ?? entry);
       })
       .then((project) => {
@@ -225,9 +211,6 @@ export const useAppStore = create<AppState>()(
     }
   },
 
-  activeFindingId: null,
-  setActiveFindingId: (id) => set({ activeFindingId: id }),
-
   // --- Async init ---
 
   isInitializing: true,
@@ -297,15 +280,6 @@ export const useAppStore = create<AppState>()(
     }, (warning) => set({ activityWriteWarning: warning }));
   },
 
-  // --- UI State ---
-
-  activeSidebarItem: "overview",
-  setActiveSidebarItem: (item) => set({ activeSidebarItem: item, activeSprintId: null, activeSprintDetailId: null }),
-  activeSprintId: null,
-  setActiveSprintId: (id) => set({ activeSprintId: id }),
-  activeSprintDetailId: null,
-  setActiveSprintDetailId: (id) => set({ activeSprintDetailId: id }),
-
   // Sidebar State
   sidebarCollapsed: false,
   setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
@@ -346,13 +320,10 @@ export const useAppStore = create<AppState>()(
   setAddProjectDialogOpen: (open) => set({ addProjectDialogOpen: open }),
     }),
     {
-      name: "kyro-nav-state",
+      name: "kyro-ui-state",
       storage: createJSONStorage(() => sessionStorage),
       partialize: (state) => ({
         activeProjectId: state.activeProjectId,
-        activeSidebarItem: state.activeSidebarItem,
-        activeSprintId: state.activeSprintId,
-        activeSprintDetailId: state.activeSprintDetailId,
         sidebarCollapsed: state.sidebarCollapsed,
       }),
     }

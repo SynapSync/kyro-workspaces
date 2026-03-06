@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
 import {
   ArrowLeft,
@@ -28,12 +30,8 @@ interface SprintDetailPageProps {
 }
 
 export function SprintDetailPage({ sprintId }: SprintDetailPageProps) {
-  const {
-    getActiveProject,
-    setActiveSprintDetailId,
-    setActiveSprintId,
-    setActiveSidebarItem,
-  } = useAppStore();
+  const router = useRouter();
+  const { getActiveProject, activeProjectId } = useAppStore();
 
   const project = getActiveProject();
   const sprint = project.sprints.find((s) => s.id === sprintId);
@@ -53,13 +51,7 @@ export function SprintDetailPage({ sprintId }: SprintDetailPageProps) {
   const currentContent = sprint.sections?.[activeSection] ?? "";
 
   const handleBack = () => {
-    setActiveSprintDetailId(null);
-    setActiveSidebarItem("sprints");
-  };
-
-  const handleOpenBoard = () => {
-    setActiveSprintDetailId(null);
-    setActiveSprintId(sprintId);
+    router.push(`/${activeProjectId}/sprints`);
   };
 
   const doneTasks = sprint.tasks.filter((t) => t.status === "done").length;
@@ -170,9 +162,11 @@ export function SprintDetailPage({ sprintId }: SprintDetailPageProps) {
               </div>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={handleOpenBoard} className="gap-1.5">
-            <Target className="h-3.5 w-3.5" />
-            Open Board
+          <Button variant="outline" size="sm" className="gap-1.5" asChild>
+            <Link href={`/${activeProjectId}/sprints/${sprintId}`}>
+              <Target className="h-3.5 w-3.5" />
+              Open Board
+            </Link>
           </Button>
         </div>
 

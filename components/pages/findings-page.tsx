@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, FileCode, Search } from "lucide-react";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { Badge } from "@/components/ui/badge";
@@ -86,13 +87,15 @@ function FindingDetail({ finding, onBack }: { finding: Finding; onBack: () => vo
 }
 
 export function FindingsPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const activeFindingId = searchParams.get("finding");
+
   const {
     activeProjectId,
     findings,
     findingsLoading,
     loadFindings,
-    activeFindingId,
-    setActiveFindingId,
   } = useAppStore();
 
   const projectFindings = findings[activeProjectId] ?? [];
@@ -112,10 +115,14 @@ export function FindingsPage() {
     return (
       <FindingDetail
         finding={activeFinding}
-        onBack={() => setActiveFindingId(null)}
+        onBack={() => router.push(`/${activeProjectId}/findings`)}
       />
     );
   }
+
+  const handleFindingClick = (findingId: string) => {
+    router.push(`/${activeProjectId}/findings?finding=${findingId}`);
+  };
 
   return (
     <div className="p-6 max-w-5xl">
@@ -136,7 +143,7 @@ export function FindingsPage() {
             <Card
               key={finding.id}
               className="border shadow-sm cursor-pointer hover:border-primary/50 transition-colors"
-              onClick={() => setActiveFindingId(finding.id)}
+              onClick={() => handleFindingClick(finding.id)}
             >
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">

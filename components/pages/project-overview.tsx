@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   CheckCircle2,
   ListTodo,
@@ -18,12 +19,7 @@ import { SPRINT_SECTIONS } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
 export function ProjectOverviewPage() {
-  const {
-    getActiveProject,
-    setActiveSidebarItem,
-    setActiveSprintId,
-    setActiveSprintDetailId,
-  } = useAppStore();
+  const { getActiveProject, activeProjectId } = useAppStore();
 
   const project = getActiveProject();
 
@@ -162,11 +158,13 @@ export function ProjectOverviewPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setActiveSprintId(activeSprint.id)}
                   className="gap-1.5"
+                  asChild
                 >
-                  Open Board
-                  <ArrowRight className="h-3.5 w-3.5" />
+                  <Link href={`/${activeProjectId}/sprints/${activeSprint.id}`}>
+                    Open Board
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
                 </Button>
               </div>
             </CardContent>
@@ -188,55 +186,56 @@ export function ProjectOverviewPage() {
                   (sprint.sections[s.key] ?? "").trim().length > 0
               );
               return (
-                <Card
+                <Link
                   key={sprint.id}
-                  className="border shadow-sm hover:border-primary/30 transition-colors cursor-pointer"
-                  onClick={() => setActiveSprintDetailId(sprint.id)}
+                  href={`/${activeProjectId}/sprints/${sprint.id}/detail`}
                 >
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                          <FolderOpen className="h-4 w-4 text-primary" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm text-foreground">
-                            {sprint.name}
-                          </p>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            {sprint.version && (
-                              <Badge
-                                variant="outline"
-                                className="text-[10px] h-4 font-mono"
-                              >
-                                v{sprint.version}
-                              </Badge>
-                            )}
-                            <span className="text-xs text-muted-foreground">
-                              {filled.length}/{SPRINT_SECTIONS.length} sections
-                            </span>
+                  <Card className="border shadow-sm hover:border-primary/30 transition-colors cursor-pointer">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                            <FolderOpen className="h-4 w-4 text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm text-foreground">
+                              {sprint.name}
+                            </p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              {sprint.version && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-[10px] h-4 font-mono"
+                                >
+                                  v{sprint.version}
+                                </Badge>
+                              )}
+                              <span className="text-xs text-muted-foreground">
+                                {filled.length}/{SPRINT_SECTIONS.length} sections
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div className="flex gap-1">
-                        {filled.map((s) => (
-                          <span
-                            key={s.key}
-                            className="h-1.5 w-1.5 rounded-full bg-emerald-500"
-                          />
-                        ))}
-                        {Array.from({ length: SPRINT_SECTIONS.length - filled.length }).map(
-                          (_, i) => (
+                        <div className="flex gap-1">
+                          {filled.map((s) => (
                             <span
-                              key={i}
-                              className="h-1.5 w-1.5 rounded-full bg-muted"
+                              key={s.key}
+                              className="h-1.5 w-1.5 rounded-full bg-emerald-500"
                             />
-                          )
-                        )}
+                          ))}
+                          {Array.from({ length: SPRINT_SECTIONS.length - filled.length }).map(
+                            (_, i) => (
+                              <span
+                                key={i}
+                                className="h-1.5 w-1.5 rounded-full bg-muted"
+                              />
+                            )
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                </Link>
               );
             })}
           </div>
@@ -249,32 +248,23 @@ export function ProjectOverviewPage() {
           Quick Actions
         </h2>
         <div className="flex flex-wrap gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5"
-            onClick={() => setActiveSidebarItem("sprints")}
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Create Sprint
+          <Button variant="outline" size="sm" className="gap-1.5" asChild>
+            <Link href={`/${activeProjectId}/sprints`}>
+              <Plus className="h-3.5 w-3.5" />
+              Create Sprint
+            </Link>
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5"
-            onClick={() => setActiveSidebarItem("documents")}
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Add Document
+          <Button variant="outline" size="sm" className="gap-1.5" asChild>
+            <Link href={`/${activeProjectId}/documents`}>
+              <Plus className="h-3.5 w-3.5" />
+              Add Document
+            </Link>
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5"
-            onClick={() => setActiveSidebarItem("readme")}
-          >
-            <FileText className="h-3.5 w-3.5" />
-            Edit README
+          <Button variant="outline" size="sm" className="gap-1.5" asChild>
+            <Link href={`/${activeProjectId}/readme`}>
+              <FileText className="h-3.5 w-3.5" />
+              Edit README
+            </Link>
           </Button>
         </div>
       </div>

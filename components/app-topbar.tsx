@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { usePathname } from "next/navigation";
 import { Search, Bell, Plus, AlertTriangle, X, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,14 +25,11 @@ function getLastAgentName(description: string): string {
 }
 
 export function AppTopbar() {
+  const pathname = usePathname();
   const {
     members,
     projects,
     activeProjectId,
-    activeSprintId,
-    activeSprintDetailId,
-    activeSidebarItem,
-    activeFindingId,
     activities,
     activityWriteWarning,
     clearActivityWriteWarning,
@@ -42,18 +40,16 @@ export function AppTopbar() {
     [projects, activeProjectId]
   );
 
+  // Derive sprint from URL: /[projectId]/sprints/[sprintId]/...
   const activeSprint = useMemo(() => {
     if (!activeProject) return null;
-    const selectedSprintId = activeSprintDetailId ?? activeSprintId;
-    if (selectedSprintId) {
-      return activeProject.sprints.find((sprint) => sprint.id === selectedSprintId) ?? null;
+    const segments = pathname.split("/").filter(Boolean);
+    // segments: [projectId, "sprints", sprintId, "detail"?]
+    if (segments[1] === "sprints" && segments[2]) {
+      return activeProject.sprints.find((s) => s.id === segments[2]) ?? null;
     }
-    return (
-      activeProject.sprints.find((sprint) => sprint.status === "active") ??
-      activeProject.sprints[activeProject.sprints.length - 1] ??
-      null
-    );
-  }, [activeProject, activeSprintId, activeSprintDetailId]);
+    return null;
+  }, [activeProject, pathname]);
 
   const lastActivity = useMemo(() => {
     if (!activeProject) return null;
@@ -75,18 +71,20 @@ export function AppTopbar() {
   const breadcrumbs = useMemo(() => {
     const crumbs: string[] = [];
     if (activeProject) crumbs.push(activeProject.name);
-    const navItem = NAV_ITEMS.find((item) => item.id === activeSidebarItem);
+
+    const segments = pathname.split("/").filter(Boolean);
+    // segments[0] = projectId, segments[1] = section, segments[2] = sprintId, etc.
+    const section = segments[1];
+    const navItem = NAV_ITEMS.find((item) => item.id === section);
     if (navItem) crumbs.push(navItem.label);
-    const selectedSprintId = activeSprintDetailId ?? activeSprintId;
-    if (selectedSprintId && activeProject) {
-      const sprint = activeProject.sprints.find((s) => s.id === selectedSprintId);
-      if (sprint) crumbs.push(sprint.name);
-    }
-    if (activeFindingId) {
-      crumbs.push(`Finding ${activeFindingId}`);
-    }
+
+    if (activeSprint) crumbs.push(activeSprint.name);
+
+    // Check if it's the detail view
+    if (segments.includes("detail")) crumbs.push("Details");
+
     return crumbs;
-  }, [activeProject, activeSidebarItem, activeSprintId, activeSprintDetailId, activeFindingId]);
+  }, [activeProject, pathname, activeSprint]);
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-card px-6">

@@ -52,17 +52,18 @@ export interface NavItem {
   id: string;
   label: string;
   icon: LucideIcon;
+  href: string;
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { id: "overview", label: "Overview", icon: LayoutDashboard },
-  { id: "readme", label: "README", icon: FileText },
-  { id: "sprints", label: "Sprints", icon: Zap },
-  { id: "findings", label: "Findings", icon: Search },
-  { id: "roadmap", label: "Roadmap", icon: Map },
-  { id: "debt", label: "Debt", icon: AlertTriangle },
-  { id: "documents", label: "Documents", icon: FolderOpen },
-  { id: "agents", label: "Agents Activity", icon: Bot },
+  { id: "overview", label: "Overview", icon: LayoutDashboard, href: "/overview" },
+  { id: "readme", label: "README", icon: FileText, href: "/readme" },
+  { id: "sprints", label: "Sprints", icon: Zap, href: "/sprints" },
+  { id: "findings", label: "Findings", icon: Search, href: "/findings" },
+  { id: "roadmap", label: "Roadmap", icon: Map, href: "/roadmap" },
+  { id: "debt", label: "Debt", icon: AlertTriangle, href: "/debt" },
+  { id: "documents", label: "Documents", icon: FolderOpen, href: "/documents" },
+  { id: "agents", label: "Agents Activity", icon: Bot, href: "/agents" },
 ];
 
 // --- Kanban Columns ---
