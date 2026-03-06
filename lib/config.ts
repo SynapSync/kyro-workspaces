@@ -216,6 +216,39 @@ export const FINDING_SEVERITY_COLORS: Record<string, string> = {
   info: "bg-muted text-muted-foreground",
 };
 
+// --- Finding Impact Colors (Findings Consolidation) ---
+
+export const FINDING_IMPACT_COLORS: Record<string, string> = {
+  high: "bg-red-500/10 text-red-600",
+  medium: "bg-amber-500/10 text-amber-600",
+  low: "bg-blue-500/10 text-blue-600",
+};
+
+// --- Debt Status Styles ---
+
+export interface StatusStyle {
+  label: string;
+  className: string;
+}
+
+export const DEBT_STATUS_STYLES: Record<string, StatusStyle> = {
+  open: { label: "Open", className: "bg-red-500/10 text-red-600" },
+  "in-progress": { label: "In Progress", className: "bg-amber-500/10 text-amber-600" },
+  resolved: { label: "Resolved", className: "bg-emerald-500/10 text-emerald-600" },
+  deferred: { label: "Deferred", className: "bg-muted text-muted-foreground" },
+  "carry-over": { label: "Carry-over", className: "bg-blue-500/10 text-blue-600" },
+};
+
+// --- Disposition Action Styles ---
+
+export const DISPOSITION_ACTION_STYLES: Record<string, StatusStyle> = {
+  incorporated: { label: "Incorporated", className: "bg-emerald-500/10 text-emerald-600" },
+  deferred: { label: "Deferred", className: "bg-amber-500/10 text-amber-600" },
+  resolved: { label: "Resolved", className: "bg-blue-500/10 text-blue-600" },
+  "n/a": { label: "N/A", className: "bg-muted text-muted-foreground" },
+  "converted-to-phase": { label: "Converted to Phase", className: "bg-purple-500/10 text-purple-600" },
+};
+
 // --- Markdown Toolbar Items ---
 
 export interface ToolbarItem {

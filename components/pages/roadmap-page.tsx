@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { EntitySkeleton } from "@/components/ui/entity-skeleton";
 import { useAppStore } from "@/lib/store";
 import { SPRINT_TYPE_COLORS } from "@/lib/config";
+import { cn } from "@/lib/utils";
 
 export function RoadmapPage() {
   const {
@@ -66,7 +67,7 @@ export function RoadmapPage() {
               return (
                 <Card
                   key={entry.number}
-                  className={`border shadow-sm ${isCompleted ? "opacity-75" : ""}`}
+                  className={cn("border shadow-sm", isCompleted && "opacity-75")}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-center gap-3">
@@ -83,7 +84,7 @@ export function RoadmapPage() {
                           </Badge>
                           <Badge
                             variant="secondary"
-                            className={`text-[10px] h-5 border-0 ${typeColor}`}
+                            className={cn("text-[10px] h-5 border-0", typeColor)}
                           >
                             {entry.type}
                           </Badge>

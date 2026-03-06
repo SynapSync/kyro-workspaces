@@ -71,9 +71,6 @@ interface AppState {
 
   // Team Members
   members: TeamMember[];
-  addMember: (member: TeamMember) => void;
-  updateMember: (name: string, updates: Partial<TeamMember>) => void;
-  removeMember: (name: string) => void;
 
   // Agent Activity
   activities: AgentActivity[];
@@ -283,14 +280,6 @@ export const useAppStore = create<AppState>()(
   // --- Team Members ---
 
   members: [],
-  addMember: (member) =>
-    set((state) => ({ members: [...state.members, member] })),
-  updateMember: (name, updates) =>
-    set((state) => ({
-      members: state.members.map((m) => (m.name === name ? { ...m, ...updates } : m)),
-    })),
-  removeMember: (name) =>
-    set((state) => ({ members: state.members.filter((m) => m.name !== name) })),
 
   // --- Activities ---
 

@@ -49,7 +49,7 @@ export function SprintDetailPage({ sprintId }: SprintDetailPageProps) {
     );
   }
 
-  const currentSectionMeta = SPRINT_SECTIONS.find((s) => s.key === activeSection)!;
+  const currentSectionMeta = SPRINT_SECTIONS.find((s) => s.key === activeSection) ?? SPRINT_SECTIONS[0];
   const currentContent = sprint.sections?.[activeSection] ?? "";
 
   const handleBack = () => {
@@ -67,7 +67,7 @@ export function SprintDetailPage({ sprintId }: SprintDetailPageProps) {
   const progress = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
 
   const filledSections = SPRINT_SECTIONS.filter(
-    (s) => sprint.sections?.[s.key] && sprint.sections[s.key]!.trim().length > 0
+    (s) => sprint.sections?.[s.key] && (sprint.sections[s.key] ?? "").trim().length > 0
   ).length;
 
   // Render structured content for sections that have parsed data
@@ -228,7 +228,7 @@ export function SprintDetailPage({ sprintId }: SprintDetailPageProps) {
                 const Icon = SPRINT_SECTION_ICONS[section.key as SprintSectionKey];
                 const hasContent =
                   sprint.sections?.[section.key] &&
-                  sprint.sections[section.key]!.trim().length > 0;
+                  (sprint.sections[section.key] ?? "").trim().length > 0;
                 const isActive = activeSection === section.key;
 
                 return (

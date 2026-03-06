@@ -15,8 +15,9 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { useAppStore } from "@/lib/store";
 import { SPRINT_SECTIONS } from "@/lib/config";
+import { cn } from "@/lib/utils";
 
-export function ProjectOverview() {
+export function ProjectOverviewPage() {
   const {
     getActiveProject,
     setActiveSidebarItem,
@@ -71,7 +72,7 @@ export function ProjectOverview() {
     (s) =>
       s.sections &&
       SPRINT_SECTIONS.some(
-        (sec) => s.sections?.[sec.key] && s.sections[sec.key]!.trim().length > 0
+        (sec) => s.sections?.[sec.key] && (s.sections[sec.key] ?? "").trim().length > 0
       )
   );
 
@@ -96,9 +97,9 @@ export function ProjectOverview() {
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <div
-                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${stat.bgColor}`}
+                    className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg", stat.bgColor)}
                   >
-                    <Icon className={`h-5 w-5 ${stat.color}`} />
+                    <Icon className={cn("h-5 w-5", stat.color)} />
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-foreground">
@@ -184,7 +185,7 @@ export function ProjectOverview() {
               const filled = SPRINT_SECTIONS.filter(
                 (s) =>
                   sprint.sections?.[s.key] &&
-                  sprint.sections[s.key]!.trim().length > 0
+                  (sprint.sections[s.key] ?? "").trim().length > 0
               );
               return (
                 <Card

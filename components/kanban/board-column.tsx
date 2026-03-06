@@ -6,7 +6,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { ChevronDown, ChevronRight, Ban } from "lucide-react";
-import { TaskCard } from "./task-card";
+import { TaskCard } from "@/components/kanban/task-card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

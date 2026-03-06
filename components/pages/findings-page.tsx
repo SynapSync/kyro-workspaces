@@ -10,6 +10,7 @@ import { EntitySkeleton } from "@/components/ui/entity-skeleton";
 import { useAppStore } from "@/lib/store";
 import { FINDING_SEVERITY_COLORS } from "@/lib/config";
 import type { Finding } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 function FindingDetail({ finding, onBack }: { finding: Finding; onBack: () => void }) {
   return (
@@ -33,7 +34,7 @@ function FindingDetail({ finding, onBack }: { finding: Finding; onBack: () => vo
         </h1>
         <Badge
           variant="secondary"
-          className={`text-[10px] h-5 border-0 ${FINDING_SEVERITY_COLORS[finding.severity] ?? ""}`}
+          className={cn("text-[10px] h-5 border-0", FINDING_SEVERITY_COLORS[finding.severity])}
         >
           {finding.severity}
         </Badge>
@@ -152,7 +153,7 @@ export function FindingsPage() {
                       </h3>
                       <Badge
                         variant="secondary"
-                        className={`text-[10px] h-5 border-0 ${FINDING_SEVERITY_COLORS[finding.severity] ?? ""}`}
+                        className={cn("text-[10px] h-5 border-0", FINDING_SEVERITY_COLORS[finding.severity])}
                       >
                         {finding.severity}
                       </Badge>

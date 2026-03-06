@@ -12,6 +12,7 @@ import {
   TooltipProvider,
 } from "@/components/ui/tooltip";
 import { useAppStore } from "@/lib/store";
+import { cn } from "@/lib/utils";
 import { currentUser } from "@/lib/auth";
 import { NAV_ITEMS } from "@/lib/config";
 
@@ -118,7 +119,7 @@ export function AppTopbar() {
                   <TooltipTrigger asChild>
                     <Avatar className="h-7 w-7 border-2 border-card cursor-default">
                       <AvatarFallback
-                        className={`${member.color} text-[10px] font-bold text-card`}
+                        className={cn(member.color, "text-[10px] font-bold text-card")}
                       >
                         {member.avatar}
                       </AvatarFallback>

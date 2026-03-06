@@ -2,13 +2,9 @@
 
 import { Badge } from "@/components/ui/badge";
 import { InlineMarkdown } from "@/components/inline-markdown";
+import { FINDING_IMPACT_COLORS } from "@/lib/config";
+import { cn } from "@/lib/utils";
 import type { FindingsConsolidationEntry } from "@/lib/types";
-
-const IMPACT_STYLES: Record<string, string> = {
-  high: "bg-red-500/10 text-red-600",
-  medium: "bg-amber-500/10 text-amber-600",
-  low: "bg-blue-500/10 text-blue-600",
-};
 
 interface FindingsConsolidationTableProps {
   entries: FindingsConsolidationEntry[];
@@ -40,7 +36,7 @@ export function FindingsConsolidationTable({ entries }: FindingsConsolidationTab
               <td className="px-4 py-2.5"><InlineMarkdown content={entry.finding} /></td>
               <td className="px-4 py-2.5 text-muted-foreground text-xs">{entry.originPhase}</td>
               <td className="px-4 py-2.5">
-                <Badge variant="secondary" className={`text-[10px] h-5 border-0 ${IMPACT_STYLES[entry.impact] ?? ""}`}>
+                <Badge variant="secondary" className={cn("text-[10px] h-5 border-0", FINDING_IMPACT_COLORS[entry.impact])}>
                   {entry.impact}
                 </Badge>
               </td>

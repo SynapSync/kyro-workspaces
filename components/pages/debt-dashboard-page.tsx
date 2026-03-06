@@ -5,14 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAppStore } from "@/lib/store";
 import { DebtTable } from "@/components/sprint/debt-table";
+import { DEBT_STATUS_STYLES } from "@/lib/config";
+import { cn } from "@/lib/utils";
 import type { DebtItem } from "@/lib/types";
-
-const STATUS_COLORS: Record<string, string> = {
-  open: "bg-red-500/10 text-red-600",
-  "in-progress": "bg-amber-500/10 text-amber-600",
-  resolved: "bg-emerald-500/10 text-emerald-600",
-  deferred: "bg-muted text-muted-foreground",
-};
 
 export function DebtDashboardPage() {
   const { getActiveProject } = useAppStore();
@@ -22,13 +17,8 @@ export function DebtDashboardPage() {
   const debtMap = new Map<number, DebtItem>();
   for (const sprint of project.sprints ?? []) {
     for (const item of sprint.debtItems ?? []) {
-      const existing = debtMap.get(item.number);
       // Keep the most recent version (later sprint = more up-to-date status)
-      if (!existing) {
-        debtMap.set(item.number, item);
-      } else {
-        debtMap.set(item.number, item);
-      }
+      debtMap.set(item.number, item);
     }
   }
 
@@ -39,10 +29,10 @@ export function DebtDashboardPage() {
   const deferredItems = allItems.filter((d) => d.status === "deferred");
 
   const stats = [
-    { label: "Open", count: openItems.length, color: STATUS_COLORS.open },
-    { label: "In Progress", count: inProgressItems.length, color: STATUS_COLORS["in-progress"] },
-    { label: "Resolved", count: resolvedItems.length, color: STATUS_COLORS.resolved },
-    { label: "Deferred", count: deferredItems.length, color: STATUS_COLORS.deferred },
+    { label: "Open", count: openItems.length, color: DEBT_STATUS_STYLES.open.className },
+    { label: "In Progress", count: inProgressItems.length, color: DEBT_STATUS_STYLES["in-progress"].className },
+    { label: "Resolved", count: resolvedItems.length, color: DEBT_STATUS_STYLES.resolved.className },
+    { label: "Deferred", count: deferredItems.length, color: DEBT_STATUS_STYLES.deferred.className },
   ];
 
   return (
@@ -64,7 +54,7 @@ export function DebtDashboardPage() {
               <Card key={stat.label} className="border shadow-sm">
                 <CardContent className="p-4 text-center">
                   <p className="text-2xl font-bold text-foreground">{stat.count}</p>
-                  <Badge variant="secondary" className={`text-[10px] mt-1 border-0 ${stat.color}`}>
+                  <Badge variant="secondary" className={cn("text-[10px] mt-1 border-0", stat.color)}>
                     {stat.label}
                   </Badge>
                 </CardContent>

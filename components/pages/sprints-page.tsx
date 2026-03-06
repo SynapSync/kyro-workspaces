@@ -14,6 +14,7 @@ import { Progress } from "@/components/ui/progress";
 import { useAppStore } from "@/lib/store";
 import { SPRINT_SECTIONS, SPRINT_STATUS_CONFIG } from "@/lib/config";
 import { type SprintStatus } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 const statusIcons: Record<SprintStatus, typeof Zap> = {
   planned: Calendar,
@@ -55,7 +56,7 @@ export function SprintsPage() {
           const filledSections = SPRINT_SECTIONS.filter(
             (s) =>
               sprint.sections?.[s.key] &&
-              sprint.sections[s.key]!.trim().length > 0
+              (sprint.sections[s.key] ?? "").trim().length > 0
           );
 
           return (
@@ -147,13 +148,14 @@ export function SprintsPage() {
                     {SPRINT_SECTIONS.map((section) => {
                       const hasCt =
                         sprint.sections?.[section.key] &&
-                        sprint.sections[section.key]!.trim().length > 0;
+                        (sprint.sections[section.key] ?? "").trim().length > 0;
                       return (
                         <span
                           key={section.key}
-                          className={`h-1.5 w-1.5 rounded-full ${
+                          className={cn(
+                            "h-1.5 w-1.5 rounded-full",
                             hasCt ? "bg-emerald-500" : "bg-muted"
-                          }`}
+                          )}
                           title={section.label}
                         />
                       );

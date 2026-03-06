@@ -27,7 +27,7 @@ interface SprintBoardProps {
   sprintId: string;
 }
 
-export function SprintBoard({ sprintId }: SprintBoardProps) {
+export function SprintBoardPage({ sprintId }: SprintBoardProps) {
   const {
     getActiveProject,
     setActiveSprintId,
@@ -52,10 +52,14 @@ export function SprintBoard({ sprintId }: SprintBoardProps) {
   useEffect(() => {
     const saved = localStorage.getItem(`kyro-column-state-${sprintId}`);
     if (saved) {
-      const parsed = JSON.parse(saved);
-      Object.entries(parsed).forEach(([columnId, collapsed]) => {
-        setColumnCollapsed(sprintId, columnId, collapsed as boolean);
-      });
+      try {
+        const parsed = JSON.parse(saved) as Record<string, boolean>;
+        Object.entries(parsed).forEach(([columnId, collapsed]) => {
+          setColumnCollapsed(sprintId, columnId, collapsed);
+        });
+      } catch {
+        // Ignore corrupted localStorage data
+      }
     }
   }, [sprintId, setColumnCollapsed]);
 

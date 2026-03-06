@@ -12,6 +12,7 @@ import {
 } from "@/lib/api";
 import { parseProjectReadme } from "@/lib/file-format/parsers";
 import { loadSprintsFromDir } from "@/lib/api/load-sprints";
+import { slugFromPath } from "@/lib/utils";
 import {
   listProjects,
   addProject,
@@ -85,12 +86,9 @@ export async function POST(req: NextRequest) {
     // Use resolved path (may differ from input if parent dir auto-resolved)
     const projectPath = validation.resolvedPath ?? body.path;
 
-    // Generate ID from path basename or name
+    // Generate ID from path basename
+    const id = slugFromPath(projectPath);
     const dirName = projectPath.split("/").filter(Boolean).pop() ?? "project";
-    const id = dirName
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "");
 
     const now = new Date().toISOString();
     const entry = {

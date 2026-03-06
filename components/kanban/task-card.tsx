@@ -92,18 +92,18 @@ export function TaskCard({ task }: TaskCardProps) {
         <div className="flex items-center gap-1.5 flex-wrap">
           <Badge
             variant="secondary"
-            className={`text-[10px] h-5 border-0 ${priority.className}`}
+            className={cn("text-[10px] h-5 border-0", priority.className)}
           >
             {priority.label}
           </Badge>
           {isBlocked && (
-            <Badge className={`text-[10px] h-5 gap-1 ${TAG_CONFIG[TASK_TAGS.BLOCKED].badgeClassName}`}>
+            <Badge className={cn("text-[10px] h-5 gap-1", TAG_CONFIG[TASK_TAGS.BLOCKED].badgeClassName)}>
               <Ban className="h-2.5 w-2.5" />
               {TAG_CONFIG[TASK_TAGS.BLOCKED].label}
             </Badge>
           )}
           {isAICreated && (
-            <Badge className={`text-[10px] h-5 gap-1 ${TAG_CONFIG[TASK_TAGS.AI_CREATED].badgeClassName}`}>
+            <Badge className={cn("text-[10px] h-5 gap-1", TAG_CONFIG[TASK_TAGS.AI_CREATED].badgeClassName)}>
               <Sparkles className="h-2.5 w-2.5" />
               {TAG_CONFIG[TASK_TAGS.AI_CREATED].label}
             </Badge>

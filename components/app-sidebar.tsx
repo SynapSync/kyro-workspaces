@@ -52,7 +52,11 @@ export function AppSidebar() {
   useEffect(() => {
     const saved = localStorage.getItem("kyro-sidebar-collapsed");
     if (saved !== null) {
-      setSidebarCollapsed(JSON.parse(saved));
+      try {
+        setSidebarCollapsed(JSON.parse(saved) === true);
+      } catch {
+        // Ignore corrupted localStorage data
+      }
     } else if (isMobile) {
       setSidebarCollapsed(true);
     }

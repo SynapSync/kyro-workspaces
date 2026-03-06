@@ -4,11 +4,11 @@ import { useEffect } from "react";
 import { Loader2, X } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { NAV_ITEMS } from "@/lib/config";
-import { ProjectOverview } from "@/components/pages/project-overview";
+import { ProjectOverviewPage } from "@/components/pages/project-overview";
 import { ReadmePage } from "@/components/pages/readme-page";
 import { DocumentsPage } from "@/components/pages/documents-page";
 import { SprintsPage } from "@/components/pages/sprints-page";
-import { SprintBoard } from "@/components/pages/sprint-board";
+import { SprintBoardPage } from "@/components/pages/sprint-board";
 import { SprintDetailPage } from "@/components/pages/sprint-detail-page";
 import { AgentsActivityPage } from "@/components/pages/agents-activity-page";
 import { FindingsPage } from "@/components/pages/findings-page";
@@ -18,7 +18,7 @@ import { CommandPalette } from "@/components/command-palette";
 import { WorkspaceOnboarding } from "@/components/workspace-onboarding";
 
 const PAGE_MAP: Record<string, React.ReactNode> = {
-  overview:  <ProjectOverview />,
+  overview:  <ProjectOverviewPage />,
   readme:    <ReadmePage />,
   sprints:   <SprintsPage />,
   findings:  <FindingsPage />,
@@ -75,7 +75,7 @@ export function ContentRouter() {
       return <SprintDetailPage sprintId={activeSprintDetailId} />;
     }
     if (activeSprintId) {
-      return <SprintBoard sprintId={activeSprintId} />;
+      return <SprintBoardPage sprintId={activeSprintId} />;
     }
     return PAGE_MAP[activeSidebarItem] ?? PAGE_MAP[NAV_ITEMS[0].id];
   };

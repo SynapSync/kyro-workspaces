@@ -2,15 +2,9 @@
 
 import { Badge } from "@/components/ui/badge";
 import { InlineMarkdown } from "@/components/inline-markdown";
+import { DEBT_STATUS_STYLES } from "@/lib/config";
+import { cn } from "@/lib/utils";
 import type { DebtItem } from "@/lib/types";
-
-const STATUS_STYLES: Record<string, { label: string; className: string }> = {
-  open: { label: "Open", className: "bg-red-500/10 text-red-600" },
-  "in-progress": { label: "In Progress", className: "bg-amber-500/10 text-amber-600" },
-  resolved: { label: "Resolved", className: "bg-emerald-500/10 text-emerald-600" },
-  deferred: { label: "Deferred", className: "bg-muted text-muted-foreground" },
-  "carry-over": { label: "Carry-over", className: "bg-blue-500/10 text-blue-600" },
-};
 
 interface DebtTableProps {
   items: DebtItem[];
@@ -38,7 +32,7 @@ export function DebtTable({ items }: DebtTableProps) {
         </thead>
         <tbody>
           {items.map((item) => {
-            const style = STATUS_STYLES[item.status] ?? STATUS_STYLES["open"];
+            const style = DEBT_STATUS_STYLES[item.status] ?? DEBT_STATUS_STYLES["open"];
             return (
               <tr key={item.number} className="border-b last:border-0">
                 <td className="px-4 py-2.5 text-muted-foreground">D{item.number}</td>
@@ -46,7 +40,7 @@ export function DebtTable({ items }: DebtTableProps) {
                 <td className="px-4 py-2.5 text-muted-foreground text-xs">{item.origin}</td>
                 <td className="px-4 py-2.5 text-muted-foreground text-xs">{item.sprintTarget}</td>
                 <td className="px-4 py-2.5">
-                  <Badge variant="secondary" className={`text-[10px] h-5 border-0 ${style.className}`}>
+                  <Badge variant="secondary" className={cn("text-[10px] h-5 border-0", style.className)}>
                     {style.label}
                   </Badge>
                 </td>

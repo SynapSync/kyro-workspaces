@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useAppStore } from "@/lib/store";
+import { cn } from "@/lib/utils";
 
 interface AddProjectDialogProps {
   open: boolean;
@@ -125,11 +126,13 @@ export function AddProjectDialog({ open, onOpenChange }: AddProjectDialogProps) 
                 <button
                   key={c}
                   onClick={() => setColor(color === c ? "" : c)}
-                  className={`h-6 w-6 rounded-full ${c} transition-all ${
+                  className={cn(
+                    "h-6 w-6 rounded-full transition-all",
+                    c,
                     color === c
                       ? "ring-2 ring-offset-2 ring-primary scale-110"
                       : "hover:scale-110"
-                  }`}
+                  )}
                 />
               ))}
             </div>

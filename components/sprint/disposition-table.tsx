@@ -2,15 +2,9 @@
 
 import { Badge } from "@/components/ui/badge";
 import { InlineMarkdown } from "@/components/inline-markdown";
+import { DISPOSITION_ACTION_STYLES } from "@/lib/config";
+import { cn } from "@/lib/utils";
 import type { DispositionEntry } from "@/lib/types";
-
-const ACTION_STYLES: Record<string, { label: string; className: string }> = {
-  incorporated: { label: "Incorporated", className: "bg-emerald-500/10 text-emerald-600" },
-  deferred: { label: "Deferred", className: "bg-amber-500/10 text-amber-600" },
-  resolved: { label: "Resolved", className: "bg-blue-500/10 text-blue-600" },
-  "n/a": { label: "N/A", className: "bg-muted text-muted-foreground" },
-  "converted-to-phase": { label: "Converted to Phase", className: "bg-purple-500/10 text-purple-600" },
-};
 
 interface DispositionTableProps {
   entries: DispositionEntry[];
@@ -37,13 +31,13 @@ export function DispositionTable({ entries }: DispositionTableProps) {
         </thead>
         <tbody>
           {entries.map((entry) => {
-            const style = ACTION_STYLES[entry.action] ?? ACTION_STYLES["n/a"];
+            const style = DISPOSITION_ACTION_STYLES[entry.action] ?? DISPOSITION_ACTION_STYLES["n/a"];
             return (
               <tr key={entry.number} className="border-b last:border-0">
                 <td className="px-4 py-2.5 text-muted-foreground">{entry.number}</td>
                 <td className="px-4 py-2.5"><InlineMarkdown content={entry.recommendation} /></td>
                 <td className="px-4 py-2.5">
-                  <Badge variant="secondary" className={`text-[10px] h-5 border-0 ${style.className}`}>
+                  <Badge variant="secondary" className={cn("text-[10px] h-5 border-0", style.className)}>
                     {style.label}
                   </Badge>
                 </td>
