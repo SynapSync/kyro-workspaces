@@ -10,6 +10,7 @@ import { resolveSprintFilePath } from "@/lib/api/sprint-files";
 import {
   parseSprintFile,
 } from "@/lib/file-format/parsers";
+import { appendTaskToMarkdown } from "@/lib/file-format/serializers";
 import type { Task } from "@/lib/types";
 
 interface RouteParams {
@@ -58,9 +59,10 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       updatedAt: new Date().toISOString(),
     };
 
-    // Note: Task creation via full file rewrite is not supported.
-    // Sprint-forge files use surgical patching for modifications.
-    // Return the task object without writing to disk.
+    // Surgical patch: append task line to the last phase's task list
+    const patched = appendTaskToMarkdown(content, newTask.title, body.taskRef);
+    await fs.writeFile(filePath, patched, "utf-8");
+
     return ok({ task: newTask }, 201);
   } catch (err) {
     return handleError(err);

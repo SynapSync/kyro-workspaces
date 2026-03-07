@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   Plus,
@@ -17,6 +17,8 @@ import {
   RefreshCw,
   ArrowRightLeft,
   Wand2,
+  Sparkles,
+  Loader2,
 } from "lucide-react";
 import {
   CommandDialog,
@@ -34,6 +36,7 @@ import { cn } from "@/lib/utils";
 import { useSearchIndex, groupByType, type SearchEntryType } from "@/lib/search";
 import { SprintForgeWizard } from "@/components/dialogs/sprint-forge-wizard";
 import { assembleSprintContext } from "@/lib/forge/context";
+import type { ActionIntent, ProjectContext } from "@/lib/ai/interpret";
 
 type PaletteTab = "search" | "commands";
 
@@ -81,6 +84,12 @@ export function CommandPalette() {
   } = useAppStore();
 
   const [forgeWizardOpen, setForgeWizardOpen] = useState(false);
+
+  // AI smart mode state
+  const [aiPending, setAiPending] = useState(false);
+  const [aiResult, setAiResult] = useState<ActionIntent | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const inputRef = useRef("");
 
   // Sub-mode for "Update Task Status" action flow
   type ActionSubMode = "none" | "pick-task" | "pick-status";
@@ -133,6 +142,9 @@ export function CommandPalette() {
       setActiveTab("search");
       setActionSubMode("none");
       setSelectedTaskForUpdate(null);
+      setAiResult(null);
+      setAiError(null);
+      setAiPending(false);
     }
   }, [commandPaletteOpen]);
 
@@ -198,6 +210,95 @@ export function CommandPalette() {
     setForgeWizardOpen(true);
   };
 
+  const buildProjectContext = useCallback((): ProjectContext | null => {
+    if (!activeProject) return null;
+    const taskCounts = activeProject.sprints.flatMap((s) => s.tasks).reduce(
+      (acc, t) => {
+        acc[t.status] = (acc[t.status] ?? 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
+    const taskSummary = Object.entries(taskCounts)
+      .map(([s, c]) => `${c} ${s.replace("_", " ")}`)
+      .join(", ") || "no tasks";
+    const roadmap = roadmaps[activeProjectId];
+    return {
+      projectName: activeProject.name,
+      projectId: activeProject.id,
+      sprintNames: activeProject.sprints.map((s) => s.name),
+      taskSummary,
+      hasRoadmap: !!roadmap,
+      hasPendingSprints: roadmap?.sprints.some((s) => s.status !== "completed") ?? false,
+    };
+  }, [activeProject, activeProjectId, roadmaps]);
+
+  const handleAskAi = useCallback(async () => {
+    const query = inputRef.current.trim();
+    if (!query) return;
+    const ctx = buildProjectContext();
+    if (!ctx) return;
+
+    setAiPending(true);
+    setAiResult(null);
+    setAiError(null);
+
+    try {
+      const res = await fetch("/api/ai/interpret", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ instruction: query, context: ctx }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setAiError(json.error ?? "AI request failed");
+      } else {
+        setAiResult(json.data as ActionIntent);
+      }
+    } catch {
+      setAiError("Failed to reach AI service");
+    } finally {
+      setAiPending(false);
+    }
+  }, [buildProjectContext]);
+
+  const executeActionIntent = useCallback(
+    (intent: ActionIntent) => {
+      switch (intent.action) {
+        case "update_task_status": {
+          // Switch to task picker flow
+          setActionSubMode("pick-task");
+          setAiResult(null);
+          return; // Keep palette open
+        }
+        case "generate_sprint":
+          setCommandPaletteOpen(false);
+          setForgeWizardOpen(true);
+          break;
+        case "refresh_project":
+          if (activeProjectId) refreshProject(activeProjectId);
+          setCommandPaletteOpen(false);
+          break;
+        case "navigate": {
+          const page = intent.params.page;
+          const navItem = NAV_ITEMS.find((n) => n.id === page);
+          if (navItem && activeProjectId) {
+            router.push(`/${activeProjectId}${navItem.href}`);
+          }
+          setCommandPaletteOpen(false);
+          break;
+        }
+        case "search":
+          inputRef.current = intent.params.query ?? "";
+          setActiveTab("search");
+          setAiResult(null);
+          return; // Keep palette open
+      }
+      setAiResult(null);
+    },
+    [activeProjectId, refreshProject, router, setCommandPaletteOpen],
+  );
+
   const handleStartUpdateTask = () => {
     setActionSubMode("pick-task");
   };
@@ -244,6 +345,7 @@ export function CommandPalette() {
             ? "Search tasks, findings, sprints, debt..."
             : "Type a command..."
         }
+        onValueChange={(v) => { inputRef.current = v; }}
       />
 
       {/* Tab switcher — hidden, toggle via icon button next to close */}
@@ -278,7 +380,61 @@ export function CommandPalette() {
 
       <CommandList>
         <CommandEmpty>
-          {activeTab === "search" ? "No results found." : "No commands match."}
+          <div className="flex flex-col items-center gap-3 py-4">
+            {aiPending ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Interpreting...
+              </div>
+            ) : aiResult ? (
+              <div className="w-full px-2">
+                <div className="rounded-lg border bg-muted/50 p-3 text-left">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <Sparkles className="h-3.5 w-3.5 text-primary" />
+                    <span className="text-xs font-medium text-primary">AI Suggestion</span>
+                    <span className="ml-auto text-[10px] text-muted-foreground">
+                      {Math.round(aiResult.confidence * 100)}% confident
+                    </span>
+                  </div>
+                  <p className="text-sm text-foreground">{aiResult.preview}</p>
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      type="button"
+                      onClick={() => executeActionIntent(aiResult)}
+                      className="rounded-md bg-primary px-3 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+                    >
+                      Execute
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAiResult(null)}
+                      className="rounded-md border px-3 py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : aiError ? (
+              <div className="text-sm text-destructive">{aiError}</div>
+            ) : (
+              <>
+                <p className="text-sm text-muted-foreground">
+                  {activeTab === "search" ? "No results found." : "No commands match."}
+                </p>
+                {activeProject && (
+                  <button
+                    type="button"
+                    onClick={handleAskAi}
+                    className="flex items-center gap-1.5 rounded-md bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20"
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Ask AI
+                  </button>
+                )}
+              </>
+            )}
+          </div>
         </CommandEmpty>
 
         {activeTab === "search" && (
@@ -429,6 +585,9 @@ export function CommandPalette() {
       open={forgeWizardOpen}
       onOpenChange={setForgeWizardOpen}
       context={forgeContext}
+      onRefreshProject={() => {
+        if (activeProjectId) refreshProject(activeProjectId);
+      }}
     />
     </>
   );

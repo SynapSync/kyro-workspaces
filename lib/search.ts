@@ -185,12 +185,41 @@ export function groupByType(
 
 // --- Hook ---
 
+/**
+ * Builds a stable fingerprint from project/finding data so the index
+ * only rebuilds when actual content changes — not on every store reference update.
+ */
+function useDataFingerprint(
+  projects: Project[],
+  findings: Record<string, Finding[]>,
+): string {
+  return useMemo(() => {
+    const parts: string[] = [];
+    for (const p of projects) {
+      parts.push(p.id);
+      parts.push(String(p.sprints.length));
+      for (const s of p.sprints) {
+        parts.push(s.id);
+        parts.push(String(s.tasks.length));
+        parts.push(s.tasks.map((t) => `${t.id}:${t.status}`).join(","));
+      }
+      parts.push(String(p.documents.length));
+    }
+    for (const [pid, fs] of Object.entries(findings)) {
+      parts.push(`f:${pid}:${fs.length}`);
+    }
+    return parts.join("|");
+  }, [projects, findings]);
+}
+
 export function useSearchIndex(
   projects: Project[],
-  findings: Record<string, Finding[]>
+  findings: Record<string, Finding[]>,
 ): SearchEntry[] {
+  const fingerprint = useDataFingerprint(projects, findings);
   return useMemo(() => {
     const raw = buildSearchIndex(projects, findings);
     return deduplicateDebtEntries(raw);
-  }, [projects, findings]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fingerprint]);
 }

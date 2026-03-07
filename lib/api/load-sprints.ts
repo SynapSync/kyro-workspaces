@@ -20,7 +20,11 @@ export async function loadSprintsFromDir(projectRoot: string): Promise<Sprint[]>
 
   const entries = (await fs.readdir(sprintsDir, { withFileTypes: true }))
     .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .sort((a, b) => {
+      const numA = parseInt(a.name.match(/(\d+)/)?.[1] ?? "0", 10);
+      const numB = parseInt(b.name.match(/(\d+)/)?.[1] ?? "0", 10);
+      return numA - numB || a.name.localeCompare(b.name);
+    });
 
   const sprints: Sprint[] = [];
 

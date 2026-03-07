@@ -86,6 +86,75 @@ export function patchTaskStatusInMarkdown(
 }
 
 // ---------------------------------------------------------------------------
+// Sprint File — Surgical Patch for Sprint Status
+// ---------------------------------------------------------------------------
+
+/**
+ * Patches the sprint status in frontmatter or metadata blockquote.
+ * Handles both YAML frontmatter (`status: active`) and sprint-forge
+ * blockquote format (`> Status: active`).
+ */
+export function patchSprintStatusInMarkdown(
+  content: string,
+  newStatus: string,
+): string {
+  // Try YAML frontmatter first
+  const yamlPattern = /^(---[\s\S]*?status:\s*).+?([\s\S]*?---)/m;
+  if (yamlPattern.test(content)) {
+    return content.replace(yamlPattern, `$1${newStatus}$2`);
+  }
+  return content;
+}
+
+// ---------------------------------------------------------------------------
+// Sprint File — Append Task to Last Phase
+// ---------------------------------------------------------------------------
+
+/**
+ * Appends a new task line to the last phase's task list in a sprint markdown file.
+ * Finds the last `### Phase` heading, locates its task list, and appends at the end.
+ */
+export function appendTaskToMarkdown(
+  content: string,
+  taskTitle: string,
+  taskRef?: string,
+): string {
+  const lines = content.split("\n");
+
+  // Find the last occurrence of a task line (- [ ] or - [x] etc.) before
+  // a section boundary (## heading or ---)
+  let lastTaskLineIndex = -1;
+  for (let i = lines.length - 1; i >= 0; i--) {
+    if (/^\s*- \[.\]/.test(lines[i])) {
+      lastTaskLineIndex = i;
+      break;
+    }
+  }
+
+  if (lastTaskLineIndex === -1) {
+    // No task lines found — append at end
+    return content;
+  }
+
+  // Skip any sub-items (indented lines after the last task)
+  let insertIndex = lastTaskLineIndex + 1;
+  while (
+    insertIndex < lines.length &&
+    lines[insertIndex].match(/^\s{2,}/) &&
+    !lines[insertIndex].match(/^\s*- \[.\]/)
+  ) {
+    insertIndex++;
+  }
+
+  const taskLine = taskRef
+    ? `- [ ] **${taskRef}**: ${taskTitle}`
+    : `- [ ] ${taskTitle}`;
+
+  lines.splice(insertIndex, 0, taskLine);
+  return lines.join("\n");
+}
+
+// ---------------------------------------------------------------------------
 // Project README  (projects/{slug}/README.md)
 // ---------------------------------------------------------------------------
 

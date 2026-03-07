@@ -30,6 +30,7 @@ export function RoadmapPage() {
     findings,
     findingsLoading,
     loadFindings,
+    refreshProject,
   } = useAppStore();
 
   const roadmap = roadmaps[activeProjectId];
@@ -243,6 +244,12 @@ export function RoadmapPage() {
         open={wizardOpen}
         onOpenChange={setWizardOpen}
         context={forgeContext}
+        onRefreshProject={() => {
+          if (activeProjectId) {
+            refreshProject(activeProjectId);
+            loadRoadmap(activeProjectId);
+          }
+        }}
       />
     </div>
   );

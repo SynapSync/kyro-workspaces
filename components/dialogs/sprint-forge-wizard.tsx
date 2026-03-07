@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -10,6 +10,9 @@ import {
   AlertTriangle,
   Settings,
   Eye,
+  Loader2,
+  Rocket,
+  CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,6 +33,7 @@ interface SprintForgeWizardProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   context: SprintForgeContext | null;
+  onRefreshProject?: () => void;
 }
 
 type WizardStep = 0 | 1 | 2 | 3;
@@ -47,6 +51,7 @@ export function SprintForgeWizard({
   open,
   onOpenChange,
   context,
+  onRefreshProject,
 }: SprintForgeWizardProps) {
   const [step, setStep] = useState<WizardStep>(0);
   const [selectedFindingIds, setSelectedFindingIds] = useState<string[]>([]);
@@ -55,6 +60,91 @@ export function SprintForgeWizard({
   const [sprintType, setSprintType] = useState("");
   const [customNotes, setCustomNotes] = useState("");
   const [copied, setCopied] = useState(false);
+
+  // Generate & Monitor state
+  const [generating, setGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
+  const [monitoring, setMonitoring] = useState(false);
+  const [monitorMessage, setMonitorMessage] = useState<string | null>(null);
+  const [generationComplete, setGenerationComplete] = useState(false);
+  const baselineSprintCount = useRef<number | null>(null);
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+    };
+  }, []);
+
+  const handleGenerate = useCallback(async () => {
+    if (!context) return;
+    setGenerating(true);
+    setGenerateError(null);
+
+    try {
+      const res = await fetch("/api/forge/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectId: context.projectId,
+          prompt: composeSprintForgePrompt(context, {
+            selectedFindingIds,
+            selectedDebtNumbers,
+            versionTarget,
+            sprintType,
+            customNotes,
+          }),
+          triggerCli: true,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setGenerateError(json.error ?? "Failed to write prompt");
+        setGenerating(false);
+        return;
+      }
+
+      // Start monitoring
+      setGenerating(false);
+      setMonitoring(true);
+      setMonitorMessage("Prompt written. Watching for new sprint files...");
+
+      // Get baseline count
+      const statusRes = await fetch(`/api/forge/status?projectId=${context.projectId}`);
+      const statusJson = await statusRes.json();
+      baselineSprintCount.current = statusJson.data?.sprintCount ?? 0;
+
+      // Poll every 5 seconds
+      pollIntervalRef.current = setInterval(async () => {
+        try {
+          const pollRes = await fetch(`/api/forge/status?projectId=${context.projectId}`);
+          const pollJson = await pollRes.json();
+          const currentCount = pollJson.data?.sprintCount ?? 0;
+
+          if (baselineSprintCount.current !== null && currentCount > baselineSprintCount.current) {
+            // New sprint detected
+            if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+            setMonitoring(false);
+            setGenerationComplete(true);
+            setMonitorMessage(`New sprint detected: ${pollJson.data?.latestSprint}`);
+            onRefreshProject?.();
+          }
+        } catch {
+          // Polling error — continue silently
+        }
+      }, 5000);
+    } catch {
+      setGenerateError("Failed to reach the server");
+      setGenerating(false);
+    }
+  }, [context, selectedFindingIds, selectedDebtNumbers, versionTarget, sprintType, customNotes, onRefreshProject]);
+
+  const handleStopMonitoring = useCallback(() => {
+    if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+    setMonitoring(false);
+    setMonitorMessage(null);
+  }, []);
 
   // Reset state when dialog opens
   const handleOpenChange = useCallback(
@@ -67,6 +157,12 @@ export function SprintForgeWizard({
         setSprintType(context.nextSprint?.type ?? "feature");
         setCustomNotes("");
         setCopied(false);
+        setGenerating(false);
+        setGenerateError(null);
+        setMonitoring(false);
+        setMonitorMessage(null);
+        setGenerationComplete(false);
+        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
       }
       onOpenChange(isOpen);
     },
@@ -298,35 +394,78 @@ export function SprintForgeWizard({
             </div>
           )}
 
-          {/* Step 3: Preview & Copy */}
+          {/* Step 3: Preview & Copy / Generate */}
           {step === 3 && (
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-muted-foreground">
-                  Review and copy the prompt below
-                </p>
-                <Button
-                  size="sm"
-                  variant={copied ? "outline" : "default"}
-                  onClick={handleCopy}
-                  className="gap-1.5"
-                >
-                  {copied ? (
-                    <>
-                      <Check className="h-3.5 w-3.5" />
-                      Copied
-                    </>
-                  ) : (
-                    <>
-                      <ClipboardCopy className="h-3.5 w-3.5" />
-                      Copy to Clipboard
-                    </>
+              {generationComplete ? (
+                <div className="flex flex-col items-center gap-3 py-8">
+                  <CheckCircle2 className="h-10 w-10 text-emerald-500" />
+                  <p className="text-sm font-medium text-foreground">Sprint Generated</p>
+                  <p className="text-xs text-muted-foreground">{monitorMessage}</p>
+                </div>
+              ) : monitoring ? (
+                <div className="flex flex-col items-center gap-3 py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <p className="text-sm font-medium text-foreground">Monitoring...</p>
+                  <p className="text-xs text-muted-foreground">{monitorMessage}</p>
+                  <Button size="sm" variant="outline" onClick={handleStopMonitoring}>
+                    Stop Monitoring
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">
+                      Review the prompt, then copy or generate directly
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant={copied ? "outline" : "secondary"}
+                        onClick={handleCopy}
+                        className="gap-1.5"
+                      >
+                        {copied ? (
+                          <>
+                            <Check className="h-3.5 w-3.5" />
+                            Copied
+                          </>
+                        ) : (
+                          <>
+                            <ClipboardCopy className="h-3.5 w-3.5" />
+                            Copy
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="default"
+                        onClick={handleGenerate}
+                        disabled={generating}
+                        className="gap-1.5"
+                      >
+                        {generating ? (
+                          <>
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            Writing...
+                          </>
+                        ) : (
+                          <>
+                            <Rocket className="h-3.5 w-3.5" />
+                            Generate
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                  {generateError && (
+                    <p className="text-xs text-destructive">{generateError}</p>
                   )}
-                </Button>
-              </div>
-              <pre className="rounded-lg border bg-muted/30 p-4 text-xs font-mono whitespace-pre-wrap overflow-auto max-h-[50vh]">
-                {composedPrompt}
-              </pre>
+                  <pre className="rounded-lg border bg-muted/30 p-4 text-xs font-mono whitespace-pre-wrap overflow-auto max-h-[50vh]">
+                    {composedPrompt}
+                  </pre>
+                </>
+              )}
             </div>
           )}
         </div>

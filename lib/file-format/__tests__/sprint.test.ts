@@ -1,6 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { parseSprintFile } from "@/lib/file-format/parsers";
-import { patchTaskStatusInMarkdown } from "@/lib/file-format/serializers";
+import {
+  patchTaskStatusInMarkdown,
+  patchSprintStatusInMarkdown,
+  appendTaskToMarkdown,
+} from "@/lib/file-format/serializers";
 
 const SAMPLE_SPRINT_MD = `---
 id: sprint-01
@@ -103,5 +107,54 @@ describe("parseSprintFile", () => {
     const patched = patchTaskStatusInMarkdown(md, "Create user controller", "done");
     expect(patched).toContain("- [ ] **T1.1**: Create user service");
     expect(patched).toContain("- [x] **T1.2**: Create user controller");
+  });
+});
+
+describe("patchSprintStatusInMarkdown", () => {
+  it("patches status in YAML frontmatter", () => {
+    const md = `---\nid: sprint-1\nstatus: active\n---\n\n# Sprint 1\n`;
+    const patched = patchSprintStatusInMarkdown(md, "closed");
+    expect(patched).toContain("status: closed");
+    expect(patched).not.toContain("status: active");
+  });
+
+  it("returns unchanged content when no frontmatter status found", () => {
+    const md = `# Sprint 1\n\nNo frontmatter here\n`;
+    const patched = patchSprintStatusInMarkdown(md, "closed");
+    expect(patched).toBe(md);
+  });
+});
+
+describe("appendTaskToMarkdown", () => {
+  it("appends task after the last task line", () => {
+    const md = `### Phase 1\n\n- [ ] **T1.1**: First task\n- [x] **T1.2**: Second task\n\n---\n`;
+    const patched = appendTaskToMarkdown(md, "New task", "T1.3");
+    expect(patched).toContain("- [ ] **T1.3**: New task");
+    // Should appear after T1.2
+    const lines = patched.split("\n");
+    const t12Index = lines.findIndex((l) => l.includes("T1.2"));
+    const newIndex = lines.findIndex((l) => l.includes("T1.3"));
+    expect(newIndex).toBeGreaterThan(t12Index);
+  });
+
+  it("appends task without task ref", () => {
+    const md = `- [ ] First task\n- [x] Second task\n`;
+    const patched = appendTaskToMarkdown(md, "Simple task");
+    expect(patched).toContain("- [ ] Simple task");
+  });
+
+  it("returns unchanged content when no task lines exist", () => {
+    const md = `# No tasks here\n\nJust text.\n`;
+    const patched = appendTaskToMarkdown(md, "New task");
+    expect(patched).toBe(md);
+  });
+
+  it("skips sub-items when finding insert position", () => {
+    const md = `- [ ] **T1.1**: Task with details\n  - Files: lib/foo.ts\n  - Verification: tsc passes\n\n---\n`;
+    const patched = appendTaskToMarkdown(md, "Next task", "T1.2");
+    const lines = patched.split("\n");
+    const verIndex = lines.findIndex((l) => l.includes("Verification"));
+    const newIndex = lines.findIndex((l) => l.includes("T1.2"));
+    expect(newIndex).toBeGreaterThan(verIndex);
   });
 });

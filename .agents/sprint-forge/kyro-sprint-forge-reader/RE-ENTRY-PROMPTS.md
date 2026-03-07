@@ -5,7 +5,7 @@ updated: "2026-03-07"
 project: "kyro-sprint-forge-reader"
 type: "execution-plan"
 status: "active"
-version: "4.0"
+version: "5.0"
 agents:
   - "claude-opus-4-6"
 tags:
@@ -14,6 +14,9 @@ tags:
   - "reentry"
   - "sprint-forge"
 changelog:
+  - version: "5.0"
+    date: "2026-03-07"
+    changes: ["Updated after Sprint 10 completion — AI instruction layer + D1/D17/D18/D20 resolved"]
   - version: "4.0"
     date: "2026-03-07"
     changes: ["Updated after Sprint 9 completion — sprint forge trigger + D19 resolved"]
@@ -34,8 +37,8 @@ related:
 # kyro-sprint-forge-reader — Re-entry Prompts
 
 > Last updated: 2026-03-07
-> Current sprint: 10 (next to generate)
-> Phase: 2 — From Viewer to Cockpit
+> Current sprint: All 10 sprints completed
+> Phase: 2 — From Viewer to Cockpit (COMPLETE)
 
 These prompts help you (or a new agent) recover full project context in a new session.
 
@@ -62,7 +65,7 @@ These prompts help you (or a new agent) recover full project context in a new se
 | 7 | `sprints/SPRINT-7-universal-search-and-command-palette.md` | completed |
 | 8 | `sprints/SPRINT-8-kanban-persistence-and-write-actions.md` | completed |
 | 9 | `sprints/SPRINT-9-sprint-forge-trigger-and-prompt-composer.md` | completed |
-| 10 | (not yet generated) | pending |
+| 10 | `sprints/SPRINT-10-ai-instruction-layer.md` | completed |
 
 ---
 
@@ -73,27 +76,25 @@ These prompts help you (or a new agent) recover full project context in a new se
 | Codebase | `/Users/rperaza/joicodev/ideas/kyro` |
 | Working Directory | `/Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-sprint-forge-reader` |
 | Roadmap | `/Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-sprint-forge-reader/ROADMAP.md` |
-| Latest Sprint | `/Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-sprint-forge-reader/sprints/SPRINT-9-sprint-forge-trigger-and-prompt-composer.md` |
+| Latest Sprint | `/Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-sprint-forge-reader/sprints/SPRINT-10-ai-instruction-layer.md` |
 | Growth-CEO Strategy | `/Users/rperaza/joicodev/ideas/kyro/.agents/growth-ceo/strategic-overview.md` |
 
 ---
 
-## Scenario 1 — Generate Sprint 10 (AI Instruction Layer)
+## Scenario 1 — Plan Next Phase (All 10 Sprints Complete)
 
-Sprints 7-9 are all complete. Sprint 10 depends on all three.
+All 10 planned sprints are complete. Kyro is at v3.0.0. Open debt: D21 (AI integration tests), D22 (action chaining), D23 (Sprint Forge page).
 
 ```
-I'm continuing work on the kyro-sprint-forge-reader project. Sprints 7-9 are complete. Ready for Sprint 10 — the AI instruction layer.
+I'm continuing work on the kyro-sprint-forge-reader project. All 10 sprints are complete (v3.0.0).
 
 Read these files in order:
 1. /Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-sprint-forge-reader/README.md
-2. /Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-sprint-forge-reader/ROADMAP.md (focus on Sprint 10 definition)
-3. /Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-sprint-forge-reader/sprints/SPRINT-9-sprint-forge-trigger-and-prompt-composer.md (Retro, Recommendations, Debt table)
-4. /Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-sprint-forge-reader/findings/09-live-search-and-cross-project-intelligence.md
-5. /Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-sprint-forge-reader/findings/10-command-bar-structured-actions-and-kanban-persistence.md
-6. /Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-sprint-forge-reader/findings/11-sprint-forge-trigger-from-kyro.md
+2. /Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-sprint-forge-reader/ROADMAP.md
+3. /Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-sprint-forge-reader/sprints/SPRINT-10-ai-instruction-layer.md (Retro, Recommendations, Debt table)
+4. /Users/rperaza/joicodev/ideas/kyro/.agents/planning/markdown-architecture-evolution.md
 
-Then use /sprint-forge to generate and execute Sprint 10. The sprint must add AI interpret route, smart Cmd+K mode, forge generate route, and action chaining.
+Then use /sprint-forge to check status and discuss next steps — whether to add Sprint 11+ to the roadmap or start a new project phase.
 ```
 
 ---

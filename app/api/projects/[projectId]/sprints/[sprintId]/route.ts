@@ -10,6 +10,7 @@ import { resolveSprintFilePath } from "@/lib/api/sprint-files";
 import {
   parseSprintFile,
 } from "@/lib/file-format/parsers";
+import { patchSprintStatusInMarkdown } from "@/lib/file-format/serializers";
 import { syncProjectReentryPrompts } from "@/lib/file-format/templates";
 
 interface RouteParams {
@@ -67,9 +68,12 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
       tasks: body.tasks ?? existing.tasks,
     };
 
-    // Note: Full sprint rewrite is not supported — sprint-forge files are
-    // structurally complex. Only task status updates use surgical patching.
-    // This route returns the merged object without writing back to disk.
+    // Surgical patch: only modify sprint status in the raw markdown
+    if (body.status && body.status !== existing.status) {
+      const patched = patchSprintStatusInMarkdown(existingContent, body.status);
+      await fs.writeFile(filePath, patched, "utf-8");
+    }
+
     await syncProjectReentryPrompts(workspacePath, projectId);
 
     return ok({ sprint: updated }, 200);
