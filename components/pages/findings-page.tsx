@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, FileCode, Search } from "lucide-react";
+import { ArrowLeft, FileCode, Search, X } from "lucide-react";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,8 +10,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { EntitySkeleton } from "@/components/ui/entity-skeleton";
 import { useAppStore } from "@/lib/store";
 import { FINDING_SEVERITY_COLORS } from "@/lib/config";
-import type { Finding } from "@/lib/types";
+import type { Finding, FindingSeverity } from "@/lib/types";
 import { cn } from "@/lib/utils";
+
+const SEVERITY_OPTIONS: FindingSeverity[] = ["critical", "high", "medium", "low"];
 
 function FindingDetail({ finding, onBack }: { finding: Finding; onBack: () => void }) {
   return (
@@ -105,11 +107,41 @@ export function FindingsPage() {
   const projectFindings = findings[activeProjectId] ?? [];
   const isLoading = findingsLoading[activeProjectId] ?? false;
 
+  // Filter state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeSeverity, setActiveSeverity] = useState<FindingSeverity | null>(null);
+
   useEffect(() => {
     if (activeProjectId && !findings[activeProjectId]) {
       loadFindings(activeProjectId);
     }
   }, [activeProjectId, findings, loadFindings]);
+
+  const filteredFindings = useMemo(() => {
+    let result = projectFindings;
+
+    if (activeSeverity) {
+      result = result.filter((f) => f.severity === activeSeverity);
+    }
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(
+        (f) =>
+          f.title.toLowerCase().includes(q) ||
+          f.summary.toLowerCase().includes(q)
+      );
+    }
+
+    return result;
+  }, [projectFindings, searchQuery, activeSeverity]);
+
+  const hasActiveFilters = searchQuery.trim() !== "" || activeSeverity !== null;
+
+  const clearFilters = () => {
+    setSearchQuery("");
+    setActiveSeverity(null);
+  };
 
   const activeFinding = activeFindingId
     ? projectFindings.find((f) => f.id === activeFindingId)
@@ -137,15 +169,70 @@ export function FindingsPage() {
         <p className="text-sm text-muted-foreground mt-0.5">
           Analysis findings from the sprint-forge project
         </p>
+
+        {/* Search & Filter Controls */}
+        {projectFindings.length > 0 && (
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+            {/* Search input */}
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search findings..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="h-9 w-full rounded-md border border-input bg-background pl-9 pr-3 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              />
+            </div>
+
+            {/* Severity filter badges */}
+            <div className="flex items-center gap-1.5">
+              {SEVERITY_OPTIONS.map((severity) => (
+                <button
+                  key={severity}
+                  type="button"
+                  onClick={() =>
+                    setActiveSeverity(activeSeverity === severity ? null : severity)
+                  }
+                  className={cn(
+                    "rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
+                    activeSeverity === severity
+                      ? FINDING_SEVERITY_COLORS[severity]
+                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  )}
+                >
+                  {severity}
+                </button>
+              ))}
+            </div>
+
+            {/* Active filter status */}
+            {hasActiveFilters && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">
+                  {filteredFindings.length} of {projectFindings.length}
+                </span>
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-muted transition-colors"
+                >
+                  <X className="h-3 w-3" />
+                  Clear
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
       <div className="flex-1 min-h-0 overflow-auto px-6 pb-6">
       <div className="max-w-5xl">
 
       {isLoading ? (
         <EntitySkeleton rows={4} />
-      ) : projectFindings.length > 0 ? (
+      ) : filteredFindings.length > 0 ? (
         <div className="grid gap-3">
-          {projectFindings.map((finding) => (
+          {filteredFindings.map((finding) => (
             <Card
               key={finding.id}
               className="border shadow-sm cursor-pointer hover:border-primary/50 transition-colors"
@@ -184,6 +271,18 @@ export function FindingsPage() {
               </CardContent>
             </Card>
           ))}
+        </div>
+      ) : hasActiveFilters ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <p className="text-sm font-medium text-foreground">
+            No findings match your filters
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Try adjusting your search or clearing filters.
+          </p>
+          <Button variant="outline" size="sm" className="mt-3" onClick={clearFilters}>
+            Clear filters
+          </Button>
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-16 text-center">

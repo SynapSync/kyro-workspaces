@@ -4,7 +4,6 @@ import { useMemo } from "react";
 import { usePathname } from "next/navigation";
 import { Search, Bell, Plus, AlertTriangle, X, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Tooltip,
@@ -25,6 +24,7 @@ export function AppTopbar() {
     activeProjectId,
     activityWriteWarning,
     clearActivityWriteWarning,
+    setCommandPaletteOpen,
   } = useAppStore();
 
   const activeProject = useMemo(
@@ -116,15 +116,19 @@ export function AppTopbar() {
         </div>
       </div>
 
-      {/* Center: search */}
+      {/* Center: search trigger */}
       <div className="flex-1 flex justify-center max-w-md mx-4">
-        <div className="relative w-full">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search tasks, docs, sprints..."
-            className="h-9 w-full pl-9 bg-muted/50 border-transparent focus:border-border focus:bg-card"
-          />
-        </div>
+        <button
+          type="button"
+          onClick={() => setCommandPaletteOpen(true)}
+          className="flex h-9 w-full items-center gap-2 rounded-md border border-transparent bg-muted/50 px-3 text-sm text-muted-foreground transition-colors hover:border-border hover:bg-card"
+        >
+          <Search className="h-4 w-4 shrink-0" />
+          <span className="flex-1 text-left">Search...</span>
+          <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground sm:flex">
+            <span className="text-xs">⌘</span>K
+          </kbd>
+        </button>
       </div>
 
       {/* Agent Context */}
