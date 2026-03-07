@@ -28,7 +28,7 @@ objective: Build the core API
     expect(sprint.objective).toBe("Build the core API");
     expect(sprint.tasks).toHaveLength(3);
     expect(sprint.tasks[0].status).toBe("done");
-    expect(sprint.tasks[1].status).toBe("todo");
+    expect(sprint.tasks[1].status).toBe("pending");
     expect(sprint.tasks[2].status).toBe("in_progress");
   });
 

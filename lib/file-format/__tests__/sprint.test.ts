@@ -53,10 +53,10 @@ describe("parseSprintFile", () => {
     const statuses = sprint.tasks.map((t) => t.status);
     expect(statuses[0]).toBe("done");        // [x]
     expect(statuses[1]).toBe("in_progress"); // [~]
-    expect(statuses[2]).toBe("todo");        // [ ]
+    expect(statuses[2]).toBe("pending");      // [ ]
     expect(statuses[3]).toBe("blocked");     // [!]
     expect(statuses[4]).toBe("skipped");     // [-]
-    expect(statuses[5]).toBe("todo");        // [>] carry-over → todo
+    expect(statuses[5]).toBe("carry_over");  // [>]
   });
 
   it("extracts task titles correctly", () => {

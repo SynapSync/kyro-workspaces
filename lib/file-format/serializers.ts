@@ -67,7 +67,7 @@ export function patchTaskStatusInMarkdown(
   taskTitle: string,
   newStatus: string,
 ): string {
-  const newSymbol: SprintTaskSymbol = STATUS_TO_SYMBOL[newStatus as keyof typeof STATUS_TO_SYMBOL] ?? " ";
+  const newSymbol: SprintTaskSymbol = STATUS_TO_SYMBOL[newStatus as keyof typeof STATUS_TO_SYMBOL] ?? STATUS_TO_SYMBOL.pending;
 
   // Escape special regex characters in the task title
   const escaped = taskTitle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

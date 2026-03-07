@@ -108,13 +108,12 @@ export function CommandPalette() {
   }, [activeSprints]);
 
   const STATUS_OPTIONS: { id: string; label: string }[] = [
-    { id: "backlog", label: "Backlog" },
-    { id: "todo", label: "Todo" },
+    { id: "pending", label: "Pending" },
     { id: "in_progress", label: "In Progress" },
-    { id: "review", label: "Review" },
     { id: "done", label: "Done" },
     { id: "blocked", label: "Blocked" },
     { id: "skipped", label: "Skipped" },
+    { id: "carry_over", label: "Carry-over" },
   ];
 
   const forgeContext = useMemo(() => {

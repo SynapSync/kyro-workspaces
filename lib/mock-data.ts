@@ -38,7 +38,7 @@ const cleverTasks: Task[] = [
     description:
       "Build sign up, sign in, password reset, and email verification using Supabase Auth.",
     priority: "urgent",
-    status: "review",
+    status: "in_progress",
     assignee: "Alex Chen",
     tags: ["auth", "backend"],
     createdAt: daysAgo(10),
@@ -74,7 +74,7 @@ const cleverTasks: Task[] = [
     description:
       "Connect the AI agent service that can auto-create tasks, suggest priorities, and summarize sprints.",
     priority: "medium",
-    status: "todo",
+    status: "pending",
     assignee: "Alex Chen",
     tags: ["ai", "backend"],
     createdAt: daysAgo(5),
@@ -86,7 +86,7 @@ const cleverTasks: Task[] = [
     description:
       "Create a rich markdown editor with live preview for project documents and README.",
     priority: "medium",
-    status: "todo",
+    status: "pending",
     assignee: "Maya Patel",
     tags: ["frontend", "editor"],
     createdAt: daysAgo(4),
@@ -98,7 +98,7 @@ const cleverTasks: Task[] = [
     description:
       "Implement WebSocket connections for live updates when team members modify tasks or documents.",
     priority: "low",
-    status: "backlog",
+    status: "pending",
     assignee: undefined,
     tags: ["feature", "backend"],
     createdAt: daysAgo(3),
@@ -110,7 +110,7 @@ const cleverTasks: Task[] = [
     description:
       "Build charts and metrics for sprint velocity, burndown, and team productivity.",
     priority: "low",
-    status: "backlog",
+    status: "pending",
     assignee: undefined,
     tags: ["analytics", "frontend"],
     createdAt: daysAgo(2),
@@ -122,7 +122,7 @@ const cleverTasks: Task[] = [
     description:
       "Configure Jest and React Testing Library with tests for core components and API routes.",
     priority: "medium",
-    status: "backlog",
+    status: "pending",
     assignee: "Jordan Liu",
     tags: ["testing", "devops"],
     createdAt: daysAgo(1),
@@ -134,7 +134,7 @@ const cleverTasks: Task[] = [
     description:
       "Build in-app notifications for task assignments, mentions, and sprint updates.",
     priority: "medium",
-    status: "todo",
+    status: "pending",
     assignee: "Jordan Liu",
     tags: ["feature", "frontend"],
     createdAt: hoursAgo(20),
@@ -146,7 +146,7 @@ const cleverTasks: Task[] = [
     description:
       "Add rate limiting to API endpoints and perform a security audit of the authentication system.",
     priority: "high",
-    status: "todo",
+    status: "pending",
     assignee: "Alex Chen",
     tags: ["security", "backend"],
     createdAt: hoursAgo(12),
@@ -235,7 +235,7 @@ const botTasks: Task[] = [
     description:
       "Wire up WebSocket feed, multi-pair loop, and state management for real-time trading.",
     priority: "urgent",
-    status: "todo",
+    status: "pending",
     assignee: undefined,
     tags: ["live-trading", "core"],
     createdAt: daysAgo(1),
@@ -247,7 +247,7 @@ const botTasks: Task[] = [
     description:
       "Trade state must survive process restarts. Implement SQLite storage layer.",
     priority: "high",
-    status: "backlog",
+    status: "pending",
     assignee: undefined,
     tags: ["persistence", "infrastructure"],
     createdAt: daysAgo(1),
@@ -259,7 +259,7 @@ const botTasks: Task[] = [
     description:
       "Validate Risk Engine with drawdowns > 10% using 2022 crypto winter period.",
     priority: "medium",
-    status: "backlog",
+    status: "pending",
     assignee: undefined,
     tags: ["backtest", "risk-engine"],
     createdAt: daysAgo(1),
@@ -271,7 +271,7 @@ const botTasks: Task[] = [
     description:
       "Notifications for trade_open, trade_close, stop_loss, drawdown_red events.",
     priority: "low",
-    status: "backlog",
+    status: "pending",
     assignee: undefined,
     tags: ["notifications", "integration"],
     createdAt: daysAgo(1),

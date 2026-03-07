@@ -9,13 +9,12 @@ import type { Phase } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const TASK_STATUS_ICONS: Record<string, { symbol: string; className: string }> = {
-  done: { symbol: "[x]", className: "text-emerald-500" },
+  pending: { symbol: "[ ]", className: "text-muted-foreground" },
   in_progress: { symbol: "[~]", className: "text-amber-500" },
+  done: { symbol: "[x]", className: "text-emerald-500" },
   blocked: { symbol: "[!]", className: "text-red-500" },
   skipped: { symbol: "[-]", className: "text-muted-foreground" },
-  todo: { symbol: "[ ]", className: "text-muted-foreground" },
-  backlog: { symbol: "[ ]", className: "text-muted-foreground" },
-  review: { symbol: "[~]", className: "text-blue-500" },
+  carry_over: { symbol: "[>]", className: "text-purple-500" },
 };
 
 interface PhasesListProps {
@@ -89,7 +88,7 @@ export function PhasesList({ phases }: PhasesListProps) {
                   <InlineMarkdown content={phase.objective} className="text-xs text-muted-foreground mb-3 block" />
                 )}
                 {phase.tasks.map((task) => {
-                  const statusInfo = TASK_STATUS_ICONS[task.status] ?? TASK_STATUS_ICONS["todo"];
+                  const statusInfo = TASK_STATUS_ICONS[task.status] ?? TASK_STATUS_ICONS["pending"];
                   return (
                     <div key={task.id} className="flex items-start gap-2 py-1">
                       <span className={cn("font-mono text-xs shrink-0 mt-0.5", statusInfo.className)}>

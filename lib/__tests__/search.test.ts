@@ -203,7 +203,7 @@ describe("buildSearchIndex", () => {
               id: "t1",
               title: "Task",
               priority: "low",
-              status: "todo",
+              status: "pending",
               tags: [],
               createdAt: "2026-01-01",
               updatedAt: "2026-01-01",

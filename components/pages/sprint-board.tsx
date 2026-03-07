@@ -93,16 +93,20 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
   const columnTasks = useMemo(() => {
     if (!sprint) return {} as Record<TaskStatus, Task[]>;
     const map: Record<TaskStatus, Task[]> = {
-      backlog: [],
-      todo: [],
+      pending: [],
       in_progress: [],
-      review: [],
       done: [],
       blocked: [],
       skipped: [],
+      carry_over: [],
     };
     sprint.tasks.forEach((task) => {
-      map[task.status].push(task);
+      const bucket = map[task.status];
+      if (bucket) {
+        bucket.push(task);
+      } else {
+        map.pending.push(task);
+      }
     });
     return map;
   }, [sprint]);

@@ -47,13 +47,13 @@ Update the service layer contracts, file service implementations, and Zustand st
 
 ## Disposition of Previous Sprint Recommendations
 
-| # | Recommendation | Action | Where | Justification |
-|---|---------------|--------|-------|---------------|
-| 1 | Update `CreateProjectInput` to use `{ path: string; name?: string; color?: string }` | Incorporated | Phase 1, T1.1 | Direct alignment with POST /api/projects contract |
-| 2 | Refactor `FileProjectsService.createProject()` to send `{path}` instead of `{id, name}` | Incorporated | Phase 2, T2.1 | Service must match the refactored API |
-| 3 | Update service factory to switch between mock and file services based on `NEXT_PUBLIC_USE_MOCK_DATA` | Incorporated | Phase 2, T2.5 | Resolves D2 — factory already works, just needs verification and cleanup |
-| 4 | Add proper error handling in `addProject` — return `WorkspaceError` with code `DUPLICATE_PROJECT` so API route can return 409 | Incorporated | Phase 2, T2.6 | Resolves D6 — improves API error responses |
-| 5 | Update mock service's `createProject` to match the new interface for consistency | Incorporated | Phase 4, T4.1 | Mock and file services must share the same contract |
+| #   | Recommendation                                                                                                                | Action       | Where         | Justification                                                            |
+| --- | ----------------------------------------------------------------------------------------------------------------------------- | ------------ | ------------- | ------------------------------------------------------------------------ |
+| 1   | Update `CreateProjectInput` to use `{ path: string; name?: string; color?: string }`                                          | Incorporated | Phase 1, T1.1 | Direct alignment with POST /api/projects contract                        |
+| 2   | Refactor `FileProjectsService.createProject()` to send `{path}` instead of `{id, name}`                                       | Incorporated | Phase 2, T2.1 | Service must match the refactored API                                    |
+| 3   | Update service factory to switch between mock and file services based on `NEXT_PUBLIC_USE_MOCK_DATA`                          | Incorporated | Phase 2, T2.5 | Resolves D2 — factory already works, just needs verification and cleanup |
+| 4   | Add proper error handling in `addProject` — return `WorkspaceError` with code `DUPLICATE_PROJECT` so API route can return 409 | Incorporated | Phase 2, T2.6 | Resolves D6 — improves API error responses                               |
+| 5   | Update mock service's `createProject` to match the new interface for consistency                                              | Incorporated | Phase 4, T4.1 | Mock and file services must share the same contract                      |
 
 ---
 
@@ -65,7 +65,7 @@ Update the service layer contracts, file service implementations, and Zustand st
 
 **Tasks**:
 
-- [x] **T1.1**: Update `CreateProjectInput` — replace `{id, name, description?, readme?}` with `{path: string; name?: string; color?: string}`. Update `UpdateProjectInput` to `{name?: string; color?: string}` (no more description/readme writes).
+- [ ] **T1.1**: Update `CreateProjectInput` — replace `{id, name, description?, readme?}` with `{path: string; name?: string; color?: string}`. Update `UpdateProjectInput` to `{name?: string; color?: string}` (no more description/readme writes).
   - Files: `lib/services/types.ts`
   - Evidence: —
   - Verification: Type-check passes; no compile errors in consumers
@@ -244,30 +244,31 @@ Update the service layer contracts, file service implementations, and Zustand st
 
 ## Findings Consolidation
 
-| # | Finding | Origin Phase | Impact | Action Taken |
-|---|---------|-------------|--------|-------------|
-| 1 | Removing store write methods causes cascading compile errors in 7 UI components | Phase 3 | high | Added Emergent Phase to fix all component compile errors before Phase 6 |
-| 2 | API DTO section keys (`execution_metrics`, `findings`) were stale — never updated when domain schema expanded | Phase 5 | medium | Updated `SprintDTO.sections` and mapper to use new 9-key schema |
-| 3 | `mock-data.ts` had duplicate `technicalDebt` keys after find-and-replace of `executionMetrics` | Phase 4 | low | Manually renamed to correct section keys (`findingsConsolidation`, `sprintObjective`) |
+| #   | Finding                                                                                                       | Origin Phase | Impact | Action Taken                                                                          |
+| --- | ------------------------------------------------------------------------------------------------------------- | ------------ | ------ | ------------------------------------------------------------------------------------- |
+| 1   | Removing store write methods causes cascading compile errors in 7 UI components                               | Phase 3      | high   | Added Emergent Phase to fix all component compile errors before Phase 6               |
+| 2   | API DTO section keys (`execution_metrics`, `findings`) were stale — never updated when domain schema expanded | Phase 5      | medium | Updated `SprintDTO.sections` and mapper to use new 9-key schema                       |
+| 3   | `mock-data.ts` had duplicate `technicalDebt` keys after find-and-replace of `executionMetrics`                | Phase 4      | low    | Manually renamed to correct section keys (`findingsConsolidation`, `sprintObjective`) |
 
 ---
 
 ## Accumulated Technical Debt
 
-| # | Item | Origin | Sprint Target | Status | Resolved In |
-|---|------|--------|--------------|--------|-------------|
-| D1 | Logo "Clever" hardcoded in sidebar | Pre-existing | product decision | open | — |
-| D2 | Service factory always returns mock — switching logic pending | Pre-existing | Sprint 3 | resolved | Sprint 3 |
-| D3 | Loading UI only in ContentRouter — sub-entities have no per-fetch states | Pre-existing | Sprint 4 | open | — |
-| D4 | `parseSprintForgeFile()` recommendations section uses heuristic matching for heading | Sprint 1 Phase 3 | Sprint 3 | resolved | Sprint 3 |
-| D5 | `FileProjectsService` and `CreateProjectInput` still use old `{id, name}` model — must be updated for registry `{path}` API | Sprint 2 Phase 5 | Sprint 3 | resolved | Sprint 3 |
-| D6 | `addProject` in registry.ts throws unhandled error for duplicates — API route should catch and return 409 | Sprint 2 Phase 5 | Sprint 3 | resolved | Sprint 3 |
-| D7 | UI components are read-only stubs — write operations replaced with no-ops/toasts pending Sprint 4 UI adaptation | Sprint 3 Emergent | Sprint 4 | open | — |
-| D8 | `documents-page.tsx` still imports unused types (`Document`) and has dead code paths for edit/autosave | Sprint 3 Emergent | Sprint 4 | open | — |
+| #   | Item                                                                                                                        | Origin            | Sprint Target    | Status   | Resolved In |
+| --- | --------------------------------------------------------------------------------------------------------------------------- | ----------------- | ---------------- | -------- | ----------- |
+| D1  | Logo "Clever" hardcoded in sidebar                                                                                          | Pre-existing      | product decision | open     | —           |
+| D2  | Service factory always returns mock — switching logic pending                                                               | Pre-existing      | Sprint 3         | resolved | Sprint 3    |
+| D3  | Loading UI only in ContentRouter — sub-entities have no per-fetch states                                                    | Pre-existing      | Sprint 4         | open     | —           |
+| D4  | `parseSprintForgeFile()` recommendations section uses heuristic matching for heading                                        | Sprint 1 Phase 3  | Sprint 3         | resolved | Sprint 3    |
+| D5  | `FileProjectsService` and `CreateProjectInput` still use old `{id, name}` model — must be updated for registry `{path}` API | Sprint 2 Phase 5  | Sprint 3         | resolved | Sprint 3    |
+| D6  | `addProject` in registry.ts throws unhandled error for duplicates — API route should catch and return 409                   | Sprint 2 Phase 5  | Sprint 3         | resolved | Sprint 3    |
+| D7  | UI components are read-only stubs — write operations replaced with no-ops/toasts pending Sprint 4 UI adaptation             | Sprint 3 Emergent | Sprint 4         | open     | —           |
+| D8  | `documents-page.tsx` still imports unused types (`Document`) and has dead code paths for edit/autosave                      | Sprint 3 Emergent | Sprint 4         | open     | —           |
 
 **Status values**: `open` | `in-progress` | `resolved` | `deferred` | `carry-over`
 
 **Rules**:
+
 - Never delete a row — only change status
 - New items are appended at the bottom
 - Inherited items keep their original numbers

@@ -51,7 +51,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       title: body.title ?? "New Task",
       description: body.description,
       priority: body.priority ?? "medium",
-      status: body.status ?? "todo",
+      status: body.status ?? "pending",
       assignee: body.assigneeId,
       tags: body.tags ?? [],
       createdAt: new Date().toISOString(),
