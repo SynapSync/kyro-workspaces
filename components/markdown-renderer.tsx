@@ -8,6 +8,8 @@ import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import { cn } from "@/lib/utils";
 import "highlight.js/styles/github.css";
 
+const FRONTMATTER_RE = /^---\r?\n[\s\S]*?\r?\n---\r?\n?/;
+
 const sanitizeSchema = {
   ...defaultSchema,
   attributes: {
@@ -40,7 +42,7 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeHighlight, [rehypeSanitize, sanitizeSchema]]}
       >
-        {content}
+        {content.replace(FRONTMATTER_RE, "")}
       </ReactMarkdown>
     </div>
   );

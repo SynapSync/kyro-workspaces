@@ -17,20 +17,12 @@ import { cn } from "@/lib/utils";
 import { currentUser } from "@/lib/auth";
 import { NAV_ITEMS } from "@/lib/config";
 
-function getLastAgentName(description: string): string {
-  if (description.startsWith("Sprint Forge")) return "Sprint Forge";
-  if (description.startsWith("AI Agent")) return "AI Agent";
-  if (description.startsWith("Kyro UI")) return "Kyro UI";
-  return "Unknown";
-}
-
 export function AppTopbar() {
   const pathname = usePathname();
   const {
     members,
     projects,
     activeProjectId,
-    activities,
     activityWriteWarning,
     clearActivityWriteWarning,
   } = useAppStore();
@@ -50,23 +42,6 @@ export function AppTopbar() {
     }
     return null;
   }, [activeProject, pathname]);
-
-  const lastActivity = useMemo(() => {
-    if (!activeProject) return null;
-    const filtered = activities
-      .filter((activity) => activity.projectId === activeProject.id)
-      .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
-    return filtered[0] ?? null;
-  }, [activities, activeProject]);
-
-  const lastAgent = useMemo(() => {
-    if (!lastActivity) return "—";
-    return (
-      lastActivity.metadata?.agent ??
-      lastActivity.metadata?.actor ??
-      getLastAgentName(lastActivity.description)
-    );
-  }, [lastActivity]);
 
   const breadcrumbs = useMemo(() => {
     const crumbs: string[] = [];
@@ -161,9 +136,6 @@ export function AppTopbar() {
         <div className="text-[11px] text-muted-foreground">
           <span className="font-medium text-foreground">Sprint:</span>{" "}
           {activeSprint?.name ?? "—"}
-        </div>
-        <div className="text-[11px] text-muted-foreground">
-          <span className="font-medium text-foreground">Agent:</span> {lastAgent}
         </div>
       </div>
 
