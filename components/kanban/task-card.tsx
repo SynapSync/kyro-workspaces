@@ -3,7 +3,7 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { formatDistanceToNow } from "date-fns";
-import { GripVertical, Ban, Sparkles, FileCode } from "lucide-react";
+import { GripVertical, Ban, Sparkles, FileCode, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import type { Task } from "@/lib/types";
@@ -12,11 +12,12 @@ import { cn } from "@/lib/utils";
 
 interface TaskCardProps {
   task: Task;
+  isUpdating?: boolean;
   onEdit: (task: Task) => void;
   onDelete: (taskId: string) => void;
 }
 
-export function TaskCard({ task }: TaskCardProps) {
+export function TaskCard({ task, isUpdating = false }: TaskCardProps) {
   const {
     attributes,
     listeners,
@@ -53,6 +54,7 @@ export function TaskCard({ task }: TaskCardProps) {
       className={cn(
         "group rounded-lg border bg-card p-3 shadow-sm transition-all hover:border-primary/30",
         isDragging && "opacity-50 rotate-2 scale-105 shadow-lg",
+        isUpdating && "opacity-70 ring-2 ring-primary/20",
         isBlocked && "border-red-300 dark:border-red-800 bg-red-50/50 dark:bg-red-950/20",
         isAICreated && "border-purple-300 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-950/20",
         isEmergent && !isBlocked && !isAICreated && "border-purple-200 dark:border-purple-900",
@@ -130,11 +132,15 @@ export function TaskCard({ task }: TaskCardProps) {
           ))}
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] text-muted-foreground">
-            {formatDistanceToNow(new Date(task.updatedAt), {
-              addSuffix: true,
-            })}
-          </span>
+          {isUpdating ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+          ) : (
+            <span className="text-[10px] text-muted-foreground">
+              {formatDistanceToNow(new Date(task.updatedAt), {
+                addSuffix: true,
+              })}
+            </span>
+          )}
           {initials && (
             <Avatar className="h-5 w-5">
               <AvatarFallback className="text-[8px] font-bold bg-primary/15 text-primary">

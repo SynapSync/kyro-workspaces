@@ -1,5 +1,7 @@
 import type {
   Project,
+  Task,
+  TaskStatus,
   Finding,
   RoadmapSprintEntry,
   TeamMember,
@@ -54,6 +56,9 @@ export interface ProjectsService {
   getFindings(projectId: string): Promise<Finding[]>;
   getRoadmap(projectId: string): Promise<{ raw: string; sprints: RoadmapSprintEntry[] }>;
   getReentryPrompts(projectId: string): Promise<string>;
+
+  // Write operations
+  updateTaskStatus(projectId: string, sprintId: string, taskId: string, status: TaskStatus): Promise<Task>;
 }
 
 export interface MembersService {

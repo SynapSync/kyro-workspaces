@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   Plus,
@@ -14,6 +14,8 @@ import {
   FileText,
   Layers,
   Terminal,
+  RefreshCw,
+  ArrowRightLeft,
 } from "lucide-react";
 import {
   CommandDialog,
@@ -69,15 +71,52 @@ export function CommandPalette() {
     setZenMode,
     toggleSidebar,
     setAddProjectDialogOpen,
+    getActiveProject,
+    updateTaskStatus,
+    refreshProject,
   } = useAppStore();
+
+  // Sub-mode for "Update Task Status" action flow
+  type ActionSubMode = "none" | "pick-task" | "pick-status";
+  const [actionSubMode, setActionSubMode] = useState<ActionSubMode>("none");
+  const [selectedTaskForUpdate, setSelectedTaskForUpdate] = useState<{
+    taskId: string;
+    taskTitle: string;
+    sprintId: string;
+  } | null>(null);
 
   const searchIndex = useSearchIndex(projects, findings);
   const grouped = useMemo(() => groupByType(searchIndex), [searchIndex]);
 
-  // Reset tab when palette opens
+  // Get tasks from active project's sprints for the task picker
+  const activeProject = getActiveProject();
+  const activeSprints = useMemo(() => {
+    if (!activeProject) return [];
+    return activeProject.sprints.filter((s) => s.status !== "closed");
+  }, [activeProject]);
+
+  const allTasks = useMemo(() => {
+    return activeSprints.flatMap((s) =>
+      s.tasks.map((t) => ({ ...t, sprintId: s.id, sprintName: s.name }))
+    );
+  }, [activeSprints]);
+
+  const STATUS_OPTIONS: { id: string; label: string }[] = [
+    { id: "backlog", label: "Backlog" },
+    { id: "todo", label: "Todo" },
+    { id: "in_progress", label: "In Progress" },
+    { id: "review", label: "Review" },
+    { id: "done", label: "Done" },
+    { id: "blocked", label: "Blocked" },
+    { id: "skipped", label: "Skipped" },
+  ];
+
+  // Reset tab and sub-mode when palette opens
   useEffect(() => {
     if (commandPaletteOpen) {
       setActiveTab("search");
+      setActionSubMode("none");
+      setSelectedTaskForUpdate(null);
     }
   }, [commandPaletteOpen]);
 
@@ -128,6 +167,35 @@ export function CommandPalette() {
 
   const handleToggleZenMode = () => {
     setZenMode(!zenMode);
+    setCommandPaletteOpen(false);
+  };
+
+  const handleRefreshProject = useCallback(async () => {
+    if (activeProjectId) {
+      await refreshProject(activeProjectId);
+    }
+    setCommandPaletteOpen(false);
+  }, [activeProjectId, refreshProject, setCommandPaletteOpen]);
+
+  const handleStartUpdateTask = () => {
+    setActionSubMode("pick-task");
+  };
+
+  const handleSelectTask = (taskId: string, taskTitle: string, sprintId: string) => {
+    setSelectedTaskForUpdate({ taskId, taskTitle, sprintId });
+    setActionSubMode("pick-status");
+  };
+
+  const handleSelectStatus = (status: string) => {
+    if (!selectedTaskForUpdate || !activeProjectId) return;
+    updateTaskStatus(
+      activeProjectId,
+      selectedTaskForUpdate.sprintId,
+      selectedTaskForUpdate.taskId,
+      status as import("@/lib/types").TaskStatus
+    );
+    setActionSubMode("none");
+    setSelectedTaskForUpdate(null);
     setCommandPaletteOpen(false);
   };
 
@@ -242,12 +310,20 @@ export function CommandPalette() {
           </>
         )}
 
-        {activeTab === "commands" && (
+        {activeTab === "commands" && actionSubMode === "none" && (
           <>
             <CommandGroup heading="Actions">
               <CommandItem onSelect={handleCreateProject}>
                 <Plus className="mr-2 h-4 w-4" />
                 <span>Add Project</span>
+              </CommandItem>
+              <CommandItem onSelect={handleStartUpdateTask}>
+                <ArrowRightLeft className="mr-2 h-4 w-4" />
+                <span>Update Task Status</span>
+              </CommandItem>
+              <CommandItem onSelect={handleRefreshProject}>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                <span>Refresh Project</span>
               </CommandItem>
             </CommandGroup>
 
@@ -280,6 +356,43 @@ export function CommandPalette() {
               </CommandItem>
             </CommandGroup>
           </>
+        )}
+
+        {activeTab === "commands" && actionSubMode === "pick-task" && (
+          <CommandGroup heading="Select a Task">
+            {allTasks.map((task) => (
+              <CommandItem
+                key={task.id}
+                value={`${task.title} ${task.taskRef ?? ""} ${task.sprintName}`}
+                onSelect={() => handleSelectTask(task.id, task.title, task.sprintId)}
+              >
+                <CheckSquare className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
+                <div className="flex flex-col gap-0 min-w-0">
+                  <span className="truncate text-sm">
+                    {task.taskRef && <span className="font-mono text-xs text-muted-foreground mr-1.5">{task.taskRef}</span>}
+                    {task.title}
+                  </span>
+                  <span className="text-xs text-muted-foreground truncate">
+                    {task.sprintName} — {task.status.replace("_", " ")}
+                  </span>
+                </div>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
+
+        {activeTab === "commands" && actionSubMode === "pick-status" && selectedTaskForUpdate && (
+          <CommandGroup heading={`New status for "${selectedTaskForUpdate.taskTitle}"`}>
+            {STATUS_OPTIONS.map((opt) => (
+              <CommandItem
+                key={opt.id}
+                onSelect={() => handleSelectStatus(opt.id)}
+              >
+                <ArrowRightLeft className="mr-2 h-4 w-4 text-muted-foreground" />
+                <span>{opt.label}</span>
+              </CommandItem>
+            ))}
+          </CommandGroup>
         )}
       </CommandList>
     </CommandDialog>

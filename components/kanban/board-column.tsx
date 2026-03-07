@@ -20,6 +20,7 @@ interface BoardColumnProps {
   color: string;
   tasks: Task[];
   collapsed?: boolean;
+  updatingTasks?: Record<string, boolean>;
   onToggleCollapse?: () => void;
   onEditTask: (task: Task) => void;
   onDeleteTask: (taskId: string) => void;
@@ -31,6 +32,7 @@ export function BoardColumn({
   color,
   tasks,
   collapsed = false,
+  updatingTasks,
   onToggleCollapse,
   onEditTask,
   onDeleteTask,
@@ -109,6 +111,7 @@ export function BoardColumn({
                   <TaskCard
                     key={task.id}
                     task={task}
+                    isUpdating={updatingTasks?.[task.id] ?? false}
                     onEdit={onEditTask}
                     onDelete={onDeleteTask}
                   />

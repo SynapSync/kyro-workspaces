@@ -3,7 +3,7 @@ import type {
   CreateProjectInput,
   UpdateProjectInput,
 } from "../types";
-import type { Project, Finding, RoadmapSprintEntry } from "@/lib/types";
+import type { Project, Task, TaskStatus, Finding, RoadmapSprintEntry } from "@/lib/types";
 import { localFetch } from "./fetch";
 
 export class FileProjectsService implements ProjectsService {
@@ -60,5 +60,31 @@ export class FileProjectsService implements ProjectsService {
       `/api/projects/${projectId}/reentry-prompts`
     );
     return content;
+  }
+
+  async updateTaskStatus(
+    projectId: string,
+    sprintId: string,
+    taskId: string,
+    status: TaskStatus
+  ): Promise<Task> {
+    // Git safety net: auto-commit before mutation
+    try {
+      await localFetch("/api/workspace/git/commit", {
+        method: "POST",
+        body: JSON.stringify({ message: `kyro: auto-save before task status update [${taskId}]` }),
+      });
+    } catch {
+      // Nothing to commit or git not initialized — proceed anyway
+    }
+
+    const { task } = await localFetch<{ task: Task }>(
+      `/api/projects/${projectId}/sprints/${sprintId}/tasks/${taskId}`,
+      {
+        method: "PUT",
+        body: JSON.stringify({ status }),
+      }
+    );
+    return task;
   }
 }

@@ -2,6 +2,8 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type {
   Project,
+  Task,
+  TaskStatus,
   AgentActivity,
   AgentActionType,
   ActivitiesDiagnostics,
@@ -60,6 +62,11 @@ interface AppState {
   reentryPrompts: Record<string, string>;
   reentryLoading: Record<string, boolean>;
   loadReentryPrompts: (projectId: string) => Promise<void>;
+
+  // Task Mutations
+  updatingTasks: Record<string, boolean>; // taskId -> isUpdating
+  updateTaskStatus: (projectId: string, sprintId: string, taskId: string, newStatus: TaskStatus) => void;
+  refreshProject: (projectId: string) => Promise<void>;
 
   // Async initialization state
   isInitializing: boolean;
@@ -235,6 +242,81 @@ export const useAppStore = create<AppState>()(
         reentryLoading: { ...state.reentryLoading, [projectId]: false },
       }));
       console.warn("[reentry] Failed to load:", errorMsg(err));
+    }
+  },
+
+  // --- Task Mutations ---
+
+  updatingTasks: {},
+
+  updateTaskStatus: (projectId, sprintId, taskId, newStatus) => {
+    const prev = get().projects;
+    const project = prev.find((p) => p.id === projectId);
+    if (!project) return;
+    const sprint = project.sprints.find((s) => s.id === sprintId);
+    if (!sprint) return;
+    const task = sprint.tasks.find((t) => t.id === taskId);
+    if (!task) return;
+
+    const oldStatus = task.status;
+    if (oldStatus === newStatus) return;
+
+    // Optimistic update
+    set((state) => ({
+      updatingTasks: { ...state.updatingTasks, [taskId]: true },
+      projects: state.projects.map((p) =>
+        p.id === projectId
+          ? {
+              ...p,
+              sprints: p.sprints.map((s) =>
+                s.id === sprintId
+                  ? {
+                      ...s,
+                      tasks: s.tasks.map((t) =>
+                        t.id === taskId
+                          ? { ...t, status: newStatus, updatedAt: new Date().toISOString() }
+                          : t
+                      ),
+                    }
+                  : s
+              ),
+            }
+          : p
+      ),
+    }));
+
+    services.projects
+      .updateTaskStatus(projectId, sprintId, taskId, newStatus)
+      .then(() => {
+        set((state) => ({
+          updatingTasks: { ...state.updatingTasks, [taskId]: false },
+        }));
+        recordActivity({
+          projectId,
+          actionType: "moved_task",
+          description: `Moved task "${task.title}" from ${oldStatus} to ${newStatus}`,
+          metadata: { taskId, sprintId, from: oldStatus, to: newStatus },
+        }, (warning) => set({ activityWriteWarning: warning }));
+      })
+      .catch((err) => {
+        // Rollback
+        set((state) => ({
+          projects: prev,
+          updatingTasks: { ...state.updatingTasks, [taskId]: false },
+          saveError: errorMsg(err),
+        }));
+      });
+  },
+
+  refreshProject: async (projectId) => {
+    try {
+      const project = await services.projects.getProject(projectId);
+      if (!project) return;
+      set((state) => ({
+        projects: state.projects.map((p) => (p.id === projectId ? project : p)),
+      }));
+    } catch (err) {
+      console.warn("[refresh] Failed:", errorMsg(err));
     }
   },
 

@@ -3,7 +3,7 @@ import type {
   CreateProjectInput,
   UpdateProjectInput,
 } from "../types";
-import type { Project, Finding, RoadmapSprintEntry } from "@/lib/types";
+import type { Project, Task, TaskStatus, Finding, RoadmapSprintEntry } from "@/lib/types";
 import { mockProjects, mockFindings, mockRoadmapSprints, mockReentryPrompts } from "@/lib/mock-data";
 import { mockDelay } from "./delay";
 import { slugFromPath } from "@/lib/utils";
@@ -68,5 +68,26 @@ export class MockProjectsService implements ProjectsService {
   async getReentryPrompts(projectId: string): Promise<string> {
     await mockDelay();
     return mockReentryPrompts[projectId] ?? "";
+  }
+
+  async updateTaskStatus(
+    projectId: string,
+    sprintId: string,
+    taskId: string,
+    status: TaskStatus
+  ): Promise<Task> {
+    await mockDelay();
+    const project = this.projects.find((p) => p.id === projectId);
+    if (!project) throw new Error(`Project ${projectId} not found`);
+
+    const sprint = project.sprints.find((s) => s.id === sprintId);
+    if (!sprint) throw new Error(`Sprint ${sprintId} not found`);
+
+    const task = sprint.tasks.find((t) => t.id === taskId);
+    if (!task) throw new Error(`Task ${taskId} not found`);
+
+    task.status = status;
+    task.updatedAt = new Date().toISOString();
+    return task;
   }
 }

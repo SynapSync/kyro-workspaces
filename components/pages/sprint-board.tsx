@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { BoardColumn } from "@/components/kanban/board-column";
 import { TaskCard } from "@/components/kanban/task-card";
+import { ActionConfirmDialog } from "@/components/dialogs/action-confirm-dialog";
 import { useAppStore } from "@/lib/store";
 import { COLUMNS, SPRINT_STATUS_CONFIG, ZEN_COLUMNS } from "@/lib/config";
 import { type Task, type TaskStatus, type Phase } from "@/lib/types";
@@ -43,11 +44,18 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
     toggleFocusMode,
     zenMode,
     setZenMode,
+    updateTaskStatus,
+    updatingTasks,
   } = useAppStore();
 
   const project = getActiveProject();
   const sprint = project.sprints.find((s) => s.id === sprintId);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
+  const [pendingMove, setPendingMove] = useState<{
+    task: Task;
+    fromStatus: TaskStatus;
+    toStatus: TaskStatus;
+  } | null>(null);
 
   // Load persisted column state on mount
   useEffect(() => {
@@ -116,8 +124,26 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
     // handled in dragEnd
   };
 
-  const handleDragEnd = (_event: DragEndEvent) => {
+  const handleDragEnd = (event: DragEndEvent) => {
     setActiveTask(null);
+    const { active, over } = event;
+    if (!over) return;
+
+    const taskId = active.id as string;
+    const task = sprint.tasks.find((t) => t.id === taskId);
+    if (!task) return;
+
+    // The droppable ID is the column's TaskStatus
+    const newStatus = over.id as TaskStatus;
+    if (task.status === newStatus) return;
+
+    setPendingMove({ task, fromStatus: task.status, toStatus: newStatus });
+  };
+
+  const handleConfirmMove = () => {
+    if (!pendingMove) return;
+    updateTaskStatus(activeProjectId, sprintId, pendingMove.task.id, pendingMove.toStatus);
+    setPendingMove(null);
   };
 
   const handleBack = () => {
@@ -248,6 +274,7 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
                   color={col.color}
                   tasks={columnTasks[col.id] || []}
                   collapsed={shouldBeCollapsed || isColumnCollapsed}
+                  updatingTasks={updatingTasks}
                   onToggleCollapse={() => {
                     if (focusMode && !focusedColumnId) {
                       setFocusedColumn(col.id);
@@ -278,6 +305,20 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
       </div>
+
+      {/* Confirmation dialog for drag-drop status changes */}
+      <ActionConfirmDialog
+        open={pendingMove !== null}
+        onOpenChange={(open) => { if (!open) setPendingMove(null); }}
+        title="Move Task"
+        description={
+          pendingMove
+            ? `Move "${pendingMove.task.title}" from ${pendingMove.fromStatus.replace("_", " ")} to ${pendingMove.toStatus.replace("_", " ")}?`
+            : ""
+        }
+        actionLabel="Move"
+        onConfirm={handleConfirmMove}
+      />
     </div>
   );
 }
