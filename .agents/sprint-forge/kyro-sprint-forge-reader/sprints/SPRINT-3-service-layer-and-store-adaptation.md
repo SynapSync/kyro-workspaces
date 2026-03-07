@@ -65,7 +65,7 @@ Update the service layer contracts, file service implementations, and Zustand st
 
 **Tasks**:
 
-- [ ] **T1.1**: Update `CreateProjectInput` — replace `{id, name, description?, readme?}` with `{path: string; name?: string; color?: string}`. Update `UpdateProjectInput` to `{name?: string; color?: string}` (no more description/readme writes).
+- [x] **T1.1**: Update `CreateProjectInput` — replace `{id, name, description?, readme?}` with `{path: string; name?: string; color?: string}`. Update `UpdateProjectInput` to `{name?: string; color?: string}` (no more description/readme writes).
   - Files: `lib/services/types.ts`
   - Evidence: —
   - Verification: Type-check passes; no compile errors in consumers

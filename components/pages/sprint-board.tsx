@@ -128,6 +128,9 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
     // handled in dragEnd
   };
 
+  // Column IDs are TaskStatus values — used to distinguish column droppables from task sortables
+  const columnIds = useMemo(() => new Set(COLUMNS.map((c) => c.id as string)), []);
+
   const handleDragEnd = (event: DragEndEvent) => {
     setActiveTask(null);
     const { active, over } = event;
@@ -137,8 +140,18 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
     const task = sprint.tasks.find((t) => t.id === taskId);
     if (!task) return;
 
-    // The droppable ID is the column's TaskStatus
-    const newStatus = over.id as TaskStatus;
+    // over.id can be either a column ID (TaskStatus) or a task ID (from SortableContext).
+    // If it's a task ID, find which column that task belongs to.
+    let newStatus: TaskStatus;
+    if (columnIds.has(over.id as string)) {
+      newStatus = over.id as TaskStatus;
+    } else {
+      // Dropped on a task — find which column owns it
+      const targetTask = sprint.tasks.find((t) => t.id === over.id);
+      if (!targetTask) return;
+      newStatus = targetTask.status;
+    }
+
     if (task.status === newStatus) return;
 
     setPendingMove({ task, fromStatus: task.status, toStatus: newStatus });
