@@ -63,6 +63,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: "roadmap", label: "Roadmap", icon: Map, href: "/roadmap" },
   { id: "debt", label: "Debt", icon: AlertTriangle, href: "/debt" },
   { id: "documents", label: "Documents", icon: FolderOpen, href: "/documents" },
+  { id: "reentry", label: "Re-entry Prompts", icon: BookOpen, href: "/reentry" },
   { id: "agents", label: "Agents Activity", icon: Bot, href: "/agents" },
 ];
 

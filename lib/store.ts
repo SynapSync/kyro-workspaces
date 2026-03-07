@@ -56,6 +56,11 @@ interface AppState {
   roadmapLoading: Record<string, boolean>;
   loadRoadmap: (projectId: string) => Promise<void>;
 
+  // Re-entry Prompts (per-project, loaded on demand)
+  reentryPrompts: Record<string, string>;
+  reentryLoading: Record<string, boolean>;
+  loadReentryPrompts: (projectId: string) => Promise<void>;
+
   // Async initialization state
   isInitializing: boolean;
   initError: string | null;
@@ -208,6 +213,28 @@ export const useAppStore = create<AppState>()(
         roadmapLoading: { ...state.roadmapLoading, [projectId]: false },
       }));
       console.warn("[roadmap] Failed to load:", errorMsg(err));
+    }
+  },
+
+  // --- Re-entry Prompts ---
+
+  reentryPrompts: {},
+  reentryLoading: {},
+  loadReentryPrompts: async (projectId) => {
+    set((state) => ({
+      reentryLoading: { ...state.reentryLoading, [projectId]: true },
+    }));
+    try {
+      const content = await services.projects.getReentryPrompts(projectId);
+      set((state) => ({
+        reentryPrompts: { ...state.reentryPrompts, [projectId]: content },
+        reentryLoading: { ...state.reentryLoading, [projectId]: false },
+      }));
+    } catch (err) {
+      set((state) => ({
+        reentryLoading: { ...state.reentryLoading, [projectId]: false },
+      }));
+      console.warn("[reentry] Failed to load:", errorMsg(err));
     }
   },
 

@@ -770,6 +770,64 @@ export const mockRoadmapSprints: Record<string, { raw: string; sprints: RoadmapS
   },
 };
 
+// ─── Re-entry Prompts (per project) ──────────────────────────────────
+
+export const mockReentryPrompts: Record<string, string> = {
+  "proj-2": `# Futures DCA Bot v2 — Re-entry Prompts
+
+> Last updated: 2026-03-07
+> Current sprint: 5 (active)
+> Phase: 1 — Core Trading Engine
+
+These prompts help you recover full project context in a new session.
+
+---
+
+## Quick Reference
+
+| Sprint | Focus | Status |
+|--------|-------|--------|
+| 1 | Core trading engine | completed |
+| 2 | DCA + real-data backtest | completed |
+| 3 | Bidirectional S/R + multi-pair | completed |
+| 4 | Risk Engine completo | completed |
+| 5 | Live Trading Wiring | active |
+
+---
+
+## Scenario 1 — Continue Sprint 5 (Live Trading Wiring)
+
+Use this prompt to resume work on the active sprint.
+
+\`\`\`
+I'm continuing work on the Futures DCA Bot v2 project. Sprints 1-4 are complete. Currently on Sprint 5: Live Trading Wiring.
+
+Read these files in order:
+1. README.md
+2. ROADMAP.md (focus on Sprint 5 definition)
+3. sprints/SPRINT-4.md (Retro, Recommendations, Debt table)
+4. sprints/SPRINT-5.md (current progress)
+
+Key context: Using CCXT for exchange abstraction, WebSocket for real-time data. Order execution pipeline is 80% complete — missing retry logic. Position tracking needs integration with risk engine from Sprint 4.
+\`\`\`
+
+---
+
+## Scenario 2 — Check Project Status
+
+\`\`\`
+I need a status report on the Futures DCA Bot v2 project.
+
+Read these files:
+1. README.md
+2. ROADMAP.md
+3. All sprint files in sprints/
+
+Generate a status report showing: completed sprints, accumulated debt, metrics, and what's planned next.
+\`\`\`
+`,
+};
+
 export const teamMembers: TeamMember[] = [
   { name: "Alex Chen", avatar: "AC", color: "bg-blue-500" },
   { name: "Maya Patel", avatar: "MP", color: "bg-emerald-500" },

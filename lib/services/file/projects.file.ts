@@ -54,4 +54,11 @@ export class FileProjectsService implements ProjectsService {
     }>(`/api/projects/${projectId}/roadmap`);
     return roadmap;
   }
+
+  async getReentryPrompts(projectId: string): Promise<string> {
+    const { content } = await localFetch<{ content: string }>(
+      `/api/projects/${projectId}/reentry-prompts`
+    );
+    return content;
+  }
 }

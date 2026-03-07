@@ -4,7 +4,7 @@ import type {
   UpdateProjectInput,
 } from "../types";
 import type { Project, Finding, RoadmapSprintEntry } from "@/lib/types";
-import { mockProjects, mockFindings, mockRoadmapSprints } from "@/lib/mock-data";
+import { mockProjects, mockFindings, mockRoadmapSprints, mockReentryPrompts } from "@/lib/mock-data";
 import { mockDelay } from "./delay";
 import { slugFromPath } from "@/lib/utils";
 
@@ -63,5 +63,10 @@ export class MockProjectsService implements ProjectsService {
   async getRoadmap(projectId: string): Promise<{ raw: string; sprints: RoadmapSprintEntry[] }> {
     await mockDelay();
     return mockRoadmapSprints[projectId] ?? { raw: "", sprints: [] };
+  }
+
+  async getReentryPrompts(projectId: string): Promise<string> {
+    await mockDelay();
+    return mockReentryPrompts[projectId] ?? "";
   }
 }

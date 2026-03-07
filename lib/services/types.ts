@@ -53,6 +53,7 @@ export interface ProjectsService {
 
   getFindings(projectId: string): Promise<Finding[]>;
   getRoadmap(projectId: string): Promise<{ raw: string; sprints: RoadmapSprintEntry[] }>;
+  getReentryPrompts(projectId: string): Promise<string>;
 }
 
 export interface MembersService {
