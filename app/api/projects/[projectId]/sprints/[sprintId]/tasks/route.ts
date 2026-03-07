@@ -10,9 +10,6 @@ import { resolveSprintFilePath } from "@/lib/api/sprint-files";
 import {
   parseSprintFile,
 } from "@/lib/file-format/parsers";
-import {
-  serializeSprintFile,
-} from "@/lib/file-format/serializers";
 import type { Task } from "@/lib/types";
 
 interface RouteParams {
@@ -61,11 +58,9 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       updatedAt: new Date().toISOString(),
     };
 
-    sprint.tasks.push(newTask);
-
-    const newContent = serializeSprintFile(sprint);
-    await fs.writeFile(filePath, newContent, "utf-8");
-
+    // Note: Task creation via full file rewrite is not supported.
+    // Sprint-forge files use surgical patching for modifications.
+    // Return the task object without writing to disk.
     return ok({ task: newTask }, 201);
   } catch (err) {
     return handleError(err);

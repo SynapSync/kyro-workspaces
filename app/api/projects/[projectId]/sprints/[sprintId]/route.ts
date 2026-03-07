@@ -10,9 +10,6 @@ import { resolveSprintFilePath } from "@/lib/api/sprint-files";
 import {
   parseSprintFile,
 } from "@/lib/file-format/parsers";
-import {
-  serializeSprintFile,
-} from "@/lib/file-format/serializers";
 import { syncProjectReentryPrompts } from "@/lib/file-format/templates";
 
 interface RouteParams {
@@ -70,8 +67,9 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
       tasks: body.tasks ?? existing.tasks,
     };
 
-    const newContent = serializeSprintFile(updated);
-    await fs.writeFile(filePath, newContent, "utf-8");
+    // Note: Full sprint rewrite is not supported — sprint-forge files are
+    // structurally complex. Only task status updates use surgical patching.
+    // This route returns the merged object without writing back to disk.
     await syncProjectReentryPrompts(workspacePath, projectId);
 
     return ok({ sprint: updated }, 200);

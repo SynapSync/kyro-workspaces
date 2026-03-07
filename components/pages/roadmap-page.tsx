@@ -2,13 +2,16 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { FileText, Layers, Map } from "lucide-react";
+import { FileText, Layers, Map, Wand2 } from "lucide-react";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { EntitySkeleton } from "@/components/ui/entity-skeleton";
+import { SprintForgeWizard } from "@/components/dialogs/sprint-forge-wizard";
 import { useAppStore } from "@/lib/store";
+import { assembleSprintContext } from "@/lib/forge/context";
 import { SPRINT_TYPE_COLORS } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +19,7 @@ type RoadmapView = "sprints" | "document";
 
 export function RoadmapPage() {
   const [view, setView] = useState<RoadmapView>("sprints");
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   const {
     activeProjectId,
@@ -23,6 +27,9 @@ export function RoadmapPage() {
     roadmapLoading,
     loadRoadmap,
     getActiveProject,
+    findings,
+    findingsLoading,
+    loadFindings,
   } = useAppStore();
 
   const roadmap = roadmaps[activeProjectId];
@@ -41,6 +48,24 @@ export function RoadmapPage() {
     }
   }, [activeProjectId, roadmaps, loadRoadmap]);
 
+  // Load findings for the wizard (lazy)
+  useEffect(() => {
+    if (activeProjectId && !findings[activeProjectId] && !findingsLoading[activeProjectId]) {
+      loadFindings(activeProjectId);
+    }
+  }, [activeProjectId, findings, findingsLoading, loadFindings]);
+
+  const hasPendingSprints = sprints.some((s) => s.status !== "completed");
+
+  const forgeContext = useMemo(() => {
+    if (!project || !sprints.length) return null;
+    return assembleSprintContext(
+      project,
+      findings[activeProjectId] ?? [],
+      sprints,
+    );
+  }, [project, sprints, findings, activeProjectId]);
+
   const completedCount = sprints.filter((s) => s.status === "completed").length;
   const totalCount = sprints.length;
   const overallProgress = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
@@ -57,6 +82,20 @@ export function RoadmapPage() {
               Sprint plan from the project&apos;s ROADMAP.md
             </p>
           </div>
+
+          <div className="flex items-center gap-2">
+          {/* Generate Sprint button */}
+          {hasPendingSprints && (
+            <Button
+              size="sm"
+              variant="default"
+              onClick={() => setWizardOpen(true)}
+              className="gap-1.5"
+            >
+              <Wand2 className="h-3.5 w-3.5" />
+              Generate Next Sprint
+            </Button>
+          )}
 
           {/* View toggle */}
           {sprints.length > 0 && (
@@ -89,6 +128,7 @@ export function RoadmapPage() {
               </button>
             </div>
           )}
+          </div>
         </div>
       </div>
       <div className="flex-1 min-h-0 overflow-auto px-6 pb-6">
@@ -198,6 +238,12 @@ export function RoadmapPage() {
       )}
       </div>
       </div>
+
+      <SprintForgeWizard
+        open={wizardOpen}
+        onOpenChange={setWizardOpen}
+        context={forgeContext}
+      />
     </div>
   );
 }

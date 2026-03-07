@@ -5,7 +5,7 @@ updated: "2026-03-07"
 project: "kyro-sprint-forge-reader"
 type: "execution-plan"
 status: "active"
-version: "3.0"
+version: "4.0"
 agents:
   - "claude-opus-4-6"
 tags:
@@ -14,6 +14,9 @@ tags:
   - "reentry"
   - "sprint-forge"
 changelog:
+  - version: "4.0"
+    date: "2026-03-07"
+    changes: ["Updated after Sprint 9 completion — sprint forge trigger + D19 resolved"]
   - version: "3.0"
     date: "2026-03-07"
     changes: ["Updated after Sprint 8 completion — kanban persistence + write actions"]
@@ -31,7 +34,7 @@ related:
 # kyro-sprint-forge-reader — Re-entry Prompts
 
 > Last updated: 2026-03-07
-> Current sprint: 9 (next to generate)
+> Current sprint: 10 (next to generate)
 > Phase: 2 — From Viewer to Cockpit
 
 These prompts help you (or a new agent) recover full project context in a new session.
@@ -58,7 +61,7 @@ These prompts help you (or a new agent) recover full project context in a new se
 | 6 | `sprints/SPRINT-6-markdown-rendering-pipeline.md` | completed |
 | 7 | `sprints/SPRINT-7-universal-search-and-command-palette.md` | completed |
 | 8 | `sprints/SPRINT-8-kanban-persistence-and-write-actions.md` | completed |
-| 9 | (not yet generated) | pending |
+| 9 | `sprints/SPRINT-9-sprint-forge-trigger-and-prompt-composer.md` | completed |
 | 10 | (not yet generated) | pending |
 
 ---
@@ -70,33 +73,14 @@ These prompts help you (or a new agent) recover full project context in a new se
 | Codebase | `/Users/rperaza/joicodev/ideas/kyro` |
 | Working Directory | `/Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-sprint-forge-reader` |
 | Roadmap | `/Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-sprint-forge-reader/ROADMAP.md` |
-| Latest Sprint | `/Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-sprint-forge-reader/sprints/SPRINT-8-kanban-persistence-and-write-actions.md` |
+| Latest Sprint | `/Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-sprint-forge-reader/sprints/SPRINT-9-sprint-forge-trigger-and-prompt-composer.md` |
 | Growth-CEO Strategy | `/Users/rperaza/joicodev/ideas/kyro/.agents/growth-ceo/strategic-overview.md` |
 
 ---
 
-## Scenario 1 — Generate Sprint 9 (Sprint Forge Trigger)
+## Scenario 1 — Generate Sprint 10 (AI Instruction Layer)
 
-Use this prompt to continue Phase 2 with the sprint-forge trigger initiative.
-
-```
-I'm continuing work on the kyro-sprint-forge-reader project. Working on Phase 2 growth-ceo initiatives.
-
-Read these files in order:
-1. /Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-sprint-forge-reader/README.md
-2. /Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-sprint-forge-reader/ROADMAP.md (focus on Sprint 9 definition)
-3. /Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-sprint-forge-reader/sprints/SPRINT-8-kanban-persistence-and-write-actions.md (Retro, Recommendations, Debt table)
-4. /Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-sprint-forge-reader/findings/11-sprint-forge-trigger-from-kyro.md
-5. /Users/rperaza/joicodev/ideas/kyro/.agents/growth-ceo/initiatives/0003-sprint-forge-trigger.md
-
-Then use /sprint-forge to generate and execute Sprint 9. The sprint must add a "Generate Next Sprint" wizard on the roadmap page with prompt composition and clipboard copy, plus a project refresh mechanism.
-```
-
----
-
-## Scenario 2 — Generate Sprint 10 (AI Instruction Layer)
-
-Use this prompt after sprints 7, 8, and 9 are all complete (Sprint 10 depends on all three).
+Sprints 7-9 are all complete. Sprint 10 depends on all three.
 
 ```
 I'm continuing work on the kyro-sprint-forge-reader project. Sprints 7-9 are complete. Ready for Sprint 10 — the AI instruction layer.
@@ -104,7 +88,7 @@ I'm continuing work on the kyro-sprint-forge-reader project. Sprints 7-9 are com
 Read these files in order:
 1. /Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-sprint-forge-reader/README.md
 2. /Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-sprint-forge-reader/ROADMAP.md (focus on Sprint 10 definition)
-3. /Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-sprint-forge-reader/sprints/SPRINT-9-*.md (Retro, Recommendations, Debt table)
+3. /Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-sprint-forge-reader/sprints/SPRINT-9-sprint-forge-trigger-and-prompt-composer.md (Retro, Recommendations, Debt table)
 4. /Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-sprint-forge-reader/findings/09-live-search-and-cross-project-intelligence.md
 5. /Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-sprint-forge-reader/findings/10-command-bar-structured-actions-and-kanban-persistence.md
 6. /Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-sprint-forge-reader/findings/11-sprint-forge-trigger-from-kyro.md
@@ -114,7 +98,7 @@ Then use /sprint-forge to generate and execute Sprint 10. The sprint must add AI
 
 ---
 
-## Scenario 3 — Execute Existing Sprint
+## Scenario 2 — Execute Existing Sprint
 
 Use when a sprint has been generated but not yet executed.
 
@@ -131,7 +115,7 @@ Then use /sprint-forge to execute the sprint.
 
 ---
 
-## Scenario 4 — Check Project Status
+## Scenario 3 — Check Project Status
 
 ```
 I need a status report on the kyro-sprint-forge-reader project.

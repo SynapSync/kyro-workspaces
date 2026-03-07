@@ -16,6 +16,7 @@ import {
   Terminal,
   RefreshCw,
   ArrowRightLeft,
+  Wand2,
 } from "lucide-react";
 import {
   CommandDialog,
@@ -31,6 +32,8 @@ import { useAppStore } from "@/lib/store";
 import { NAV_ITEMS } from "@/lib/config";
 import { cn } from "@/lib/utils";
 import { useSearchIndex, groupByType, type SearchEntryType } from "@/lib/search";
+import { SprintForgeWizard } from "@/components/dialogs/sprint-forge-wizard";
+import { assembleSprintContext } from "@/lib/forge/context";
 
 type PaletteTab = "search" | "commands";
 
@@ -74,7 +77,10 @@ export function CommandPalette() {
     getActiveProject,
     updateTaskStatus,
     refreshProject,
+    roadmaps,
   } = useAppStore();
+
+  const [forgeWizardOpen, setForgeWizardOpen] = useState(false);
 
   // Sub-mode for "Update Task Status" action flow
   type ActionSubMode = "none" | "pick-task" | "pick-status";
@@ -110,6 +116,17 @@ export function CommandPalette() {
     { id: "blocked", label: "Blocked" },
     { id: "skipped", label: "Skipped" },
   ];
+
+  const forgeContext = useMemo(() => {
+    if (!activeProject) return null;
+    const roadmap = roadmaps[activeProjectId];
+    if (!roadmap) return null;
+    return assembleSprintContext(
+      activeProject,
+      findings[activeProjectId] ?? [],
+      roadmap.sprints,
+    );
+  }, [activeProject, activeProjectId, roadmaps, findings]);
 
   // Reset tab and sub-mode when palette opens
   useEffect(() => {
@@ -177,6 +194,11 @@ export function CommandPalette() {
     setCommandPaletteOpen(false);
   }, [activeProjectId, refreshProject, setCommandPaletteOpen]);
 
+  const handleOpenForgeWizard = () => {
+    setCommandPaletteOpen(false);
+    setForgeWizardOpen(true);
+  };
+
   const handleStartUpdateTask = () => {
     setActionSubMode("pick-task");
   };
@@ -200,6 +222,7 @@ export function CommandPalette() {
   };
 
   return (
+    <>
     <CommandDialog open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen}>
       {/* Toggle tab button — positioned next to the close (X) button */}
       <button
@@ -325,6 +348,12 @@ export function CommandPalette() {
                 <RefreshCw className="mr-2 h-4 w-4" />
                 <span>Refresh Project</span>
               </CommandItem>
+              {forgeContext && (
+                <CommandItem onSelect={handleOpenForgeWizard}>
+                  <Wand2 className="mr-2 h-4 w-4" />
+                  <span>Generate Sprint</span>
+                </CommandItem>
+              )}
             </CommandGroup>
 
             <CommandSeparator />
@@ -396,5 +425,12 @@ export function CommandPalette() {
         )}
       </CommandList>
     </CommandDialog>
+
+    <SprintForgeWizard
+      open={forgeWizardOpen}
+      onOpenChange={setForgeWizardOpen}
+      context={forgeContext}
+    />
+    </>
   );
 }

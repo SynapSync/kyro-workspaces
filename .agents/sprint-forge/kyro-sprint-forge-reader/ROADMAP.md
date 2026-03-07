@@ -115,7 +115,7 @@ Phase 2 sprints 7-9 are independent of each other (all build on the completed Ph
 | 6      | (user-reported bug)                                                     | 1.1.0   | bugfix   | Markdown rendering pipeline fix                        | Sprint 5     | completed |
 | 7      | `09-live-search`                                                        | 2.0.0   | feature  | Universal search + command palette enhancement         | Sprint 6     | completed |
 | 8      | `10-command-bar-actions`                                                 | 2.1.0   | feature  | Kanban persistence + structured write actions          | Sprint 6     | completed |
-| 9      | `11-sprint-forge-trigger`                                               | 2.2.0   | feature  | Sprint generation wizard + prompt composer             | Sprint 6     | pending   |
+| 9      | `11-sprint-forge-trigger`                                               | 2.2.0   | feature  | Sprint generation wizard + prompt composer             | Sprint 6     | completed |
 | 10     | `09`, `10`, `11` (convergence)                                          | 3.0.0   | feature  | AI instruction layer + autonomous agent loop           | Sprint 7-9   | pending   |
 
 ---

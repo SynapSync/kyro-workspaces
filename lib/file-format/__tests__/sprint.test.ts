@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { parseSprintFile } from "@/lib/file-format/parsers";
-import { serializeSprintFile } from "@/lib/file-format/serializers";
-import type { Sprint } from "@/lib/types";
+import { patchTaskStatusInMarkdown } from "@/lib/file-format/serializers";
 
 const SAMPLE_SPRINT_MD = `---
 id: sprint-01
@@ -80,41 +79,29 @@ describe("parseSprintFile", () => {
     expect(sprint.id).toBe("sprint-00");
   });
 
-  it("serializes tasks grouped by phase", () => {
-    const sprint: Sprint = {
-      id: "sprint-99",
-      name: "Grouped Sprint",
-      status: "planned",
-      objective: "Group by phase",
-      tasks: [
-        {
-          id: "t1",
-          title: "Setup repo",
-          description: "[phase:Phase 1: Setup]",
-          priority: "medium",
-          status: "todo",
-          tags: [],
-          createdAt: "2026-03-01T00:00:00Z",
-          updatedAt: "2026-03-01T00:00:00Z",
-        },
-        {
-          id: "t2",
-          title: "Run QA",
-          description: "[phase:Phase 2: QA]",
-          priority: "medium",
-          status: "todo",
-          tags: [],
-          createdAt: "2026-03-01T00:00:00Z",
-          updatedAt: "2026-03-01T00:00:00Z",
-        },
-      ],
-      sections: undefined,
-    };
+  it("patches task status with task ref (sprint-forge format)", () => {
+    const md = `### Phase 1\n\n- [ ] **T1.1**: Setup repo\n- [x] **T1.2**: Run tests\n`;
+    const patched = patchTaskStatusInMarkdown(md, "Setup repo", "done");
+    expect(patched).toContain("- [x] **T1.1**: Setup repo");
+    expect(patched).toContain("- [x] **T1.2**: Run tests");
+  });
 
-    const md = serializeSprintFile(sprint);
-    expect(md).toContain("### Phase 1: Setup");
-    expect(md).toContain("### Phase 2: QA");
-    expect(md).toContain("- [ ] Setup repo");
-    expect(md).toContain("- [ ] Run QA");
+  it("patches task status without task ref (simple format)", () => {
+    const md = `- [ ] Pending task\n- [x] Done task\n`;
+    const patched = patchTaskStatusInMarkdown(md, "Pending task", "in_progress");
+    expect(patched).toContain("- [~] Pending task");
+  });
+
+  it("returns content unchanged when no match found", () => {
+    const md = `- [ ] Some task\n`;
+    const patched = patchTaskStatusInMarkdown(md, "Nonexistent task", "done");
+    expect(patched).toBe(md);
+  });
+
+  it("patches correct task when multiple tasks have similar names", () => {
+    const md = `- [ ] **T1.1**: Create user service\n- [ ] **T1.2**: Create user controller\n`;
+    const patched = patchTaskStatusInMarkdown(md, "Create user controller", "done");
+    expect(patched).toContain("- [ ] **T1.1**: Create user service");
+    expect(patched).toContain("- [x] **T1.2**: Create user controller");
   });
 });

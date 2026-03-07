@@ -1,5 +1,5 @@
 import matter from "gray-matter";
-import type { Workspace, Sprint, Task, Document, TeamMember, AgentActivity } from "@/lib/types";
+import type { Workspace, Document, TeamMember, AgentActivity, SprintTaskSymbol } from "@/lib/types";
 import { STATUS_TO_SYMBOL } from "@/lib/types";
 
 // ---------------------------------------------------------------------------
@@ -43,68 +43,46 @@ export function serializeDocumentFile(doc: Document): string {
 }
 
 // ---------------------------------------------------------------------------
-// Sprint File  (projects/{slug}/sprints/SPRINT-NN.md)
+// Sprint File — Surgical Patch for Task Status Updates
 // ---------------------------------------------------------------------------
+// Instead of rewriting the entire sprint file (which would destroy sprint-forge
+// structure), this function performs a targeted find-replace on the checkbox
+// symbol for a specific task line.
 
-function taskToSymbol(task: Task): string {
-  const symbol = STATUS_TO_SYMBOL[task.status] ?? " ";
-  return `- [${symbol}] ${task.title}`;
-}
+/**
+ * Patches a single task's checkbox status in raw sprint markdown content.
+ *
+ * Matches lines like:
+ *   - [x] **T1.1**: Task title here
+ *   - [ ] Task title here
+ *   - [~] **TE.2**: Another task
+ *
+ * @param content  Raw markdown string of the sprint file
+ * @param taskTitle  The task title to search for (matched as substring)
+ * @param newStatus  The TaskStatus to set
+ * @returns The patched content, or the original content if no match found
+ */
+export function patchTaskStatusInMarkdown(
+  content: string,
+  taskTitle: string,
+  newStatus: string,
+): string {
+  const newSymbol: SprintTaskSymbol = STATUS_TO_SYMBOL[newStatus as keyof typeof STATUS_TO_SYMBOL] ?? " ";
 
-function phaseFromTask(task: Task): string {
-  const description = task.description?.trim();
-  if (!description) return "General";
+  // Escape special regex characters in the task title
+  const escaped = taskTitle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-  const match = description.match(/^\[phase:(.+?)\]/i);
-  if (!match) return "General";
+  // Match: - [any_single_char] optional_bold_task_ref task_title
+  // The checkbox is always a single character between [ and ]
+  const pattern = new RegExp(
+    `^(\\s*- \\[)[^\\]](\\]\\s+(?:\\*\\*\\w[\\w.]*\\*\\*:\\s*)?${escaped})`,
+    "m",
+  );
 
-  return match[1].trim() || "General";
-}
+  const match = content.match(pattern);
+  if (!match) return content;
 
-export function serializeSprintFile(sprint: Sprint): string {
-  const grouped = new Map<string, string[]>();
-  for (const task of sprint.tasks) {
-    const phase = phaseFromTask(task);
-    const existing = grouped.get(phase) ?? [];
-    existing.push(taskToSymbol(task));
-    grouped.set(phase, existing);
-  }
-
-  const taskBlocks =
-    grouped.size > 0
-      ? [...grouped.entries()]
-          .map(([phase, lines]) => `### ${phase}\n${lines.join("\n")}`)
-          .join("\n\n")
-      : "_(sin tareas aún)_";
-
-  const body = `# ${sprint.name}
-
-## Objetivo
-${sprint.objective ?? ""}
-
-## Tareas
-${taskBlocks}
-
-## Retrospectiva
-
-### Qué funcionó bien
-
-### Qué no funcionó
-
-### Deuda técnica nueva
-
-### Recomendaciones para el próximo sprint
-`;
-
-  return matter.stringify(body, {
-    id: sprint.id,
-    name: sprint.name,
-    status: sprint.status,
-    ...(sprint.startDate ? { startDate: sprint.startDate } : {}),
-    ...(sprint.endDate ? { endDate: sprint.endDate } : {}),
-    ...(sprint.version ? { version: sprint.version } : {}),
-    ...(sprint.objective ? { objective: sprint.objective } : {}),
-  });
+  return content.replace(pattern, `$1${newSymbol}$2`);
 }
 
 // ---------------------------------------------------------------------------
