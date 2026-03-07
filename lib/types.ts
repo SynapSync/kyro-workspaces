@@ -87,6 +87,7 @@ export const FindingSchema = z.object({
   affectedFiles: z.array(z.string()),
   recommendations: z.array(z.string()),
   linkedSprints: z.array(z.string()).optional(),
+  rawContent: z.string().optional(),
 });
 
 export const DebtStatusSchema = z.enum([

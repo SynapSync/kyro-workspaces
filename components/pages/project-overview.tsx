@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { InlineMarkdown } from "@/components/inline-markdown";
 import {
   CheckCircle2,
   ListTodo,
@@ -78,9 +79,9 @@ export function ProjectOverviewPage() {
         <h1 className="text-2xl font-bold tracking-tight text-foreground">
           {project.name}
         </h1>
-        <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed max-w-2xl">
-          {project.description}
-        </p>
+        <div className="mt-1.5 text-sm text-muted-foreground leading-relaxed text-justify">
+          <InlineMarkdown content={project.description} />
+        </div>
       </div>
       <div className="flex-1 min-h-0 overflow-auto px-6 pb-6">
       <div className="max-w-5xl">

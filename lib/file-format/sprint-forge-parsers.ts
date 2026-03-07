@@ -530,6 +530,7 @@ export function parseFindingFile(
     details: sections["Details"] ?? "",
     affectedFiles,
     recommendations,
+    rawContent: content,
   };
 }
 

@@ -2,11 +2,19 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, FileCode, Search, X } from "lucide-react";
+import { ArrowLeft, FileCode, FileText, Search, X } from "lucide-react";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
+import { InlineMarkdown } from "@/components/inline-markdown";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { EntitySkeleton } from "@/components/ui/entity-skeleton";
 import { useAppStore } from "@/lib/store";
 import { FINDING_SEVERITY_COLORS } from "@/lib/config";
@@ -16,18 +24,33 @@ import { cn } from "@/lib/utils";
 const SEVERITY_OPTIONS: FindingSeverity[] = ["critical", "high", "medium", "low"];
 
 function FindingDetail({ finding, onBack }: { finding: Finding; onBack: () => void }) {
+  const [viewRaw, setViewRaw] = useState(false);
+
   return (
     <div className="flex h-full flex-col">
       <div className="shrink-0 px-6 pt-6 pb-4">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="mb-3 -ml-2 text-muted-foreground"
-          onClick={onBack}
-        >
-          <ArrowLeft className="h-4 w-4 mr-1" />
-          Back to findings
-        </Button>
+        <div className="flex items-center justify-between mb-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="-ml-2 text-muted-foreground"
+            onClick={onBack}
+          >
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Back to findings
+          </Button>
+          {finding.rawContent && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => setViewRaw(true)}
+            >
+              <FileText className="h-3.5 w-3.5" />
+              View Raw
+            </Button>
+          )}
+        </div>
         <div className="flex items-center gap-3">
           <span className="text-xs font-mono text-muted-foreground">
             #{String(finding.number).padStart(2, "0")}
@@ -42,7 +65,9 @@ function FindingDetail({ finding, onBack }: { finding: Finding; onBack: () => vo
             {finding.severity}
           </Badge>
         </div>
-        <p className="text-sm text-muted-foreground mt-2">{finding.summary}</p>
+        <div className="text-sm text-muted-foreground mt-2">
+          <InlineMarkdown content={finding.summary} />
+        </div>
       </div>
       <div className="flex-1 min-h-0 overflow-auto px-6 pb-6">
       <div className="max-w-4xl">
@@ -81,13 +106,27 @@ function FindingDetail({ finding, onBack }: { finding: Finding; onBack: () => vo
           <h2 className="text-sm font-semibold text-foreground mb-2">Recommendations</h2>
           <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
             {finding.recommendations.map((rec, i) => (
-              <li key={i}>{rec}</li>
+              <li key={i}><InlineMarkdown content={rec} /></li>
             ))}
           </ol>
         </div>
       )}
       </div>
       </div>
+
+      {/* Raw markdown modal */}
+      <Dialog open={viewRaw} onOpenChange={setViewRaw}>
+        <DialogContent className="sm:max-w-5xl h-[85vh] flex flex-col !p-0 !gap-0">
+          <DialogHeader className="px-6 py-4 border-b border-border shrink-0">
+            <DialogTitle>#{String(finding.number).padStart(2, "0")} {finding.title} — Raw Markdown</DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="flex-1 min-h-0">
+            <div className="px-6 py-6">
+              <MarkdownRenderer content={finding.rawContent ?? ""} />
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -258,9 +297,9 @@ export function FindingsPage() {
                         {finding.severity}
                       </Badge>
                     </div>
-                    <p className="text-xs text-muted-foreground line-clamp-2">
-                      {finding.summary}
-                    </p>
+                    <div className="text-xs text-muted-foreground line-clamp-2">
+                      <InlineMarkdown content={finding.summary} />
+                    </div>
                     {finding.affectedFiles.length > 0 && (
                       <p className="text-[10px] text-muted-foreground mt-1 font-mono">
                         {finding.affectedFiles.length} affected file{finding.affectedFiles.length !== 1 ? "s" : ""}
