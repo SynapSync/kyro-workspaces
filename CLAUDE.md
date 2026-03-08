@@ -17,6 +17,11 @@ pnpm test:watch           # Vitest in watch mode
 pnpm test:e2e             # Playwright E2E (auto-starts dev server on :4173)
 ```
 
+### Agent Rule: Build Execution
+
+- Do **not** run `pnpm build` automatically after completing code changes.
+- Run `pnpm build` only when the user explicitly requests a build.
+
 Run a single test:
 ```bash
 pnpm vitest run lib/file-format/__tests__/registry.test.ts

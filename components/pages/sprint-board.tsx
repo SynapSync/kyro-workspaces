@@ -14,7 +14,7 @@ import {
   type DragEndEvent,
   type DragOverEvent,
 } from "@dnd-kit/core";
-import { ArrowLeft, FileText, Focus, EyeOff } from "lucide-react";
+import { ArrowLeft, FileText, Focus, EyeOff, Ban, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BoardColumn } from "@/components/kanban/board-column";
@@ -265,7 +265,78 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
 
       {/* Board */}
       <div className="flex-1 min-h-0 overflow-x-auto overflow-y-hidden">
-        <div className="flex gap-4 p-6 h-full">
+        <div className="flex h-full min-w-max flex-col px-6">
+          {/* Column Headers — fixed row, never scrolls vertically */}
+          <div className="flex shrink-0 gap-4 pt-4 pb-2">
+            {COLUMNS.filter(col => {
+              if (zenMode) return ZEN_COLUMNS.includes(col.id);
+              if (focusMode && focusedColumnId) return col.id === focusedColumnId;
+              return true;
+            }).map((col) => {
+              const isColumnCollapsed = collapsedColumns[`${sprintId}-${col.id}`] ?? false;
+              const shouldBeCollapsed = zenMode || (focusMode && focusedColumnId && focusedColumnId !== col.id);
+              const isCollapsed = shouldBeCollapsed || isColumnCollapsed;
+              const colTasks = columnTasks[col.id] || [];
+              const blockedCount = colTasks.filter((t) => t.tags.includes("blocked")).length;
+
+              return (
+                <div
+                  key={col.id}
+                  className={cn(
+                    "flex shrink-0 items-center gap-2 px-2 transition-all duration-300 ease-in-out",
+                    isCollapsed ? "w-16" : "w-72"
+                  )}
+                >
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 shrink-0"
+                    onClick={() => {
+                      if (focusMode && !focusedColumnId) {
+                        setFocusedColumn(col.id);
+                      } else if (focusedColumnId === col.id) {
+                        setFocusedColumn(null);
+                      } else {
+                        toggleColumnCollapsed(sprintId, col.id);
+                      }
+                    }}
+                  >
+                    {isCollapsed ? (
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    ) : (
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    )}
+                  </Button>
+                  {!isCollapsed && (
+                    <>
+                      <div className={cn("h-2 w-2 rounded-full", col.color)} />
+                      <h3 className="text-sm font-semibold text-foreground">{col.title}</h3>
+                      <span className="text-xs text-muted-foreground ml-auto">
+                        {colTasks.length}
+                      </span>
+                      {blockedCount > 0 && (
+                        <Badge variant="destructive" className="h-5 text-[10px] gap-1">
+                          <Ban className="h-2.5 w-2.5" />
+                          {blockedCount}
+                        </Badge>
+                      )}
+                    </>
+                  )}
+                  {isCollapsed && (
+                    <div className="flex flex-col items-center gap-2 w-full">
+                      <div className={cn("h-2 w-2 rounded-full", col.color)} />
+                      <Badge variant="secondary" className="h-6 w-6 p-0 flex items-center justify-center">
+                        {colTasks.length}
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Column Content — each column scrolls independently */}
+          <div className="flex flex-1 min-h-0 gap-4 pb-4">
             <DndContext
               sensors={sensors}
               collisionDetection={closestCorners}
@@ -282,26 +353,27 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
                 const shouldBeCollapsed = zenMode || (focusMode && focusedColumnId && focusedColumnId !== col.id);
 
                 return (
-                <BoardColumn
-                  key={col.id}
-                  id={col.id}
-                  title={col.title}
-                  color={col.color}
-                  tasks={columnTasks[col.id] || []}
-                  collapsed={shouldBeCollapsed || isColumnCollapsed}
-                  updatingTasks={updatingTasks}
-                  onToggleCollapse={() => {
-                    if (focusMode && !focusedColumnId) {
-                      setFocusedColumn(col.id);
-                    } else if (focusedColumnId === col.id) {
-                      setFocusedColumn(null);
-                    } else {
-                      toggleColumnCollapsed(sprintId, col.id);
-                    }
-                  }}
-                  onEditTask={() => {}}
-                  onDeleteTask={() => {}}
-                />
+                  <BoardColumn
+                    key={col.id}
+                    id={col.id}
+                    title={col.title}
+                    color={col.color}
+                    tasks={columnTasks[col.id] || []}
+                    collapsed={shouldBeCollapsed || isColumnCollapsed}
+                    hideHeader
+                    updatingTasks={updatingTasks}
+                    onToggleCollapse={() => {
+                      if (focusMode && !focusedColumnId) {
+                        setFocusedColumn(col.id);
+                      } else if (focusedColumnId === col.id) {
+                        setFocusedColumn(null);
+                      } else {
+                        toggleColumnCollapsed(sprintId, col.id);
+                      }
+                    }}
+                    onEditTask={() => {}}
+                    onDeleteTask={() => {}}
+                  />
                 );
               })}
               <DragOverlay>
@@ -316,6 +388,7 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
                 ) : null}
               </DragOverlay>
             </DndContext>
+          </div>
         </div>
       </div>
 
