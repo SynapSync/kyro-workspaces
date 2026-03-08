@@ -8,8 +8,10 @@ import { AppTopbar } from "@/components/app-topbar";
 import { CommandPalette } from "@/components/command-palette";
 import { WorkspaceOnboarding } from "@/components/workspace-onboarding";
 import { useAppStore } from "@/lib/store";
+import { useRealtimeSync } from "@/hooks/use-realtime-sync";
 
 function WorkspaceShell({ children }: { children: React.ReactNode }) {
+  useRealtimeSync();
   const {
     isInitializing,
     initError,

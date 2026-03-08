@@ -7,8 +7,8 @@ agents:
 
 # kyro-evolution — Re-entry Prompts
 
-> Last updated: 2026-03-07
-> Current sprint: 3 (completed)
+> Last updated: 2026-03-08
+> Current sprint: 4 (completed)
 
 These prompts help you (or a new agent) recover full project context in a new session.
 
@@ -31,7 +31,7 @@ This is where all sprint-forge documents for this project live. All file paths b
 | 1 | `sprints/SPRINT-1-ast-writer.md` | completed |
 | 2 | `sprints/SPRINT-2-e2e-ai-tests.md` | completed |
 | 3 | `sprints/SPRINT-3-url-routing-ssr.md` | completed |
-| 4 | `sprints/SPRINT-4-sqlite-index-file-watcher.md` | pending |
+| 4 | `sprints/SPRINT-4-sqlite-index-file-watcher.md` | completed |
 | 5 | `sprints/SPRINT-5-action-chaining.md` | pending |
 
 ---
@@ -43,41 +43,41 @@ This is where all sprint-forge documents for this project live. All file paths b
 | Codebase | `/Users/rperaza/joicodev/ideas/kyro` |
 | Working Directory | `/Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-evolution` |
 | Roadmap | `/Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-evolution/ROADMAP.md` |
-| Latest Sprint | `/Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-evolution/sprints/SPRINT-3-url-routing-ssr.md` |
+| Latest Sprint | `/Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-evolution/sprints/SPRINT-4-sqlite-index-file-watcher.md` |
 
 ---
 
-## Scenario 1 — Next Sprint (Sprint 4)
+## Scenario 1 — Next Sprint (Sprint 5)
 
-Use this prompt to generate Sprint 4.
+Use this prompt to generate Sprint 5.
 
 ```
-I'm continuing work on the kyro-evolution project. Sprint 3 (SSR Data Fetching & Routing Consolidation) has been completed.
+I'm continuing work on the kyro-evolution project. Sprint 4 (SQLite Index + File Watcher) has been completed.
 
 Read these files in order:
 1. /Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-evolution/README.md
 2. /Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-evolution/ROADMAP.md
-3. /Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-evolution/sprints/SPRINT-3-url-routing-ssr.md (pay attention to Retro, Recommendations, and Debt table)
+3. /Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-evolution/sprints/SPRINT-4-sqlite-index-file-watcher.md (pay attention to Retro, Recommendations, and Debt table)
 
-Then use /sprint-forge to generate Sprint 4. Ensure all recommendations from Sprint 3
+Then use /sprint-forge to generate Sprint 5. Ensure all recommendations from Sprint 4
 are addressed in the Disposition table.
 ```
 
 ---
 
-## Scenario 2 — Execute Current Sprint
+## Scenario 2 — Execute Sprint 5
 
-Use this prompt when a sprint has been generated but not yet executed.
+Use this prompt after Sprint 5 is generated.
 
 ```
-I'm working on the kyro-evolution project. Sprint 4 has been generated and needs execution.
+I'm working on the kyro-evolution project. Sprint 5 has been generated and needs execution.
 
 Read these files in order:
 1. /Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-evolution/README.md
 2. /Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-evolution/ROADMAP.md
-3. /Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-evolution/sprints/SPRINT-4-sqlite-index-file-watcher.md
+3. /Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-evolution/sprints/SPRINT-5-action-chaining.md
 
-Then use /sprint-forge to execute Sprint 4. Work through each phase and task,
+Then use /sprint-forge to execute Sprint 5. Work through each phase and task,
 marking progress as you go. Add emergent phases if new work is discovered.
 ```
 

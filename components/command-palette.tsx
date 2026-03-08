@@ -31,7 +31,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAppStore } from "@/lib/store";
 import { NAV_ITEMS } from "@/lib/config";
 import { cn } from "@/lib/utils";
-import { useSearchIndex, groupByType, type SearchEntryType } from "@/lib/search";
+import { useSearchIndex, groupByType, type SearchEntryType, type SearchEntry } from "@/lib/search";
 import { SprintForgeWizard } from "@/components/dialogs/sprint-forge-wizard";
 import { assembleSprintContext } from "@/lib/forge/context";
 import type { ActionIntent, ProjectContext } from "@/lib/ai/interpret";
@@ -95,8 +95,46 @@ export function CommandPalette() {
     sprintId: string;
   } | null>(null);
 
-  const searchIndex = useSearchIndex(projects, findings);
-  const grouped = useMemo(() => groupByType(searchIndex), [searchIndex]);
+  const clientSearchIndex = useSearchIndex(projects, findings);
+  const clientGrouped = useMemo(() => groupByType(clientSearchIndex), [clientSearchIndex]);
+
+  // Server-side FTS5 search (debounced)
+  const [serverResults, setServerResults] = useState<SearchEntry[] | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setServerResults(null);
+      return;
+    }
+
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+
+    searchTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(searchQuery.trim())}&limit=50`);
+        if (res.ok) {
+          const { results } = await res.json();
+          setServerResults(results as SearchEntry[]);
+        }
+      } catch {
+        // Server search unavailable — client-side fallback active
+      }
+    }, 200);
+
+    return () => {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    };
+  }, [searchQuery]);
+
+  // Use server results when available, otherwise client-side
+  const grouped = useMemo(() => {
+    if (serverResults && searchQuery.trim()) {
+      return groupByType(serverResults);
+    }
+    return clientGrouped;
+  }, [serverResults, searchQuery, clientGrouped]);
 
   // Get tasks from active project's sprints for the task picker
   const activeProject = getActiveProject();
@@ -140,6 +178,8 @@ export function CommandPalette() {
       setAiResult(null);
       setAiError(null);
       setAiPending(false);
+      setServerResults(null);
+      setSearchQuery("");
     }
   }, [commandPaletteOpen]);
 
@@ -330,7 +370,7 @@ export function CommandPalette() {
             ? "Search tasks, findings, sprints, debt..."
             : "Type a command..."
         }
-        onValueChange={(v) => { inputRef.current = v; }}
+        onValueChange={(v) => { inputRef.current = v; if (activeTab === "search") setSearchQuery(v); }}
       />
 
       {/* Tab switcher — hidden, toggle via icon button next to close */}

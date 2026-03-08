@@ -11,9 +11,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
+import { SprintProgressBar } from "@/components/sprint/sprint-progress-bar";
 import { useAppStore } from "@/lib/store";
-import { SPRINT_SECTIONS, SPRINT_STATUS_CONFIG } from "@/lib/config";
+import { SPRINT_SECTIONS, SPRINT_STATUS_CONFIG, computeSprintProgress } from "@/lib/config";
 import { type SprintStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -43,12 +43,8 @@ export function SprintsPage() {
         {project.sprints.map((sprint) => {
           const config = SPRINT_STATUS_CONFIG[sprint.status];
           const Icon = statusIcons[sprint.status];
-          const doneTasks = sprint.tasks.filter(
-            (t) => t.status === "done"
-          ).length;
-          const totalTasks = sprint.tasks.length;
-          const progress =
-            totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
+          const progressData = computeSprintProgress(sprint.tasks);
+          const totalTasks = progressData.totalTasks;
 
           const filledSections = SPRINT_SECTIONS.filter(
             (s) =>
@@ -128,17 +124,7 @@ export function SprintsPage() {
                   </p>
                 )}
 
-                {totalTasks > 0 && (
-                  <div>
-                    <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
-                      <span>Progress</span>
-                      <span>
-                        {doneTasks}/{totalTasks} completed ({progress}%)
-                      </span>
-                    </div>
-                    <Progress value={progress} className="h-1.5" />
-                  </div>
-                )}
+                <SprintProgressBar data={progressData} status={sprint.status} />
 
                 {/* Section dots */}
                 {filledSections.length > 0 && (

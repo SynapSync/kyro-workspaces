@@ -217,6 +217,32 @@ export const FINDING_SEVERITY_COLORS: Record<string, string> = {
   info: "bg-muted text-muted-foreground",
 };
 
+// --- Sprint Progress ---
+
+export interface SprintProgressData {
+  totalTasks: number;
+  doneTasks: number;
+  addressedTasks: number;
+  sprintProgress: number;
+  completionRate: number;
+}
+
+export function computeSprintProgress(tasks: { status: string }[]): SprintProgressData {
+  const totalTasks = tasks.length;
+  const doneTasks = tasks.filter((t) => t.status === "done").length;
+  const addressedTasks = tasks.filter((t) => t.status !== "pending" && t.status !== "in_progress").length;
+  const sprintProgress = totalTasks > 0 ? Math.round((addressedTasks / totalTasks) * 100) : 0;
+  const completionRate = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
+  return { totalTasks, doneTasks, addressedTasks, sprintProgress, completionRate };
+}
+
+export function getCompletionRateStyle(rate: number): string {
+  if (rate >= 100) return "border-green-500/30 bg-green-500/10 text-green-600";
+  if (rate >= 90) return "border-blue-500/30 bg-blue-500/10 text-blue-600";
+  if (rate >= 80) return "border-yellow-500/30 bg-yellow-500/10 text-yellow-600";
+  return "border-red-500/30 bg-red-500/10 text-red-600";
+}
+
 // --- Finding Impact Colors (Findings Consolidation) ---
 
 export const FINDING_IMPACT_COLORS: Record<string, string> = {

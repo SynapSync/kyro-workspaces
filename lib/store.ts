@@ -300,6 +300,10 @@ export const useAppStore = create<AppState>()(
   },
 
   refreshProject: async (projectId) => {
+    // Skip refresh while tasks are being written — avoids overwriting optimistic updates
+    const hasPendingWrites = Object.values(get().updatingTasks).some(Boolean);
+    if (hasPendingWrites) return;
+
     try {
       const project = await services.projects.getProject(projectId);
       if (!project) return;

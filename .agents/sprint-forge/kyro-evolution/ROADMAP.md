@@ -102,8 +102,8 @@ Sprint 5 depends on Sprint 4 (action chaining benefits from instant queries).
 |--------|--------------|---------|------|-------|-------------|--------|
 | 1 | `01-ast-writer-regex-replacement.md` | 3.1.0 | refactor | Replace regex writes with AST-based markdown manipulation | — | completed |
 | 2 | `02-e2e-tests-outdated.md`, `06-inherited-debt.md` (D21) | 3.1.1 | debt | Fix E2E tests + add AI integration tests | Sprint 1 | completed |
-| 3 | `03-url-routing-ssr.md` | 3.2.0 | refactor | SSR data fetching & routing consolidation (URL routing already complete) | Sprint 2 | active |
-| 4 | `04-sqlite-index-file-watcher.md` | 3.3.0 | feature | SQLite derived index + file watcher for auto-refresh | Sprint 3 | pending |
+| 3 | `03-url-routing-ssr.md` | 3.2.0 | refactor | SSR data fetching & routing consolidation (URL routing already complete) | Sprint 2 | completed |
+| 4 | `04-sqlite-index-file-watcher.md` | 3.3.0 | feature | SQLite derived index + file watcher for auto-refresh | Sprint 3 | completed |
 | 5 | `05-action-chaining.md`, `06-inherited-debt.md` (D22) | 3.4.0 | feature | AI multi-step action chains | Sprint 4 | pending |
 
 ---

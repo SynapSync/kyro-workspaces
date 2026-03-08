@@ -96,6 +96,6 @@ If you are an AI agent resuming work on this project, read these files in order:
 |--------|--------|-------|-----------------|
 | 1 | completed | AST Writer | `lib/file-format/ast-writer.ts` — hybrid AST+positional replacement, 4 functions, 32 tests |
 | 2 | completed | E2E + AI Tests | Restored Playwright suite (30 tests), AI integration tests (D21) — 193 unit + 30 E2E tests |
-| 3 | active | SSR Data Fetching & Consolidation | Server Components, D6/D7 fixes, updateFrontmatterField(), CLAUDE.md update |
-| 4 | pending | SQLite Index + File Watcher | Derived index, FTS5 search, auto-refresh |
+| 3 | completed | SSR Data Fetching & Consolidation | Server Components, D6/D7 fixes, updateFrontmatterField(), CLAUDE.md update |
+| 4 | completed | SQLite Index + File Watcher | SQLite derived index (7 tables, 4 FTS5), file watcher, SSE push, 243 unit tests |
 | 5 | pending | Action Chaining | Multi-step AI chains from Cmd+K (D22) |

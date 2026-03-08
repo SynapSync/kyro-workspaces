@@ -77,12 +77,19 @@ Kyro is a **viewer + cockpit** for sprint-forge project directories. It renders 
 
 ```
 Filesystem (sprint-forge dirs)
+  → lib/file-format/ parses markdown into typed structures
+  → lib/index/ (SQLite) derived index for instant queries + FTS5 search
   → API routes (app/api/) read/write markdown files
-    → lib/file-format/ parses markdown into typed structures
-    → lib/file-format/ast-writer.ts writes via AST manipulation
-      → lib/services/ (file/ or mock/) provides data to the store
-        → lib/store.ts (Zustand) holds client state + UI preferences
-          → components/pages/ render views via App Router
+  → lib/file-format/ast-writer.ts writes via AST manipulation
+  → lib/services/ (file/ or mock/) provides data to the store
+  → lib/store.ts (Zustand) holds client state + UI preferences
+  → components/pages/ render views via App Router
+
+SQLite Index (lib/index/):
+  Startup → initIndex() scans all projects, parses markdown, populates SQLite
+  File change → file-watcher detects → reindexFile() updates SQLite → SSE push
+  Search → /api/search queries FTS5 → results to command palette
+  Markdown remains source of truth — SQLite rebuilds from files if deleted
 ```
 
 ### App Layout
@@ -150,6 +157,8 @@ Navigation uses Next.js App Router with URL-based routing. All navigation state 
 | `/api/projects/[id]/roadmap` | GET | Parsed ROADMAP.md |
 | `/api/members` | GET, POST | Team members |
 | `/api/activities` | GET, POST | Activity log |
+| `/api/search` | GET | Full-text search via SQLite FTS5 (`?q=query&type=task&project=id`) |
+| `/api/events` | GET (SSE) | Server-Sent Events for real-time index updates |
 
 Routes use `getWorkspacePath()` + `resolveAndGuard()` (prevents directory traversal) + `handleError()` for consistent error responses.
 
@@ -208,6 +217,8 @@ Components consume via `import { services } from "@/lib/services"` — never imp
 ## Modules & Project Structure
 
 ```
+instrumentation.ts              # Next.js instrumentation hook — initializes SQLite index on startup
+
 app/
 ├── layout.tsx              # Root: HTML shell + metadata
 ├── globals.css             # Tailwind v4 entry (theme, plugins, base)
@@ -243,6 +254,13 @@ lib/
 │   ├── serializers.ts      # Domain entities → markdown/JSON
 │   ├── registry.ts         # Project registry CRUD (.kyro/projects.json)
 │   └── templates.ts        # Default workspace/project README templates
+├── index/                  # SQLite derived index (ephemeral — rebuilds from markdown)
+│   ├── sqlite.ts           # Database singleton, schema, FTS5 virtual tables
+│   ├── builder.ts          # initIndex(), reindexFile(), reindexProject()
+│   ├── queries.ts          # Typed query wrappers + FTS5 searchIndex()
+│   ├── file-watcher.ts     # fs.watch() with debounce → reindex → SSE push
+│   ├── startup.ts          # ensureIndex() — lazy init with graceful degradation
+│   └── index.ts            # Barrel exports
 ├── api/                    # API route helpers
 │   ├── errors.ts           # WorkspaceError class with codes → HTTP status mapping
 │   ├── response-helpers.ts # ok(), notFound(), handleError(), validateBody()
@@ -273,6 +291,7 @@ components/
 
 hooks/
 ├── use-mobile.ts           # Mobile breakpoint detection
+├── use-realtime-sync.ts    # SSE subscription for real-time index updates
 └── use-toast.ts            # Toast notifications (wraps sonner)
 ```
 

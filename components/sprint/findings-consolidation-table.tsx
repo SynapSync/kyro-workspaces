@@ -30,8 +30,8 @@ export function FindingsConsolidationTable({ entries }: FindingsConsolidationTab
           </tr>
         </thead>
         <tbody>
-          {entries.map((entry) => (
-            <tr key={entry.number} className="border-b last:border-0">
+          {entries.map((entry, index) => (
+            <tr key={`${entry.number}-${index}`} className="border-b last:border-0">
               <td className="px-4 py-2.5 text-muted-foreground">{entry.number}</td>
               <td className="px-4 py-2.5"><InlineMarkdown content={entry.finding} /></td>
               <td className="px-4 py-2.5 text-muted-foreground text-xs">{entry.originPhase}</td>

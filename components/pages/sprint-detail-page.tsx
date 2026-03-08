@@ -16,13 +16,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Progress } from "@/components/ui/progress";
+import { SprintProgressBar } from "@/components/sprint/sprint-progress-bar";
 import { DispositionTable } from "@/components/sprint/disposition-table";
 import { DebtTable } from "@/components/sprint/debt-table";
 import { DoDChecklist } from "@/components/sprint/dod-checklist";
 import { FindingsConsolidationTable } from "@/components/sprint/findings-consolidation-table";
 import { PhasesList } from "@/components/sprint/phases-list";
 import { useAppStore } from "@/lib/store";
+import { computeSprintProgress } from "@/lib/config";
 import { SPRINT_SECTIONS, SPRINT_SECTION_ICONS, SPRINT_STATUS_CONFIG, AGENT_BADGE_STYLE } from "@/lib/config";
 import type { SprintSectionKey } from "@/lib/config";
 import type { SprintMarkdownSections } from "@/lib/types";
@@ -61,10 +62,7 @@ export function SprintDetailPage({ sprintId }: SprintDetailPageProps) {
   const prevSprint = sprintIndex > 0 ? project.sprints[sprintIndex - 1] : null;
   const nextSprint = sprintIndex < project.sprints.length - 1 ? project.sprints[sprintIndex + 1] : null;
 
-  const doneTasks = sprint.tasks.filter((t) => t.status === "done").length;
-  const totalTasks = sprint.tasks.length;
-  const computedProgress = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
-  const progress = sprint.progress ?? computedProgress;
+  const progressData = computeSprintProgress(sprint.tasks);
 
   const filledSections = SPRINT_SECTIONS.filter(
     (s) => sprint.sections?.[s.key] && (sprint.sections[s.key] ?? "").trim().length > 0
@@ -167,7 +165,7 @@ export function SprintDetailPage({ sprintId }: SprintDetailPageProps) {
               </div>
               <div className="flex items-center gap-3 mt-0.5">
                 <span className="text-xs text-muted-foreground">
-                  {totalTasks} tasks
+                  {progressData.totalTasks} tasks
                 </span>
                 <span className="text-xs text-muted-foreground">
                   {filledSections}/{SPRINT_SECTIONS.length} sections documented
@@ -215,17 +213,7 @@ export function SprintDetailPage({ sprintId }: SprintDetailPageProps) {
           </div>
         </div>
 
-        {totalTasks > 0 && (
-          <div className="mt-4 max-w-3xl">
-            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-              <span>Sprint Progress</span>
-              <span>
-                {doneTasks}/{totalTasks} ({progress}%)
-              </span>
-            </div>
-            <Progress value={progress} className="h-1.5" />
-          </div>
-        )}
+        <SprintProgressBar data={progressData} status={sprint.status} className="mt-4 max-w-3xl" />
       </div>
 
       {/* Content: section tabs + viewer */}
