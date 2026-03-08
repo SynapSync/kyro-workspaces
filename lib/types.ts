@@ -4,13 +4,12 @@ import { z } from "zod";
 
 export const TaskPrioritySchema = z.enum(["low", "medium", "high", "urgent"]);
 export const TaskStatusSchema = z.enum([
-  "backlog",
-  "todo",
+  "pending",
   "in_progress",
-  "review",
   "done",
   "blocked",
   "skipped",
+  "carry_over",
 ]);
 export const SprintStatusSchema = z.enum(["planned", "active", "closed"]);
 export const AgentActionTypeSchema = z.enum([
@@ -31,6 +30,11 @@ export const TaskSchema = z.object({
   tags: z.array(z.string()),
   createdAt: z.string(),
   updatedAt: z.string(),
+  // Sprint-forge extensions (optional for backward compatibility)
+  taskRef: z.string().optional(), // e.g. "T1.1", "TE.1"
+  files: z.array(z.string()).optional(),
+  evidence: z.string().optional(),
+  verification: z.string().optional(),
 });
 
 export const ColumnSchema = z.object({
@@ -44,12 +48,96 @@ export const ColumnSchema = z.object({
 // accumulated tech debt, execution metrics, findings, and recommendations.
 
 export const SprintMarkdownSectionsSchema = z.object({
-  retrospective: z.string().optional(),
+  sprintObjective: z.string().optional(),
+  disposition: z.string().optional(),
+  phases: z.string().optional(),
+  emergentPhases: z.string().optional(),
+  findingsConsolidation: z.string().optional(),
   technicalDebt: z.string().optional(),
-  executionMetrics: z.string().optional(),
-  findings: z.string().optional(),
+  definitionOfDone: z.string().optional(),
+  retrospective: z.string().optional(),
   recommendations: z.string().optional(),
 });
+
+// --- Sprint-Forge Domain Types ---
+
+export const SprintTypeSchema = z.enum([
+  "audit",
+  "refactor",
+  "feature",
+  "bugfix",
+  "debt",
+]);
+
+export const FindingSeveritySchema = z.enum([
+  "critical",
+  "high",
+  "medium",
+  "low",
+]);
+
+export const FindingSchema = z.object({
+  id: z.string(),
+  number: z.number(),
+  title: z.string(),
+  summary: z.string(),
+  severity: FindingSeveritySchema,
+  details: z.string(),
+  affectedFiles: z.array(z.string()),
+  recommendations: z.array(z.string()),
+  linkedSprints: z.array(z.string()).optional(),
+  rawContent: z.string().optional(),
+});
+
+export const DebtStatusSchema = z.enum([
+  "open",
+  "in-progress",
+  "resolved",
+  "deferred",
+  "carry-over",
+]);
+
+export const DebtItemSchema = z.object({
+  number: z.number(),
+  item: z.string(),
+  origin: z.string(),
+  sprintTarget: z.string(),
+  status: DebtStatusSchema,
+  resolvedIn: z.string().optional(),
+});
+
+export const PhaseSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  objective: z.string(),
+  isEmergent: z.boolean(),
+  tasks: z.array(TaskSchema),
+});
+
+export const DispositionActionSchema = z.enum([
+  "incorporated",
+  "deferred",
+  "resolved",
+  "n/a",
+  "converted-to-phase",
+]);
+
+export const DispositionEntrySchema = z.object({
+  number: z.number(),
+  recommendation: z.string(),
+  action: DispositionActionSchema,
+  where: z.string(),
+  justification: z.string(),
+});
+
+export const FindingsConsolidationEntrySchema = z.object({
+  number: z.number(),
+  finding: z.string(),
+  originPhase: z.string(),
+  impact: z.enum(["high", "medium", "low"]),
+  actionTaken: z.string(),
+});
+
 
 export const SprintSchema = z.object({
   id: z.string(),
@@ -59,8 +147,37 @@ export const SprintSchema = z.object({
   endDate: z.string().optional(),
   version: z.string().optional(),
   objective: z.string().optional(),
+  sprintType: SprintTypeSchema.optional(),
   tasks: z.array(TaskSchema),
   sections: SprintMarkdownSectionsSchema.optional(),
+  rawContent: z.string().optional(),
+  // Sprint-forge structured data (optional — populated when parsed from sprint-forge files)
+  source: z.string().optional(),
+  previousSprint: z.string().optional(),
+  phases: z.array(PhaseSchema).optional(),
+  disposition: z.array(DispositionEntrySchema).optional(),
+  debtItems: z.array(DebtItemSchema).optional(),
+  findingsConsolidation: z.array(FindingsConsolidationEntrySchema).optional(),
+  definitionOfDone: z.array(z.string()).optional(),
+  carryOverCount: z.number().optional(),
+  executionDate: z.string().optional(),
+  executedBy: z.string().optional(),
+  agents: z.array(z.string()).optional(),
+  updatedAt: z.string().optional(),
+  progress: z.number().optional(),
+  previousDoc: z.string().optional(),
+  nextDoc: z.string().optional(),
+});
+
+export const RoadmapSprintEntrySchema = z.object({
+  number: z.number(),
+  sprintId: z.string(),
+  findingSource: z.string(),
+  version: z.string(),
+  type: SprintTypeSchema,
+  focus: z.string(),
+  dependencies: z.array(z.string()),
+  status: z.string(),
 });
 
 export const DocumentSchema = z.object({
@@ -81,6 +198,22 @@ export const ProjectSchema = z.object({
   sprints: z.array(SprintSchema),
   createdAt: z.string(),
   updatedAt: z.string(),
+});
+
+// --- Project Registry (external directory pointers) ---
+
+export const ProjectRegistryEntrySchema = z.object({
+  id: z.string(),
+  name: z.string().min(1),
+  path: z.string().min(1),
+  color: z.string().optional(),
+  addedAt: z.string(),
+  lastOpenedAt: z.string().optional(),
+});
+
+export const ProjectRegistrySchema = z.object({
+  version: z.number(),
+  projects: z.array(ProjectRegistryEntrySchema),
 });
 
 export const TeamMemberSchema = z.object({
@@ -124,6 +257,22 @@ export type Document = z.infer<typeof DocumentSchema>;
 export type Project = z.infer<typeof ProjectSchema>;
 export type AgentActivity = z.infer<typeof AgentActivitySchema>;
 
+// Sprint-forge types
+export type SprintType = z.infer<typeof SprintTypeSchema>;
+export type FindingSeverity = z.infer<typeof FindingSeveritySchema>;
+export type Finding = z.infer<typeof FindingSchema>;
+export type DebtStatus = z.infer<typeof DebtStatusSchema>;
+export type DebtItem = z.infer<typeof DebtItemSchema>;
+export type Phase = z.infer<typeof PhaseSchema>;
+export type DispositionAction = z.infer<typeof DispositionActionSchema>;
+export type DispositionEntry = z.infer<typeof DispositionEntrySchema>;
+export type FindingsConsolidationEntry = z.infer<
+  typeof FindingsConsolidationEntrySchema
+>;
+export type RoadmapSprintEntry = z.infer<typeof RoadmapSprintEntrySchema>;
+export type ProjectRegistryEntry = z.infer<typeof ProjectRegistryEntrySchema>;
+export type ProjectRegistry = z.infer<typeof ProjectRegistrySchema>;
+
 // --- Activities Diagnostics ---
 
 export type ActivityRetentionSource = "default" | "env" | "default_invalid_env";
@@ -159,7 +308,6 @@ export interface SprintSectionMeta {
   key: keyof SprintMarkdownSections;
   label: string;
   description: string;
-  placeholder: string;
 }
 
 // --- Markdown Format ---
@@ -195,31 +343,29 @@ export type Workspace = z.infer<typeof WorkspaceSchema>;
 // --- Sprint Task Symbol System ---
 // Maps the checkbox symbols used in sprint markdown files to TaskStatus values.
 
-export type SprintTaskSymbol = " " | "_" | "~" | "x" | "!" | "-" | ">";
+export type SprintTaskSymbol = " " | "~" | "x" | "!" | "-" | ">";
 
 export const SYMBOL_TO_STATUS: Record<SprintTaskSymbol, TaskStatus> = {
-  " ": "todo",        // [ ] Pending
-  "_": "backlog",     // [_] Backlog
+  " ": "pending",     // [ ] Pending
   "~": "in_progress", // [~] In Progress
   "x": "done",        // [x] Done
   "!": "blocked",     // [!] Blocked
   "-": "skipped",     // [-] Skipped
-  ">": "todo",        // [>] Carry-over (becomes todo in next sprint)
+  ">": "carry_over",  // [>] Carry-over
 };
 
 export function symbolToStatus(symbol: string): TaskStatus {
   if (symbol in SYMBOL_TO_STATUS) {
     return SYMBOL_TO_STATUS[symbol as SprintTaskSymbol];
   }
-  return "todo";
+  return "pending";
 }
 
-export const STATUS_TO_SYMBOL: Partial<Record<TaskStatus, SprintTaskSymbol>> = {
-  todo:        " ",
-  in_progress: "~",
-  done:        "x",
-  blocked:     "!",
-  skipped:     "-",
-  backlog:     "_",
-  review:      "~",
+export const STATUS_TO_SYMBOL: Record<TaskStatus, SprintTaskSymbol> = {
+  pending:      " ",
+  in_progress:  "~",
+  done:         "x",
+  blocked:      "!",
+  skipped:      "-",
+  carry_over:   ">",
 };

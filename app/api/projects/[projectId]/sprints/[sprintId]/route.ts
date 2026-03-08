@@ -10,9 +10,7 @@ import { resolveSprintFilePath } from "@/lib/api/sprint-files";
 import {
   parseSprintFile,
 } from "@/lib/file-format/parsers";
-import {
-  serializeSprintFile,
-} from "@/lib/file-format/serializers";
+import { patchSprintStatusInMarkdown } from "@/lib/file-format/serializers";
 import { syncProjectReentryPrompts } from "@/lib/file-format/templates";
 
 interface RouteParams {
@@ -70,8 +68,12 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
       tasks: body.tasks ?? existing.tasks,
     };
 
-    const newContent = serializeSprintFile(updated);
-    await fs.writeFile(filePath, newContent, "utf-8");
+    // Surgical patch: only modify sprint status in the raw markdown
+    if (body.status && body.status !== existing.status) {
+      const patched = patchSprintStatusInMarkdown(existingContent, body.status);
+      await fs.writeFile(filePath, patched, "utf-8");
+    }
+
     await syncProjectReentryPrompts(workspacePath, projectId);
 
     return ok({ sprint: updated }, 200);

@@ -10,9 +10,7 @@ import { resolveSprintFilePath } from "@/lib/api/sprint-files";
 import {
   parseSprintFile,
 } from "@/lib/file-format/parsers";
-import {
-  serializeSprintFile,
-} from "@/lib/file-format/serializers";
+import { appendTaskToMarkdown } from "@/lib/file-format/serializers";
 import type { Task } from "@/lib/types";
 
 interface RouteParams {
@@ -54,17 +52,16 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       title: body.title ?? "New Task",
       description: body.description,
       priority: body.priority ?? "medium",
-      status: body.status ?? "todo",
+      status: body.status ?? "pending",
       assignee: body.assigneeId,
       tags: body.tags ?? [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
-    sprint.tasks.push(newTask);
-
-    const newContent = serializeSprintFile(sprint);
-    await fs.writeFile(filePath, newContent, "utf-8");
+    // Surgical patch: append task line to the last phase's task list
+    const patched = appendTaskToMarkdown(content, newTask.title, body.taskRef);
+    await fs.writeFile(filePath, patched, "utf-8");
 
     return ok({ task: newTask }, 201);
   } catch (err) {

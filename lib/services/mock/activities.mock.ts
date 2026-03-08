@@ -1,25 +1,18 @@
 import type { ActivitiesService, CreateActivityInput } from "../types";
 import type { ActivitiesListResult } from "@/lib/types";
 import { mockActivities } from "@/lib/mock-data";
-
-const DELAY_MS =
-  typeof process !== "undefined"
-    ? Number(process.env.NEXT_PUBLIC_MOCK_DELAY_MS ?? 0)
-    : 0;
-
-const delay = (ms: number) =>
-  ms > 0 ? new Promise((r) => setTimeout(r, ms)) : Promise.resolve();
+import { mockDelay } from "./delay";
 
 const inMemoryActivities = [...mockActivities];
 
 export class MockActivitiesService implements ActivitiesService {
   async list(): Promise<ActivitiesListResult> {
-    await delay(DELAY_MS);
+    await mockDelay();
     return { activities: inMemoryActivities, diagnostics: null };
   }
 
   async createActivity(data: CreateActivityInput) {
-    await delay(DELAY_MS);
+    await mockDelay();
     const activity = {
       id: `mock-act-${Date.now().toString(36)}`,
       projectId: data.projectId,

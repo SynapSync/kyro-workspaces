@@ -33,12 +33,6 @@ export type { AppServices, ProjectsService, MembersService, ActivitiesService } 
 export type {
   CreateProjectInput,
   UpdateProjectInput,
-  CreateSprintInput,
-  UpdateSprintInput,
-  CreateTaskInput,
-  UpdateTaskInput,
-  CreateDocumentInput,
-  UpdateDocumentInput,
   CreateMemberInput,
   UpdateMemberInput,
   CreateActivityInput,

@@ -2,7 +2,8 @@ import * as fs from "fs/promises";
 import {
   WorkspaceError,
   fileExists,
-  resolveAndGuard,
+  resolveProjectPath,
+  resolveProjectRoot,
 } from "@/lib/api";
 import { parseSprintFile } from "@/lib/file-format/parsers";
 
@@ -22,12 +23,13 @@ export async function resolveSprintFilePath(
   projectId: string,
   sprintId: string
 ): Promise<string> {
-  const sprintsDir = resolveAndGuard(workspacePath, "projects", projectId, "sprints");
+  const projectRoot = await resolveProjectRoot(workspacePath, projectId);
+  const sprintsDir = resolveProjectPath(projectRoot, "sprints");
   if (!(await fileExists(sprintsDir))) {
     throw new WorkspaceError("NOT_FOUND", "Sprint not found");
   }
 
-  const directPath = resolveAndGuard(sprintsDir, `${sprintId}.md`);
+  const directPath = resolveProjectPath(sprintsDir, `${sprintId}.md`);
   if (await fileExists(directPath)) {
     return directPath;
   }
@@ -36,7 +38,7 @@ export async function resolveSprintFilePath(
   for (const entry of entries) {
     if (!entry.isFile() || !entry.name.endsWith(".md")) continue;
 
-    const filePath = resolveAndGuard(sprintsDir, entry.name);
+    const filePath = resolveProjectPath(sprintsDir, entry.name);
     const basename = entry.name.replace(/\.md$/i, "");
     if (basename === sprintId) {
       return filePath;
@@ -61,7 +63,8 @@ export async function buildCanonicalSprintFileName(
   projectId: string,
   sprintName: string
 ): Promise<string> {
-  const sprintsDir = resolveAndGuard(workspacePath, "projects", projectId, "sprints");
+  const projectRoot = await resolveProjectRoot(workspacePath, projectId);
+  const sprintsDir = resolveProjectPath(projectRoot, "sprints");
   const entries = await fs.readdir(sprintsDir, { withFileTypes: true });
 
   let maxNumber = 0;
@@ -80,7 +83,7 @@ export async function buildCanonicalSprintFileName(
   let fileName = `${base}.md`;
   let suffix = 2;
 
-  while (await fileExists(resolveAndGuard(sprintsDir, fileName))) {
+  while (await fileExists(resolveProjectPath(sprintsDir, fileName))) {
     fileName = `${base}-${suffix}.md`;
     suffix += 1;
   }

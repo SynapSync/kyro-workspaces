@@ -7,26 +7,44 @@ export type SprintRecord = {
   name: string;
   status: "planned" | "active" | "closed";
   objective?: string;
+  sprintType?: string;
   tasks: unknown[];
   startDate?: string;
   endDate?: string;
   version?: string;
+  phases?: unknown[];
+  debtItems?: unknown[];
+  sections?: Record<string, string>;
+};
+
+export type FindingRecord = {
+  id: string;
+  number: number;
+  title: string;
+  summary: string;
+  severity: string;
+  details: string;
+  affectedFiles: string[];
+  recommendations: string[];
 };
 
 /**
  * Registers common API route mocks shared across E2E specs.
  *
  * Stubs: /api/workspace, /api/projects (single project "Alpha"),
- * /api/projects/proj-1/sprints (GET list + POST create),
- * /api/projects/proj-1/documents, /api/members.
- *
- * The `sprints` array is mutated in-place by POST handlers so callers can
- * inspect created sprints after test actions.
+ * /api/projects/proj-1/sprints, /api/projects/proj-1/findings,
+ * /api/projects/proj-1/roadmap, /api/members, /api/activities.
  */
 export async function setupCommonRoutes(
   page: Page,
-  sprints: SprintRecord[] = []
+  options: {
+    sprints?: SprintRecord[];
+    findings?: FindingRecord[];
+  } = {}
 ): Promise<void> {
+  const sprints = options.sprints ?? [];
+  const findings = options.findings ?? [];
+
   await page.route("**/api/workspace", async (route) => {
     await route.fulfill({
       status: 200,
@@ -55,8 +73,10 @@ export async function setupCommonRoutes(
             {
               id: "proj-1",
               name: "Alpha",
-              description: "",
+              description: "Test project",
               readme: "# Alpha",
+              documents: [],
+              sprints,
               createdAt: now,
               updatedAt: now,
             },
@@ -67,49 +87,36 @@ export async function setupCommonRoutes(
   });
 
   await page.route("**/api/projects/proj-1/sprints", async (route) => {
-    const method = route.request().method();
-    if (method === "GET") {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({ data: { sprints } }),
-      });
-      return;
-    }
-
-    if (method === "POST") {
-      const payload = route.request().postDataJSON() as {
-        id: string;
-        name: string;
-        status?: "planned" | "active" | "closed";
-        objective?: string;
-        startDate?: string;
-        endDate?: string;
-        version?: string;
-      };
-      const created: SprintRecord = {
-        id: payload.id,
-        name: payload.name,
-        status: payload.status ?? "planned",
-        objective: payload.objective,
-        tasks: [],
-        startDate: payload.startDate,
-        endDate: payload.endDate,
-        version: payload.version,
-      };
-      sprints.push(created);
-      await route.fulfill({
-        status: 201,
-        contentType: "application/json",
-        body: JSON.stringify({ data: { sprint: created } }),
-      });
-      return;
-    }
-
     await route.fulfill({
-      status: 405,
+      status: 200,
       contentType: "application/json",
-      body: JSON.stringify({ error: { message: `Unsupported method ${method}` } }),
+      body: JSON.stringify({ data: { sprints } }),
+    });
+  });
+
+  await page.route("**/api/projects/proj-1/findings", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ data: { findings } }),
+    });
+  });
+
+  await page.route("**/api/projects/proj-1/roadmap", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        data: {
+          roadmap: {
+            raw: "# Roadmap",
+            sprints: [
+              { number: 1, findingSource: "01", version: "0.1.0", type: "refactor", focus: "Foundation", dependencies: [], status: "completed" },
+              { number: 2, findingSource: "02", version: "0.2.0", type: "feature", focus: "UI Polish", dependencies: ["Sprint 1"], status: "pending" },
+            ],
+          },
+        },
+      }),
     });
   });
 
@@ -126,6 +133,14 @@ export async function setupCommonRoutes(
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({ data: { members: [] } }),
+    });
+  });
+
+  await page.route("**/api/activities", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ data: { activities: [], diagnostics: null } }),
     });
   });
 }

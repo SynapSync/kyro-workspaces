@@ -1,6 +1,5 @@
-import type { Project, AgentActivity, Task, Sprint, TeamMember } from "./types";
+import type { Project, AgentActivity, Task, Finding, RoadmapSprintEntry, TeamMember } from "./types";
 
-const now = new Date().toISOString();
 const hoursAgo = (h: number) =>
   new Date(Date.now() - h * 60 * 60 * 1000).toISOString();
 const daysAgo = (d: number) =>
@@ -39,7 +38,7 @@ const cleverTasks: Task[] = [
     description:
       "Build sign up, sign in, password reset, and email verification using Supabase Auth.",
     priority: "urgent",
-    status: "review",
+    status: "in_progress",
     assignee: "Alex Chen",
     tags: ["auth", "backend"],
     createdAt: daysAgo(10),
@@ -75,7 +74,7 @@ const cleverTasks: Task[] = [
     description:
       "Connect the AI agent service that can auto-create tasks, suggest priorities, and summarize sprints.",
     priority: "medium",
-    status: "todo",
+    status: "pending",
     assignee: "Alex Chen",
     tags: ["ai", "backend"],
     createdAt: daysAgo(5),
@@ -87,7 +86,7 @@ const cleverTasks: Task[] = [
     description:
       "Create a rich markdown editor with live preview for project documents and README.",
     priority: "medium",
-    status: "todo",
+    status: "pending",
     assignee: "Maya Patel",
     tags: ["frontend", "editor"],
     createdAt: daysAgo(4),
@@ -99,7 +98,7 @@ const cleverTasks: Task[] = [
     description:
       "Implement WebSocket connections for live updates when team members modify tasks or documents.",
     priority: "low",
-    status: "backlog",
+    status: "pending",
     assignee: undefined,
     tags: ["feature", "backend"],
     createdAt: daysAgo(3),
@@ -111,7 +110,7 @@ const cleverTasks: Task[] = [
     description:
       "Build charts and metrics for sprint velocity, burndown, and team productivity.",
     priority: "low",
-    status: "backlog",
+    status: "pending",
     assignee: undefined,
     tags: ["analytics", "frontend"],
     createdAt: daysAgo(2),
@@ -123,7 +122,7 @@ const cleverTasks: Task[] = [
     description:
       "Configure Jest and React Testing Library with tests for core components and API routes.",
     priority: "medium",
-    status: "backlog",
+    status: "pending",
     assignee: "Jordan Liu",
     tags: ["testing", "devops"],
     createdAt: daysAgo(1),
@@ -135,7 +134,7 @@ const cleverTasks: Task[] = [
     description:
       "Build in-app notifications for task assignments, mentions, and sprint updates.",
     priority: "medium",
-    status: "todo",
+    status: "pending",
     assignee: "Jordan Liu",
     tags: ["feature", "frontend"],
     createdAt: hoursAgo(20),
@@ -147,7 +146,7 @@ const cleverTasks: Task[] = [
     description:
       "Add rate limiting to API endpoints and perform a security audit of the authentication system.",
     priority: "high",
-    status: "todo",
+    status: "pending",
     assignee: "Alex Chen",
     tags: ["security", "backend"],
     createdAt: hoursAgo(12),
@@ -236,7 +235,7 @@ const botTasks: Task[] = [
     description:
       "Wire up WebSocket feed, multi-pair loop, and state management for real-time trading.",
     priority: "urgent",
-    status: "todo",
+    status: "pending",
     assignee: undefined,
     tags: ["live-trading", "core"],
     createdAt: daysAgo(1),
@@ -248,7 +247,7 @@ const botTasks: Task[] = [
     description:
       "Trade state must survive process restarts. Implement SQLite storage layer.",
     priority: "high",
-    status: "backlog",
+    status: "pending",
     assignee: undefined,
     tags: ["persistence", "infrastructure"],
     createdAt: daysAgo(1),
@@ -260,7 +259,7 @@ const botTasks: Task[] = [
     description:
       "Validate Risk Engine with drawdowns > 10% using 2022 crypto winter period.",
     priority: "medium",
-    status: "backlog",
+    status: "pending",
     assignee: undefined,
     tags: ["backtest", "risk-engine"],
     createdAt: daysAgo(1),
@@ -272,7 +271,7 @@ const botTasks: Task[] = [
     description:
       "Notifications for trade_open, trade_close, stop_loss, drawdown_red events.",
     priority: "low",
-    status: "backlog",
+    status: "pending",
     assignee: undefined,
     tags: ["notifications", "integration"],
     createdAt: daysAgo(1),
@@ -408,7 +407,7 @@ All API routes require a valid JWT token in the Authorization header.
         tasks: cleverTasks.filter((t) => ["task-1", "task-2"].includes(t.id)),
         sections: {
           retrospective: `## What Went Well\n\n- Repository setup was clean and fast\n- Design system tokens defined early prevented inconsistencies\n\n## What Didn't Go Well\n\n- Took longer than expected to settle on component library\n\n## Surprises\n\n- shadcn/ui + Radix combination worked better than anticipated`,
-          findings: `## Key Findings\n\n1. **shadcn/ui DX**: Component composition is excellent for rapid prototyping\n2. **Tailwind v4**: New @theme inline pattern simplifies token management`,
+          findingsConsolidation: `## Key Findings\n\n1. **shadcn/ui DX**: Component composition is excellent for rapid prototyping\n2. **Tailwind v4**: New @theme inline pattern simplifies token management`,
         },
       },
       {
@@ -535,8 +534,7 @@ Both systems feed \`sizeMultiplier\` into \`SignalContext\`. Effective multiplie
         sections: {
           retrospective: `## What Went Well\n\n- Bidirectional trading working correctly with SMA200 filter\n- S/R auto-detection produces clean zones\n- Multi-pair (SOL, BTC, ETH) added without major refactoring\n\n## What Didn't Go Well\n\n- SHORT trades losing money in SOL (-$38.25) and BTC (-$6.63)\n- Swing profile uses wrong entry TF (5m instead of 15m)\n\n## Surprises\n\n- ETH SHORT was profitable (+$17.86) while SOL/BTC were not`,
           technicalDebt: `| # | Item | Origin | Priority | Status |\n|---|------|--------|----------|--------|\n| D5 | DrawdownMonitor not included | Sprint 1 | HIGH | open |\n| D13 | 30m TF not evaluated | Sprint 2 | MEDIUM | deferred |\n| D17 | DCA trade count reduction | Sprint 2 | MEDIUM | open |\n| D19 | R:R asymmetric in volatile pairs | Sprint 2 | MEDIUM | deferred |\n| D20 | SHORT SL underperformance | Sprint 3 | HIGH | open |\n| D21 | Swing TF override not applied | Sprint 3 | HIGH | open |`,
-          executionMetrics: `## Test Results\n- Tests: 262 total\n- New files: 8\n- Modified files: 12\n\n## Backtest Results (Oct 2025 - Feb 2026)\n| Par | Trades | WR | PnL | Max DD |\n|-----|--------|----|-----|--------|\n| SOL | 31 | 38.7% | -$20.02 | 0.83% |\n| BTC | 22 | 45.5% | +$52.34 | 0.45% |\n| ETH | 27 | 37.0% | +$17.86 | 0.67% |`,
-          findings: `## Key Findings\n\n1. **SMA200 filter works**: In bear market, 100% of signals were SHORT. Correct behavior.\n2. **SHORT underperformance**: SOL SHORT losing -$38.25. ATR multiplier 2x too wide for shorts.\n3. **ETH resilience**: ETH SHORT profitable despite lower WR, thanks to better R:R.\n4. **S/R detection quality**: Auto-detected zones align well with visual chart analysis.`,
+          findingsConsolidation: `## Key Findings\n\n1. **SMA200 filter works**: In bear market, 100% of signals were SHORT. Correct behavior.\n2. **SHORT underperformance**: SOL SHORT losing -$38.25. ATR multiplier 2x too wide for shorts.\n3. **ETH resilience**: ETH SHORT profitable despite lower WR, thanks to better R:R.\n4. **S/R detection quality**: Auto-detected zones align well with visual chart analysis.`,
           recommendations: `## Recommendations for Sprint 4\n\n1. **[CRITICAL] Risk Engine** (D5): Implement DrawdownMonitor + CircuitBreaker + Time Stop\n2. **[HIGH] SHORT SL optimization** (D20): Test ATR multiplier 1.5x for SHORT\n3. **[MEDIUM] D17 investigation**: DCA trade count reduction root cause\n4. **[MEDIUM] D21 fix**: Swing profile TF override in backtest script\n5. **[DEFERRED] 30m TF** (D13): Evaluate in Sprint 5`,
         },
       },
@@ -591,29 +589,8 @@ Both systems feed \`sizeMultiplier\` into \`SignalContext\`. Effective multiplie
 | D17 | DCA trade count investigation | Sprint 2 | LOW | open |
 | D20 | SHORT SL A/B test formal | Sprint 3 | MEDIUM | open |
 | D22 | Risk Engine stress-test DD > 10% | Sprint 4 | MEDIUM | **new** |`,
-          executionMetrics: `## Sprint Metrics
-
-- **Tests**: 305 total (+43 Sprint 4)
-  - DrawdownMonitor: 17 tests
-  - CircuitBreaker: 16 tests
-  - Time Stop: 8 tests
-  - SHORT SL: 3 tests
-- **New files**: DrawdownMonitor.ts, CircuitBreaker.ts, + test files
-- **Modified files**: types.ts, SignalDetector.ts, TradeManager.ts, BacktestRunner.ts, backtest.ts, config.json
-
-## Backtest Results (Bear Market Oct 2025 - Feb 2026)
-
-| Par | Trades | WR | PnL | Max DD | PF | Notes |
-|-----|--------|----|-----|--------|-----|-------|
-| SOLUSDT | 18 | 44.4% | +$25.59 | 0.60% | 1.23 | All SHORT (downtrend) |
-| BTCUSDT | 14 | 64.3% | +$87.17 | 0.17% | 2.85 | 1 time stop active |
-| ETHUSDT | 19 | 42.1% | +$17.86 | 0.67% | 1.15 | All SHORT (downtrend) |
-
-**Baseline Sprint 3 SOL**: -$20.02 -> Sprint 4: +$25.59 (+$45.61 improvement)
-Risk engine in GREEN zone entire period (DD < 1% < 10% yellow threshold).`,
-          findings: `## Key Findings
-
-1. **Risk Engine did not activate**: Max DD was < 1% across all pairs during bear market. The engine is implemented but was not needed. Need a period with drawdown > 10% to validate in action.
+          sprintObjective: `Implementar el Risk Engine completo que protege al bot contra drawdown y cascada de perdidas.`,
+          findingsConsolidation: `1. **Risk Engine did not activate**: Max DD was < 1% across all pairs during bear market. The engine is implemented but was not needed. Need a period with drawdown > 10% to validate in action.
 2. **atr_multiplier_short=1.5 vs 2.0**: With 1.5 the SHORT SL is tighter. In bear market this helped (smaller stops). Pending formal A/B test.
 3. **D21 fix confirmed**: Now \`--profile swing\` applies timeframes 15m/4H/1D correctly.
 4. **Time Stop in BTC**: 1 trade closed by time stop in BTC. Correct behavior.
@@ -748,6 +725,108 @@ export const mockActivities: AgentActivity[] = [
     timestamp: daysAgo(1),
   },
 ];
+
+// ─── Findings (per project) ──────────────────────────────────────────
+
+export const mockFindings: Record<string, Finding[]> = {
+  "proj-2": [
+    {
+      id: "f-01",
+      number: 1,
+      title: "SHORT SL Underperformance",
+      summary: "SHORT stop-loss using same ATR multiplier as LONG leads to wider stops and worse risk-reward in downtrending markets.",
+      severity: "high",
+      details: "ATR multiplier of 2.0x for SHORT trades results in SL too wide. SOL SHORT lost -$38.25 in Sprint 3. Reducing to 1.5x improved PnL by +$45.61.",
+      affectedFiles: ["src/risk/StopLossCalculator.ts", "config.json"],
+      recommendations: ["Separate ATR multiplier for SHORT trades", "Run formal A/B test comparing 1.5x vs 2.0x"],
+      linkedSprints: ["Sprint 3", "Sprint 4"],
+    },
+    {
+      id: "f-02",
+      number: 2,
+      title: "Risk Engine Untested in High Drawdown",
+      summary: "DrawdownMonitor and CircuitBreaker implemented but never activated because max drawdown stayed below 1% in bear market backtest.",
+      severity: "medium",
+      details: "All backtest periods (Oct 2025 - Feb 2026) produced max DD < 1%. The Risk Engine needs validation with periods where DD > 10% to confirm zone transitions work correctly.",
+      affectedFiles: ["src/risk/DrawdownMonitor.ts", "src/risk/CircuitBreaker.ts"],
+      recommendations: ["Run backtest on 2022 crypto winter data", "Create synthetic stress test scenarios"],
+      linkedSprints: ["Sprint 4"],
+    },
+  ],
+};
+
+// ─── Roadmap Summaries (per project) ─────────────────────────────────
+
+export const mockRoadmapSprints: Record<string, { raw: string; sprints: RoadmapSprintEntry[] }> = {
+  "proj-2": {
+    raw: "# Futures DCA Bot v2 — Adaptive Roadmap\n\n...",
+    sprints: [
+      { number: 1, sprintId: "sprint-1", findingSource: "initial", version: "0.1.0", type: "feature", focus: "Core trading engine", dependencies: [], status: "closed" },
+      { number: 2, sprintId: "sprint-2", findingSource: "sprint-1-retro", version: "0.2.0", type: "feature", focus: "DCA + real-data backtest", dependencies: ["Sprint 1"], status: "closed" },
+      { number: 3, sprintId: "sprint-3", findingSource: "f-01", version: "0.3.0", type: "feature", focus: "Bidirectional S/R + multi-pair", dependencies: ["Sprint 2"], status: "closed" },
+      { number: 4, sprintId: "sprint-4", findingSource: "f-01, f-02", version: "0.4.0", type: "refactor", focus: "Risk Engine completo", dependencies: ["Sprint 3"], status: "closed" },
+      { number: 5, sprintId: "sprint-5", findingSource: "sprint-4-retro", version: "0.5.0", type: "feature", focus: "Live Trading Wiring", dependencies: ["Sprint 4"], status: "active" },
+    ],
+  },
+};
+
+// ─── Re-entry Prompts (per project) ──────────────────────────────────
+
+export const mockReentryPrompts: Record<string, string> = {
+  "proj-2": `# Futures DCA Bot v2 — Re-entry Prompts
+
+> Last updated: 2026-03-07
+> Current sprint: 5 (active)
+> Phase: 1 — Core Trading Engine
+
+These prompts help you recover full project context in a new session.
+
+---
+
+## Quick Reference
+
+| Sprint | Focus | Status |
+|--------|-------|--------|
+| 1 | Core trading engine | completed |
+| 2 | DCA + real-data backtest | completed |
+| 3 | Bidirectional S/R + multi-pair | completed |
+| 4 | Risk Engine completo | completed |
+| 5 | Live Trading Wiring | active |
+
+---
+
+## Scenario 1 — Continue Sprint 5 (Live Trading Wiring)
+
+Use this prompt to resume work on the active sprint.
+
+\`\`\`
+I'm continuing work on the Futures DCA Bot v2 project. Sprints 1-4 are complete. Currently on Sprint 5: Live Trading Wiring.
+
+Read these files in order:
+1. README.md
+2. ROADMAP.md (focus on Sprint 5 definition)
+3. sprints/SPRINT-4.md (Retro, Recommendations, Debt table)
+4. sprints/SPRINT-5.md (current progress)
+
+Key context: Using CCXT for exchange abstraction, WebSocket for real-time data. Order execution pipeline is 80% complete — missing retry logic. Position tracking needs integration with risk engine from Sprint 4.
+\`\`\`
+
+---
+
+## Scenario 2 — Check Project Status
+
+\`\`\`
+I need a status report on the Futures DCA Bot v2 project.
+
+Read these files:
+1. README.md
+2. ROADMAP.md
+3. All sprint files in sprints/
+
+Generate a status report showing: completed sprints, accumulated debt, metrics, and what's planned next.
+\`\`\`
+`,
+};
 
 export const teamMembers: TeamMember[] = [
   { name: "Alex Chen", avatar: "AC", color: "bg-blue-500" },

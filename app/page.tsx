@@ -1,20 +1,32 @@
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAppStore } from "@/lib/store";
 import { Providers } from "@/components/providers";
-import { AppSidebar } from "@/components/app-sidebar";
-import { AppTopbar } from "@/components/app-topbar";
-import { ContentRouter } from "@/components/content-router";
+import { Loader2 } from "lucide-react";
+
+function RootRedirect() {
+  const router = useRouter();
+  const { projects, isInitializing } = useAppStore();
+
+  useEffect(() => {
+    if (!isInitializing && projects.length > 0) {
+      router.replace(`/${projects[0].id}/overview`);
+    }
+  }, [isInitializing, projects, router]);
+
+  return (
+    <div className="flex h-screen items-center justify-center text-muted-foreground">
+      <Loader2 className="h-6 w-6 animate-spin" />
+    </div>
+  );
+}
 
 export default function Home() {
   return (
     <Providers>
-      <div className="flex h-screen overflow-hidden">
-        <AppSidebar />
-        <div className="flex flex-1 flex-col overflow-hidden">
-          <AppTopbar />
-          <main className="flex-1 overflow-auto">
-            <ContentRouter />
-          </main>
-        </div>
-      </div>
+      <RootRedirect />
     </Providers>
   );
 }

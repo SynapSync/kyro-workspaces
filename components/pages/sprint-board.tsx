@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   DndContext,
   DragOverlay,
@@ -12,31 +14,27 @@ import {
   type DragEndEvent,
   type DragOverEvent,
 } from "@dnd-kit/core";
-import { ArrowLeft, Plus, FileText, Focus, EyeOff } from "lucide-react";
+import { ArrowLeft, FileText, Focus, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { BoardColumn } from "@/components/kanban/board-column";
 import { TaskCard } from "@/components/kanban/task-card";
-import { TaskDialog } from "@/components/kanban/task-dialog";
+import { ActionConfirmDialog } from "@/components/dialogs/action-confirm-dialog";
 import { useAppStore } from "@/lib/store";
 import { COLUMNS, SPRINT_STATUS_CONFIG, ZEN_COLUMNS } from "@/lib/config";
-import { type Task, type TaskStatus } from "@/lib/types";
+import { type Task, type TaskStatus, type Phase } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 interface SprintBoardProps {
   sprintId: string;
 }
 
-export function SprintBoard({ sprintId }: SprintBoardProps) {
+export function SprintBoardPage({ sprintId }: SprintBoardProps) {
+  const router = useRouter();
   const {
     getActiveProject,
-    moveTask,
-    addTask,
-    updateTask,
-    deleteTask,
-    setActiveSprintId,
-    setActiveSprintDetailId,
-    setActiveSidebarItem,
+    activeProjectId,
     collapsedColumns,
     setColumnCollapsed,
     toggleColumnCollapsed,
@@ -46,22 +44,31 @@ export function SprintBoard({ sprintId }: SprintBoardProps) {
     toggleFocusMode,
     zenMode,
     setZenMode,
+    updateTaskStatus,
+    updatingTasks,
   } = useAppStore();
 
   const project = getActiveProject();
   const sprint = project.sprints.find((s) => s.id === sprintId);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [pendingMove, setPendingMove] = useState<{
+    task: Task;
+    fromStatus: TaskStatus;
+    toStatus: TaskStatus;
+  } | null>(null);
 
   // Load persisted column state on mount
   useEffect(() => {
     const saved = localStorage.getItem(`kyro-column-state-${sprintId}`);
     if (saved) {
-      const parsed = JSON.parse(saved);
-      Object.entries(parsed).forEach(([columnId, collapsed]) => {
-        setColumnCollapsed(sprintId, columnId, collapsed as boolean);
-      });
+      try {
+        const parsed = JSON.parse(saved) as Record<string, boolean>;
+        Object.entries(parsed).forEach(([columnId, collapsed]) => {
+          setColumnCollapsed(sprintId, columnId, collapsed);
+        });
+      } catch {
+        // Ignore corrupted localStorage data
+      }
     }
   }, [sprintId, setColumnCollapsed]);
 
@@ -86,16 +93,20 @@ export function SprintBoard({ sprintId }: SprintBoardProps) {
   const columnTasks = useMemo(() => {
     if (!sprint) return {} as Record<TaskStatus, Task[]>;
     const map: Record<TaskStatus, Task[]> = {
-      backlog: [],
-      todo: [],
+      pending: [],
       in_progress: [],
-      review: [],
       done: [],
       blocked: [],
       skipped: [],
+      carry_over: [],
     };
     sprint.tasks.forEach((task) => {
-      map[task.status].push(task);
+      const bucket = map[task.status];
+      if (bucket) {
+        bucket.push(task);
+      } else {
+        map.pending.push(task);
+      }
     });
     return map;
   }, [sprint]);
@@ -117,64 +128,43 @@ export function SprintBoard({ sprintId }: SprintBoardProps) {
     // handled in dragEnd
   };
 
+  // Column IDs are TaskStatus values — used to distinguish column droppables from task sortables
+  const columnIds = useMemo(() => new Set(COLUMNS.map((c) => c.id as string)), []);
+
   const handleDragEnd = (event: DragEndEvent) => {
     setActiveTask(null);
     const { active, over } = event;
     if (!over) return;
 
     const taskId = active.id as string;
-    const overId = over.id as string;
+    const task = sprint.tasks.find((t) => t.id === taskId);
+    if (!task) return;
 
-    const targetColumn = COLUMNS.find((c) => c.id === overId);
-    if (targetColumn) {
-      moveTask(sprintId, taskId, targetColumn.id);
-      return;
-    }
-
-    const overTask = sprint.tasks.find((t) => t.id === overId);
-    if (overTask && overTask.id !== taskId) {
-      moveTask(sprintId, taskId, overTask.status);
-    }
-  };
-
-  const handleCreateTask = () => {
-    setEditingTask(null);
-    setDialogOpen(true);
-  };
-
-  const handleEditTask = (task: Task) => {
-    setEditingTask(task);
-    setDialogOpen(true);
-  };
-
-  const handleDeleteTask = (taskId: string) => {
-    deleteTask(sprintId, taskId);
-  };
-
-  const handleSaveTask = (
-    data: Omit<Task, "id" | "createdAt" | "updatedAt">
-  ) => {
-    if (editingTask) {
-      updateTask(sprintId, editingTask.id, data);
+    // over.id can be either a column ID (TaskStatus) or a task ID (from SortableContext).
+    // If it's a task ID, find which column that task belongs to.
+    let newStatus: TaskStatus;
+    if (columnIds.has(over.id as string)) {
+      newStatus = over.id as TaskStatus;
     } else {
-      const newTask: Task = {
-        ...data,
-        id: `task-${Date.now()}`,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      addTask(sprintId, newTask);
+      // Dropped on a task — find which column owns it
+      const targetTask = sprint.tasks.find((t) => t.id === over.id);
+      if (!targetTask) return;
+      newStatus = targetTask.status;
     }
+
+    if (task.status === newStatus) return;
+
+    setPendingMove({ task, fromStatus: task.status, toStatus: newStatus });
+  };
+
+  const handleConfirmMove = () => {
+    if (!pendingMove) return;
+    updateTaskStatus(activeProjectId, sprintId, pendingMove.task.id, pendingMove.toStatus);
+    setPendingMove(null);
   };
 
   const handleBack = () => {
-    setActiveSprintId(null);
-    setActiveSidebarItem("sprints");
-  };
-
-  const handleViewDetails = () => {
-    setActiveSprintId(null);
-    setActiveSprintDetailId(sprintId);
+    router.push(`/${activeProjectId}/sprints`);
   };
 
   const statusCfg = SPRINT_STATUS_CONFIG[sprint.status];
@@ -210,9 +200,33 @@ export function SprintBoard({ sprintId }: SprintBoardProps) {
                 </Badge>
               )}
             </div>
-            <p className="text-xs text-muted-foreground">
-              {sprint.tasks.length} tasks
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-muted-foreground">
+                {sprint.tasks.length} tasks
+              </p>
+              {sprint.phases && sprint.phases.length > 0 && (
+                <div className="flex items-center gap-1">
+                  {sprint.phases.map((phase: Phase) => {
+                    const phaseDone = phase.tasks.filter((t) => t.status === "done").length;
+                    return (
+                      <Badge
+                        key={phase.id}
+                        variant="outline"
+                        className={cn(
+                          "text-[10px] h-4 px-1.5",
+                          phase.isEmergent && "border-purple-300 text-purple-600"
+                        )}
+                        title={`${phase.name}: ${phaseDone}/${phase.tasks.length}`}
+                      >
+                        {phase.name.replace(/^Phase \d+ — /, "").substring(0, 12)}
+                        {" "}
+                        {phaseDone}/{phase.tasks.length}
+                      </Badge>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
         <div className="flex gap-2">
@@ -240,14 +254,12 @@ export function SprintBoard({ sprintId }: SprintBoardProps) {
             variant="outline"
             size="sm"
             className="gap-1.5"
-            onClick={handleViewDetails}
+            asChild
           >
-            <FileText className="h-3.5 w-3.5" />
-            Details
-          </Button>
-          <Button size="sm" className="gap-1.5" onClick={handleCreateTask}>
-            <Plus className="h-3.5 w-3.5" />
-            Add Task
+            <Link href={`/${activeProjectId}/sprints/${sprintId}/detail`}>
+              <FileText className="h-3.5 w-3.5" />
+              Details
+            </Link>
           </Button>
         </div>
       </div>
@@ -270,7 +282,7 @@ export function SprintBoard({ sprintId }: SprintBoardProps) {
               }).map((col) => {
                 const isColumnCollapsed = collapsedColumns[`${sprintId}-${col.id}`] ?? false;
                 const shouldBeCollapsed = zenMode || (focusMode && focusedColumnId && focusedColumnId !== col.id);
-                
+
                 return (
                 <BoardColumn
                   key={col.id}
@@ -279,6 +291,7 @@ export function SprintBoard({ sprintId }: SprintBoardProps) {
                   color={col.color}
                   tasks={columnTasks[col.id] || []}
                   collapsed={shouldBeCollapsed || isColumnCollapsed}
+                  updatingTasks={updatingTasks}
                   onToggleCollapse={() => {
                     if (focusMode && !focusedColumnId) {
                       setFocusedColumn(col.id);
@@ -288,8 +301,8 @@ export function SprintBoard({ sprintId }: SprintBoardProps) {
                       toggleColumnCollapsed(sprintId, col.id);
                     }
                   }}
-                  onEditTask={handleEditTask}
-                  onDeleteTask={handleDeleteTask}
+                  onEditTask={() => {}}
+                  onDeleteTask={() => {}}
                 />
                 );
               })}
@@ -310,12 +323,18 @@ export function SprintBoard({ sprintId }: SprintBoardProps) {
         </ScrollArea>
       </div>
 
-      {/* Task Dialog */}
-      <TaskDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        task={editingTask}
-        onSave={handleSaveTask}
+      {/* Confirmation dialog for drag-drop status changes */}
+      <ActionConfirmDialog
+        open={pendingMove !== null}
+        onOpenChange={(open) => { if (!open) setPendingMove(null); }}
+        title="Move Task"
+        description={
+          pendingMove
+            ? `Move "${pendingMove.task.title}" from ${pendingMove.fromStatus.replace("_", " ")} to ${pendingMove.toStatus.replace("_", " ")}?`
+            : ""
+        }
+        actionLabel="Move"
+        onConfirm={handleConfirmMove}
       />
     </div>
   );

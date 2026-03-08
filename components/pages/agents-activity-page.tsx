@@ -66,8 +66,8 @@ export function AgentsActivityPage() {
   );
 
   return (
-    <div className="p-6 max-w-3xl">
-      <div className="mb-6">
+    <div className="flex h-full flex-col">
+      <div className="shrink-0 px-6 pt-6 pb-4">
         <div className="flex items-center gap-2.5 mb-1">
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
             Agents Activity
@@ -80,6 +80,8 @@ export function AgentsActivityPage() {
           Timeline of AI agent actions in this project
         </p>
       </div>
+      <div className="flex-1 min-h-0 overflow-auto px-6 pb-6">
+      <div className="max-w-3xl">
 
       {/* Timeline */}
       <div className="relative">
@@ -196,6 +198,8 @@ export function AgentsActivityPage() {
             )}
           </div>
         )}
+      </div>
+      </div>
       </div>
     </div>
   );

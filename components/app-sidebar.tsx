@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import {
   ChevronDown,
   ChevronLeft,
@@ -15,6 +17,7 @@ import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/lib/store";
+import { AddProjectDialog } from "@/components/dialogs/add-project-dialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -27,31 +30,40 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { Project } from "@/lib/types";
 
 export function AppSidebar() {
   const isMobile = useIsMobile();
+  const pathname = usePathname();
+  const router = useRouter();
   const {
     workspaceName,
     projects,
     activeProjectId,
-    setActiveProjectId,
-    activeSidebarItem,
-    setActiveSidebarItem,
-    setActiveSprintId,
-    addProject,
     sidebarCollapsed,
     setSidebarCollapsed,
     toggleSidebar,
+    addProjectDialogOpen,
+    setAddProjectDialogOpen,
   } = useAppStore();
 
   const activeProject = projects.find((p) => p.id === activeProjectId) ?? projects[0];
+
+  // Derive active nav item from pathname
+  const activeNavId = (() => {
+    const segments = pathname.split("/").filter(Boolean);
+    // pathname: /[projectId]/[section]/...
+    return segments[1] ?? "overview";
+  })();
 
   // Load persisted state on mount
   useEffect(() => {
     const saved = localStorage.getItem("kyro-sidebar-collapsed");
     if (saved !== null) {
-      setSidebarCollapsed(JSON.parse(saved));
+      try {
+        setSidebarCollapsed(JSON.parse(saved) === true);
+      } catch {
+        // Ignore corrupted localStorage data
+      }
     } else if (isMobile) {
       setSidebarCollapsed(true);
     }
@@ -82,33 +94,12 @@ export function AppSidebar() {
   }, [handleToggleSidebar]);
 
   const handleCreateProject = () => {
-    const newProject: Project = {
-      id: `proj-${Date.now()}`,
-      name: "New Project",
-      description: "A new project. Edit this description.",
-      readme: `# Proyecto: New Project
+    setAddProjectDialogOpen(true);
+  };
 
-## Objetivo del Proyecto
-Describe aquí el objetivo principal, entregables y criterios de éxito.
-
-## Stack Técnico
-- Framework:
-- Lenguaje:
-- Persistencia:
-- Testing:
-
-## Cómo Trabajar (Agentes + Humanos)
-1. Lee ROADMAP.md para entender el plan de sprints.
-2. Lee el último sprint en sprints/.
-3. Usa RE-ENTRY-PROMPTS.md para retomar contexto.
-`,
-      documents: [],
-      sprints: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    addProject(newProject);
-    setActiveProjectId(newProject.id);
+  const handleProjectSwitch = (projectId: string) => {
+    // Navigate to the same section in the new project
+    router.push(`/${projectId}/${activeNavId}`);
   };
 
   return (
@@ -170,7 +161,7 @@ Describe aquí el objetivo principal, entregables y criterios de éxito.
                 {projects.map((project) => (
                   <DropdownMenuItem
                     key={project.id}
-                    onClick={() => setActiveProjectId(project.id)}
+                    onClick={() => handleProjectSwitch(project.id)}
                     className="flex items-center gap-2"
                   >
                     <span
@@ -190,7 +181,7 @@ Describe aquí el objetivo principal, entregables y criterios de éxito.
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleCreateProject}>
                   <Plus className="mr-2 h-3.5 w-3.5" />
-                  Create Project
+                  Add Project
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -202,15 +193,13 @@ Describe aquí el objetivo principal, entregables y criterios de éxito.
         <nav className="flex flex-col gap-0.5">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
-            const isActive = activeSidebarItem === item.id;
-            
-            const navButton = (
-              <button
+            const isActive = activeNavId === item.id;
+            const href = activeProjectId ? `/${activeProjectId}${item.href}` : item.href;
+
+            const navLink = (
+              <Link
                 key={item.id}
-                onClick={() => {
-                  setActiveSidebarItem(item.id);
-                  if (item.id !== "sprints") setActiveSprintId(null);
-                }}
+                href={href}
                 className={cn(
                   "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                   isActive
@@ -229,14 +218,14 @@ Describe aquí el objetivo principal, entregables y criterios de éxito.
                     AI
                   </Badge>
                 )}
-              </button>
+              </Link>
             );
 
             if (sidebarCollapsed) {
               return (
                 <TooltipPrimitive.Root key={item.id}>
                   <TooltipPrimitive.Trigger asChild>
-                    {navButton}
+                    {navLink}
                   </TooltipPrimitive.Trigger>
                   <TooltipPrimitive.Portal>
                     <TooltipPrimitive.Content
@@ -252,7 +241,7 @@ Describe aquí el objetivo principal, entregables y criterios de éxito.
               );
             }
 
-            return navButton;
+            return navLink;
           })}
         </nav>
 
@@ -266,7 +255,7 @@ Describe aquí el objetivo principal, entregables y criterios de éxito.
               {projects.map((project) => (
                 <button
                   key={project.id}
-                  onClick={() => setActiveProjectId(project.id)}
+                  onClick={() => handleProjectSwitch(project.id)}
                   className={cn(
                     "flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm transition-colors",
                     project.id === activeProjectId
@@ -282,7 +271,7 @@ Describe aquí el objetivo principal, entregables y criterios de éxito.
                   />
                   <span className="truncate">{project.name}</span>
                   <span className="ml-auto text-[10px] text-muted-foreground">
-                    {project.sprints.length}
+                    {project.sprints?.length ?? 0}
                   </span>
                 </button>
               ))}
@@ -317,6 +306,7 @@ Describe aquí el objetivo principal, entregables y criterios de éxito.
         </div>
       </div>
     </aside>
+    <AddProjectDialog open={addProjectDialogOpen} onOpenChange={setAddProjectDialogOpen} />
     </TooltipPrimitive.Provider>
   );
 }

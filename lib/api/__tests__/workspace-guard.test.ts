@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { getWorkspacePath, resolveAndGuard } from "../workspace-guard";
+import { getWorkspacePath, resolveAndGuard, resolveProjectPath } from "../workspace-guard";
 import { WorkspaceError } from "../errors";
 
 describe("workspace-guard", () => {
@@ -61,6 +61,30 @@ describe("workspace-guard", () => {
     it("resolves . to workspace path", () => {
       const result = resolveAndGuard("/workspace", ".");
       expect(result).toBe("/workspace");
+    });
+  });
+
+  describe("resolveProjectPath", () => {
+    it("resolves valid sub-paths within project root", () => {
+      const result = resolveProjectPath("/ext/project", "sprints", "SPRINT-1.md");
+      expect(result).toBe("/ext/project/sprints/SPRINT-1.md");
+    });
+
+    it("throws PERMISSION_DENIED for traversal outside project root", () => {
+      expect(() => resolveProjectPath("/ext/project", "../etc/passwd")).toThrow(
+        WorkspaceError
+      );
+    });
+
+    it("throws PERMISSION_DENIED for absolute path outside project root", () => {
+      expect(() => resolveProjectPath("/ext/project", "/etc/passwd")).toThrow(
+        WorkspaceError
+      );
+    });
+
+    it("resolves . to project root", () => {
+      const result = resolveProjectPath("/ext/project", ".");
+      expect(result).toBe("/ext/project");
     });
   });
 });

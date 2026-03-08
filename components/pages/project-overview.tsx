@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { InlineMarkdown } from "@/components/inline-markdown";
 import {
   CheckCircle2,
   ListTodo,
@@ -15,14 +17,10 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { useAppStore } from "@/lib/store";
 import { SPRINT_SECTIONS } from "@/lib/config";
+import { cn } from "@/lib/utils";
 
-export function ProjectOverview() {
-  const {
-    getActiveProject,
-    setActiveSidebarItem,
-    setActiveSprintId,
-    setActiveSprintDetailId,
-  } = useAppStore();
+export function ProjectOverviewPage() {
+  const { getActiveProject, activeProjectId } = useAppStore();
 
   const project = getActiveProject();
 
@@ -71,21 +69,22 @@ export function ProjectOverview() {
     (s) =>
       s.sections &&
       SPRINT_SECTIONS.some(
-        (sec) => s.sections?.[sec.key] && s.sections[sec.key]!.trim().length > 0
+        (sec) => s.sections?.[sec.key] && (s.sections[sec.key] ?? "").trim().length > 0
       )
   );
 
   return (
-    <div className="p-6 max-w-5xl">
-      {/* Header */}
-      <div className="mb-8">
+    <div className="flex h-full flex-col">
+      <div className="shrink-0 px-6 pt-6 pb-4">
         <h1 className="text-2xl font-bold tracking-tight text-foreground">
           {project.name}
         </h1>
-        <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed max-w-2xl">
-          {project.description}
-        </p>
+        <div className="mt-1.5 text-sm text-muted-foreground leading-relaxed text-justify">
+          <InlineMarkdown content={project.description} />
+        </div>
       </div>
+      <div className="flex-1 min-h-0 overflow-auto px-6 pb-6">
+      <div className="max-w-5xl">
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 mb-8">
@@ -96,9 +95,9 @@ export function ProjectOverview() {
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <div
-                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${stat.bgColor}`}
+                    className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg", stat.bgColor)}
                   >
-                    <Icon className={`h-5 w-5 ${stat.color}`} />
+                    <Icon className={cn("h-5 w-5", stat.color)} />
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-foreground">
@@ -161,11 +160,13 @@ export function ProjectOverview() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setActiveSprintId(activeSprint.id)}
                   className="gap-1.5"
+                  asChild
                 >
-                  Open Board
-                  <ArrowRight className="h-3.5 w-3.5" />
+                  <Link href={`/${activeProjectId}/sprints/${activeSprint.id}`}>
+                    Open Board
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
                 </Button>
               </div>
             </CardContent>
@@ -184,58 +185,59 @@ export function ProjectOverview() {
               const filled = SPRINT_SECTIONS.filter(
                 (s) =>
                   sprint.sections?.[s.key] &&
-                  sprint.sections[s.key]!.trim().length > 0
+                  (sprint.sections[s.key] ?? "").trim().length > 0
               );
               return (
-                <Card
+                <Link
                   key={sprint.id}
-                  className="border shadow-sm hover:border-primary/30 transition-colors cursor-pointer"
-                  onClick={() => setActiveSprintDetailId(sprint.id)}
+                  href={`/${activeProjectId}/sprints/${sprint.id}/detail`}
                 >
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                          <FolderOpen className="h-4 w-4 text-primary" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm text-foreground">
-                            {sprint.name}
-                          </p>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            {sprint.version && (
-                              <Badge
-                                variant="outline"
-                                className="text-[10px] h-4 font-mono"
-                              >
-                                v{sprint.version}
-                              </Badge>
-                            )}
-                            <span className="text-xs text-muted-foreground">
-                              {filled.length}/{SPRINT_SECTIONS.length} sections
-                            </span>
+                  <Card className="border shadow-sm hover:border-primary/30 transition-colors cursor-pointer">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                            <FolderOpen className="h-4 w-4 text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm text-foreground">
+                              {sprint.name}
+                            </p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              {sprint.version && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-[10px] h-4 font-mono"
+                                >
+                                  v{sprint.version}
+                                </Badge>
+                              )}
+                              <span className="text-xs text-muted-foreground">
+                                {filled.length}/{SPRINT_SECTIONS.length} sections
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div className="flex gap-1">
-                        {filled.map((s) => (
-                          <span
-                            key={s.key}
-                            className="h-1.5 w-1.5 rounded-full bg-emerald-500"
-                          />
-                        ))}
-                        {Array.from({ length: SPRINT_SECTIONS.length - filled.length }).map(
-                          (_, i) => (
+                        <div className="flex gap-1">
+                          {filled.map((s) => (
                             <span
-                              key={i}
-                              className="h-1.5 w-1.5 rounded-full bg-muted"
+                              key={s.key}
+                              className="h-1.5 w-1.5 rounded-full bg-emerald-500"
                             />
-                          )
-                        )}
+                          ))}
+                          {Array.from({ length: SPRINT_SECTIONS.length - filled.length }).map(
+                            (_, i) => (
+                              <span
+                                key={i}
+                                className="h-1.5 w-1.5 rounded-full bg-muted"
+                              />
+                            )
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                </Link>
               );
             })}
           </div>
@@ -248,34 +250,27 @@ export function ProjectOverview() {
           Quick Actions
         </h2>
         <div className="flex flex-wrap gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5"
-            onClick={() => setActiveSidebarItem("sprints")}
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Create Sprint
+          <Button variant="outline" size="sm" className="gap-1.5" asChild>
+            <Link href={`/${activeProjectId}/sprints`}>
+              <Plus className="h-3.5 w-3.5" />
+              Create Sprint
+            </Link>
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5"
-            onClick={() => setActiveSidebarItem("documents")}
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Add Document
+          <Button variant="outline" size="sm" className="gap-1.5" asChild>
+            <Link href={`/${activeProjectId}/documents`}>
+              <Plus className="h-3.5 w-3.5" />
+              Add Document
+            </Link>
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5"
-            onClick={() => setActiveSidebarItem("readme")}
-          >
-            <FileText className="h-3.5 w-3.5" />
-            Edit README
+          <Button variant="outline" size="sm" className="gap-1.5" asChild>
+            <Link href={`/${activeProjectId}/readme`}>
+              <FileText className="h-3.5 w-3.5" />
+              Edit README
+            </Link>
           </Button>
         </div>
+      </div>
+      </div>
       </div>
     </div>
   );

@@ -2,9 +2,18 @@ import * as fs from "fs/promises";
 import * as os from "os";
 import * as path from "path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { FileProjectsService } from "@/lib/services/file/projects.file";
-import { serializeSprintFile } from "@/lib/file-format/serializers";
 import { installApiFetchMock } from "./api-test-router";
+
+const SF_FIXTURE = path.join(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "file-format",
+  "__tests__",
+  "fixtures",
+  "sprint-forge-project"
+);
 
 async function ensureWorkspace(workspacePath: string): Promise<void> {
   const response = await fetch("/api/workspace/init", {
@@ -19,12 +28,37 @@ async function ensureWorkspace(workspacePath: string): Promise<void> {
   await fs.writeFile(path.join(workspacePath, ".kyro", "activities.json"), "[]", "utf-8");
 }
 
-describe("FileProjectsService integration", () => {
+async function createTempSprintForgeDir(): Promise<string> {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "sf-integration-"));
+  await fs.cp(SF_FIXTURE, tmpDir, { recursive: true });
+  return tmpDir;
+}
+
+async function registerProject(
+  sfDir: string,
+  opts?: { name?: string; color?: string }
+): Promise<Record<string, unknown>> {
+  const res = await fetch("/api/projects", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ path: sfDir, ...opts }),
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`register failed (${res.status}): ${body}`);
+  }
+  const json = (await res.json()) as { data: { project: Record<string, unknown> } };
+  return json.data.project;
+}
+
+describe("FileProjectsService integration (registry model)", () => {
   let workspacePath: string;
+  let sfDir: string;
   let restoreFetch: (() => void) | null = null;
 
   beforeEach(async () => {
     workspacePath = await fs.mkdtemp(path.join(os.tmpdir(), "kyro-file-projects-"));
+    sfDir = await createTempSprintForgeDir();
     process.env.KYRO_WORKSPACE_PATH = workspacePath;
     process.env.NEXT_PUBLIC_API_URL = "";
 
@@ -39,113 +73,100 @@ describe("FileProjectsService integration", () => {
       restoreFetch();
       restoreFetch = null;
     }
-
     await fs.rm(workspacePath, { recursive: true, force: true });
+    await fs.rm(sfDir, { recursive: true, force: true });
   });
 
-  it("creates project assets and lists nested sprints/documents", async () => {
-    const service = new FileProjectsService();
+  it("registers an external sprint-forge directory and lists it", async () => {
+    const project = await registerProject(sfDir, { name: "Alpha" });
+    expect(project.name).toBe("Alpha");
+    expect(project.path).toBe(sfDir);
 
-    await service.createProject({
-      id: "proj-alpha",
-      name: "Alpha",
-      description: "Alpha project",
-    });
-
-    await service.createSprint("proj-alpha", {
-      id: "sprint-1",
-      name: "Sprint 1",
-      status: "planned",
-      objective: "Initial sprint",
-    });
-
-    const sprintsDir = path.join(workspacePath, "projects", "proj-alpha", "sprints");
-    const sprintFiles = (await fs.readdir(sprintsDir)).filter((file) =>
-      file.endsWith(".md")
-    );
-    expect(sprintFiles).toHaveLength(1);
-    expect(sprintFiles[0]).toMatch(/^SPRINT-01-sprint-1/i);
-
-    const reentry = await fs.readFile(
-      path.join(workspacePath, "projects", "proj-alpha", "RE-ENTRY-PROMPTS.md"),
-      "utf-8"
-    );
-    expect(reentry).toContain(`sprints/${sprintFiles[0]}`);
-
-    await service.createDocument("proj-alpha", {
-      title: "Architecture",
-      content: "# Architecture\n\nInitial notes",
-    });
-
-    await service.createTask("proj-alpha", "sprint-1", {
-      title: "Implement API resolver",
-      status: "todo",
-    });
-
-    const projects = await service.list();
-    expect(projects).toHaveLength(1);
-    expect(projects[0].id).toBe("proj-alpha");
-    expect(projects[0].sprints).toHaveLength(1);
-    expect(projects[0].documents).toHaveLength(1);
-    expect(projects[0].sprints[0].tasks).toHaveLength(1);
-
-    await expect(
-      fs.access(path.join(workspacePath, "projects", "proj-alpha", "README.md"))
-    ).resolves.toBeUndefined();
-    await expect(
-      fs.access(path.join(workspacePath, "projects", "proj-alpha", "ROADMAP.md"))
-    ).resolves.toBeUndefined();
-    await expect(
-      fs.access(path.join(workspacePath, "projects", "proj-alpha", "RE-ENTRY-PROMPTS.md"))
-    ).resolves.toBeUndefined();
+    const listRes = await fetch("/api/projects");
+    expect(listRes.ok).toBe(true);
+    const { data } = (await listRes.json()) as { data: { projects: Array<Record<string, unknown>> } };
+    expect(data.projects).toHaveLength(1);
+    expect(data.projects[0]._available).toBe(true);
   });
 
-  it("updates and deletes project via file-backed APIs", async () => {
-    const service = new FileProjectsService();
+  it("reads sprints from external sprint-forge directory", async () => {
+    const project = await registerProject(sfDir);
+    const projectId = project.id as string;
 
-    await service.createProject({ id: "proj-beta", name: "Beta" });
-    await service.updateProject("proj-beta", { name: "Beta Updated" });
-
-    const updated = await service.getProject("proj-beta");
-    expect(updated?.name).toBe("Beta Updated");
-
-    await service.deleteProject("proj-beta");
-    const projects = await service.list();
-    expect(projects).toHaveLength(0);
-
-    const workspaceReadme = await fs.readFile(path.join(workspacePath, "README.md"), "utf-8");
-    expect(workspaceReadme).toContain("Projects Index");
+    const res = await fetch(`/api/projects/${projectId}/sprints`);
+    expect(res.ok).toBe(true);
+    const { data } = (await res.json()) as { data: { sprints: Array<Record<string, unknown>> } };
+    expect(data.sprints.length).toBeGreaterThanOrEqual(1);
+    expect(data.sprints[0].name).toBeDefined();
   });
 
-  it("resolves legacy sprint files by sprint frontmatter id", async () => {
-    const service = new FileProjectsService();
+  it("reads findings from external sprint-forge directory", async () => {
+    const project = await registerProject(sfDir);
+    const projectId = project.id as string;
 
-    await service.createProject({ id: "proj-legacy", name: "Legacy Project" });
+    const res = await fetch(`/api/projects/${projectId}/findings`);
+    expect(res.ok).toBe(true);
+    const { data } = (await res.json()) as { data: { findings: Array<Record<string, unknown>> } };
+    expect(data.findings.length).toBeGreaterThanOrEqual(1);
+  });
 
-    const legacySprint = {
-      id: "legacy-sprint-id",
-      name: "Legacy Sprint",
-      status: "planned" as const,
-      objective: "Legacy compatibility check",
-      tasks: [],
-      sections: undefined,
-    };
+  it("reads roadmap from external sprint-forge directory", async () => {
+    const project = await registerProject(sfDir);
+    const projectId = project.id as string;
 
-    const legacyFilePath = path.join(
-      workspacePath,
-      "projects",
-      "proj-legacy",
-      "sprints",
-      "SPRINT-88-legacy-compat.md"
-    );
-    await fs.writeFile(legacyFilePath, serializeSprintFile(legacySprint), "utf-8");
+    const res = await fetch(`/api/projects/${projectId}/roadmap`);
+    expect(res.ok).toBe(true);
+    const { data } = (await res.json()) as { data: { roadmap: Record<string, unknown> } };
+    expect(data.roadmap.raw).toBeDefined();
+  });
 
-    const beforeDelete = await service.list();
-    expect(beforeDelete[0].sprints.map((sprint) => sprint.id)).toContain("legacy-sprint-id");
+  it("updates project metadata in registry without touching external dir", async () => {
+    const project = await registerProject(sfDir);
+    const projectId = project.id as string;
 
-    await service.deleteSprint("proj-legacy", "legacy-sprint-id");
+    const res = await fetch(`/api/projects/${projectId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Alpha Updated", color: "#ff0000" }),
+    });
+    expect(res.ok).toBe(true);
+    const { data } = (await res.json()) as { data: { project: Record<string, unknown> } };
+    expect(data.project.name).toBe("Alpha Updated");
+    expect(data.project.color).toBe("#ff0000");
+  });
 
-    const afterDelete = await service.list();
-    expect(afterDelete[0].sprints).toHaveLength(0);
+  it("deletes project from registry without deleting external directory", async () => {
+    const project = await registerProject(sfDir);
+    const projectId = project.id as string;
+
+    const delRes = await fetch(`/api/projects/${projectId}`, { method: "DELETE" });
+    expect(delRes.ok).toBe(true);
+
+    const listRes = await fetch("/api/projects");
+    const { data } = (await listRes.json()) as { data: { projects: Array<Record<string, unknown>> } };
+    expect(data.projects).toHaveLength(0);
+
+    // External directory should still exist
+    const readmeExists = await fs.access(path.join(sfDir, "README.md")).then(() => true, () => false);
+    expect(readmeExists).toBe(true);
+  });
+
+  it("rejects registration of invalid directory", async () => {
+    const res = await fetch("/api/projects", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path: "/non/existent/path" }),
+    });
+    expect(res.ok).toBe(false);
+  });
+
+  it("rejects duplicate project registration", async () => {
+    await registerProject(sfDir);
+    const res = await fetch("/api/projects", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path: sfDir }),
+    });
+    expect(res.ok).toBe(false);
   });
 });

@@ -6,9 +6,12 @@ import {
   Bot,
   BookOpen,
   AlertTriangle,
-  BarChart2,
   Search,
   Lightbulb,
+  Target,
+  ArrowRightLeft,
+  Layers,
+  CheckSquare,
   Bold,
   Italic,
   Code,
@@ -18,6 +21,7 @@ import {
   List,
   ListOrdered,
   Quote,
+  Map,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type {
@@ -48,63 +52,79 @@ export interface NavItem {
   id: string;
   label: string;
   icon: LucideIcon;
+  href: string;
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { id: "overview", label: "Overview", icon: LayoutDashboard },
-  { id: "readme", label: "README", icon: FileText },
-  { id: "documents", label: "Documents", icon: FolderOpen },
-  { id: "sprints", label: "Sprints", icon: Zap },
-  { id: "agents", label: "Agents Activity", icon: Bot },
+  { id: "overview", label: "Overview", icon: LayoutDashboard, href: "/overview" },
+  { id: "readme", label: "README", icon: FileText, href: "/readme" },
+  { id: "sprints", label: "Sprints", icon: Zap, href: "/sprints" },
+  { id: "findings", label: "Findings", icon: Search, href: "/findings" },
+  { id: "roadmap", label: "Roadmap", icon: Map, href: "/roadmap" },
+  { id: "debt", label: "Debt", icon: AlertTriangle, href: "/debt" },
+  { id: "documents", label: "Documents", icon: FolderOpen, href: "/documents" },
+  { id: "reentry", label: "Re-entry Prompts", icon: BookOpen, href: "/reentry" },
+  { id: "agents", label: "Agents Activity", icon: Bot, href: "/agents" },
 ];
 
 // --- Kanban Columns ---
 
 export const COLUMNS: { id: TaskStatus; title: string; color: string }[] = [
-  { id: "backlog", title: "Backlog", color: "bg-muted-foreground/60" },
-  { id: "todo", title: "Todo", color: "bg-blue-500" },
+  { id: "pending", title: "Pending", color: "bg-blue-500" },
   { id: "in_progress", title: "In Progress", color: "bg-amber-500" },
-  { id: "review", title: "Review", color: "bg-primary" },
   { id: "done", title: "Done", color: "bg-emerald-500" },
+  { id: "blocked", title: "Blocked", color: "bg-red-500" },
+  { id: "skipped", title: "Skipped", color: "bg-muted-foreground/60" },
+  { id: "carry_over", title: "Carry-over", color: "bg-purple-500" },
 ];
 
 // --- Sprint Section Metadata ---
 
 export const SPRINT_SECTIONS: SprintSectionMeta[] = [
   {
-    key: "retrospective",
-    label: "Retrospective",
-    description: "What went well, what didn't, and surprises",
-    placeholder:
-      "## What Went Well\n\n- \n\n## What Didn't Go Well\n\n- \n\n## Surprises\n\n- ",
+    key: "sprintObjective",
+    label: "Objective",
+    description: "The sprint's primary goal and expected outcome",
+  },
+  {
+    key: "disposition",
+    label: "Disposition",
+    description: "How previous sprint's recommendations were handled",
+  },
+  {
+    key: "phases",
+    label: "Phases",
+    description: "Planned work phases with tasks",
+  },
+  {
+    key: "emergentPhases",
+    label: "Emergent Phases",
+    description: "Work discovered during execution",
+  },
+  {
+    key: "findingsConsolidation",
+    label: "Findings",
+    description: "Key discoveries and learnings from this sprint",
   },
   {
     key: "technicalDebt",
     label: "Technical Debt",
     description: "Accumulated debt items with status tracking",
-    placeholder:
-      "| # | Item | Origin | Priority | Status |\n|---|------|--------|----------|--------|\n| D1 | Description | Sprint X | HIGH | open |",
   },
   {
-    key: "executionMetrics",
-    label: "Execution Metrics",
-    description: "Tests, performance, and sprint execution data",
-    placeholder:
-      "## Metrics\n\n- Tests: \n- Files modified: \n- Files created: \n\n## Results\n\n| Metric | Value |\n|--------|-------|\n| | |",
+    key: "definitionOfDone",
+    label: "Definition of Done",
+    description: "Completion criteria checklist",
   },
   {
-    key: "findings",
-    label: "Findings",
-    description: "Key discoveries and learnings from this sprint",
-    placeholder:
-      "## Key Findings\n\n1. **Finding 1**: Description\n2. **Finding 2**: Description",
+    key: "retrospective",
+    label: "Retrospective",
+    description: "What went well, what didn't, and surprises",
   },
   {
     key: "recommendations",
     label: "Recommendations",
     description: "Suggestions and priorities for upcoming sprints",
-    placeholder:
-      "## Recommendations for Next Sprint\n\n1. **[CRITICAL]** Description\n2. **[HIGH]** Description\n3. **[MEDIUM]** Description",
   },
 ];
 
@@ -128,7 +148,7 @@ export const SPRINT_STATUS_CONFIG: Record<SprintStatus, SprintStatusConfig> = {
 
 // --- Zen Mode Columns ---
 
-export const ZEN_COLUMNS: TaskStatus[] = ["in_progress", "review"];
+export const ZEN_COLUMNS: TaskStatus[] = ["in_progress", "done"];
 
 // --- Task Tag Config ---
 
@@ -157,18 +177,81 @@ export const TAG_CONFIG: Record<TaskTagKey, TagStyle> = {
 // --- Sprint Section Icons ---
 
 export type SprintSectionKey =
-  | "retrospective"
+  | "sprintObjective"
+  | "disposition"
+  | "phases"
+  | "emergentPhases"
+  | "findingsConsolidation"
   | "technicalDebt"
-  | "executionMetrics"
-  | "findings"
+  | "definitionOfDone"
+  | "retrospective"
   | "recommendations";
 
 export const SPRINT_SECTION_ICONS: Record<SprintSectionKey, LucideIcon> = {
-  retrospective: BookOpen,
+  sprintObjective: Target,
+  disposition: ArrowRightLeft,
+  phases: Layers,
+  emergentPhases: Layers,
+  findingsConsolidation: Search,
   technicalDebt: AlertTriangle,
-  executionMetrics: BarChart2,
-  findings: Search,
+  definitionOfDone: CheckSquare,
+  retrospective: BookOpen,
   recommendations: Lightbulb,
+};
+
+// --- Sprint Type Colors ---
+
+export const AGENT_BADGE_STYLE = "bg-violet-500/10 text-violet-600 border-violet-200";
+
+export const SPRINT_TYPE_COLORS: Record<string, string> = {
+  refactor: "bg-blue-500/10 text-blue-600",
+  feature: "bg-emerald-500/10 text-emerald-600",
+  bugfix: "bg-red-500/10 text-red-600",
+  audit: "bg-purple-500/10 text-purple-600",
+  debt: "bg-orange-500/10 text-orange-600",
+};
+
+// --- Finding Severity Colors ---
+
+export const FINDING_SEVERITY_COLORS: Record<string, string> = {
+  critical: "bg-red-500/10 text-red-600",
+  high: "bg-orange-500/10 text-orange-600",
+  medium: "bg-amber-500/10 text-amber-600",
+  low: "bg-blue-500/10 text-blue-600",
+  info: "bg-muted text-muted-foreground",
+};
+
+// --- Finding Impact Colors (Findings Consolidation) ---
+
+export const FINDING_IMPACT_COLORS: Record<string, string> = {
+  high: "bg-red-500/10 text-red-600",
+  medium: "bg-amber-500/10 text-amber-600",
+  low: "bg-blue-500/10 text-blue-600",
+};
+
+// --- Debt Status Styles ---
+
+export interface StatusStyle {
+  label: string;
+  className: string;
+}
+
+export const DEBT_STATUS_STYLES: Record<string, StatusStyle> = {
+  open: { label: "Open", className: "bg-red-500/10 text-red-600" },
+  "in-progress": { label: "In Progress", className: "bg-amber-500/10 text-amber-600" },
+  resolved: { label: "Resolved", className: "bg-emerald-500/10 text-emerald-600" },
+  deferred: { label: "Deferred", className: "bg-muted text-muted-foreground" },
+  "carry-over": { label: "Carry-over", className: "bg-blue-500/10 text-blue-600" },
+};
+
+// --- Disposition Action Styles ---
+
+export const DISPOSITION_ACTION_STYLES: Record<string, StatusStyle> = {
+  incorporated: { label: "Incorporated", className: "bg-emerald-500/10 text-emerald-600" },
+  deferred: { label: "Deferred", className: "bg-amber-500/10 text-amber-600" },
+  resolved: { label: "Resolved", className: "bg-blue-500/10 text-blue-600" },
+  "n/a": { label: "N/A", className: "bg-muted text-muted-foreground" },
+  "converted-to-phase": { label: "Converted to Phase", className: "bg-purple-500/10 text-purple-600" },
 };
 
 // --- Markdown Toolbar Items ---

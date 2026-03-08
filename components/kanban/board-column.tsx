@@ -6,7 +6,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { ChevronDown, ChevronRight, Ban } from "lucide-react";
-import { TaskCard } from "./task-card";
+import { TaskCard } from "@/components/kanban/task-card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +20,7 @@ interface BoardColumnProps {
   color: string;
   tasks: Task[];
   collapsed?: boolean;
+  updatingTasks?: Record<string, boolean>;
   onToggleCollapse?: () => void;
   onEditTask: (task: Task) => void;
   onDeleteTask: (taskId: string) => void;
@@ -31,6 +32,7 @@ export function BoardColumn({
   color,
   tasks,
   collapsed = false,
+  updatingTasks,
   onToggleCollapse,
   onEditTask,
   onDeleteTask,
@@ -109,6 +111,7 @@ export function BoardColumn({
                   <TaskCard
                     key={task.id}
                     task={task}
+                    isUpdating={updatingTasks?.[task.id] ?? false}
                     onEdit={onEditTask}
                     onDelete={onDeleteTask}
                   />
