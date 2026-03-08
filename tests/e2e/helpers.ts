@@ -115,6 +115,9 @@ export const DEFAULT_SPRINTS: SprintRecord[] = [
       { id: "t3", title: "Build kanban board", status: "in_progress", priority: "high", taskRef: "T2.1", tags: [], createdAt: now, updatedAt: now },
       { id: "t4", title: "Add command palette", status: "pending", priority: "medium", taskRef: "T2.2", tags: [], createdAt: now, updatedAt: now },
       { id: "t5", title: "Implement search", status: "done", priority: "medium", taskRef: "T2.3", tags: [], createdAt: now, updatedAt: now },
+      { id: "t6", title: "Resolve API timeout", status: "blocked", priority: "high", taskRef: "T2.4", tags: [], createdAt: now, updatedAt: now },
+      { id: "t7", title: "Legacy migration", status: "skipped", priority: "low", taskRef: "T2.5", tags: [], createdAt: now, updatedAt: now },
+      { id: "t8", title: "Deferred auth work", status: "carry_over", priority: "medium", taskRef: "T2.6", tags: [], createdAt: now, updatedAt: now },
     ],
     phases: [
       {
@@ -126,6 +129,9 @@ export const DEFAULT_SPRINTS: SprintRecord[] = [
           { id: "t3", title: "Build kanban board", status: "in_progress", priority: "high", taskRef: "T2.1", tags: [], createdAt: now, updatedAt: now },
           { id: "t4", title: "Add command palette", status: "pending", priority: "medium", taskRef: "T2.2", tags: [], createdAt: now, updatedAt: now },
           { id: "t5", title: "Implement search", status: "done", priority: "medium", taskRef: "T2.3", tags: [], createdAt: now, updatedAt: now },
+          { id: "t6", title: "Resolve API timeout", status: "blocked", priority: "high", taskRef: "T2.4", tags: [], createdAt: now, updatedAt: now },
+          { id: "t7", title: "Legacy migration", status: "skipped", priority: "low", taskRef: "T2.5", tags: [], createdAt: now, updatedAt: now },
+          { id: "t8", title: "Deferred auth work", status: "carry_over", priority: "medium", taskRef: "T2.6", tags: [], createdAt: now, updatedAt: now },
         ],
       },
     ],

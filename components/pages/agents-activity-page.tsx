@@ -80,14 +80,9 @@ function groupActivities(activities: AgentActivity[]): ActivityGroup[] {
     }
   }
 
-  // Build final ordered list: interleave chains at their first occurrence position
+  // Build final ordered list: chains first, then singles.
+  // Activities are already sorted by timestamp (newest first).
   const result: ActivityGroup[] = [];
-  let singleIdx = 0;
-  let chainIdx = 0;
-  const activityIds = activities.map((a) => a.id);
-
-  // Simple approach: put chains first (they appear at the top of the timeline),
-  // then singles. Activities are already sorted by timestamp (newest first).
   for (const chainId of chainOrder) {
     const chainActivities = chainMap.get(chainId)!;
     result.push({ type: "chain", chainId, activities: chainActivities });

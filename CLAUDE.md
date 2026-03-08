@@ -90,6 +90,14 @@ SQLite Index (lib/index/):
   File change → file-watcher detects → reindexFile() updates SQLite → SSE push
   Search → /api/search queries FTS5 → results to command palette
   Markdown remains source of truth — SQLite rebuilds from files if deleted
+
+AI Action Chaining (lib/ai/):
+  User types in Cmd+K → "Ask AI" → POST /api/ai/interpret
+  → interpretInstruction() calls Claude Haiku → returns ActionChain (1–5 steps)
+  → Command palette shows chain preview → Execute All / Step mode
+  → Each step maps to existing handlers (navigate, search, refresh, update task, forge)
+  → Destructive steps (update_task_status, generate_sprint) pause for confirmation
+  → Each step logged as AgentActivity with chainId + chainStep for audit trail
 ```
 
 ### App Layout
@@ -159,6 +167,7 @@ Navigation uses Next.js App Router with URL-based routing. All navigation state 
 | `/api/activities` | GET, POST | Activity log |
 | `/api/search` | GET | Full-text search via SQLite FTS5 (`?q=query&type=task&project=id`) |
 | `/api/events` | GET (SSE) | Server-Sent Events for real-time index updates |
+| `/api/ai/interpret` | POST | AI instruction → ActionChain (1–5 steps) via Claude Haiku |
 
 Routes use `getWorkspacePath()` + `resolveAndGuard()` (prevents directory traversal) + `handleError()` for consistent error responses.
 
@@ -254,6 +263,8 @@ lib/
 │   ├── serializers.ts      # Domain entities → markdown/JSON
 │   ├── registry.ts         # Project registry CRUD (.kyro/projects.json)
 │   └── templates.ts        # Default workspace/project README templates
+├── ai/                     # AI interpret layer for Cmd+K
+│   └── interpret.ts        # interpretInstruction() → ActionChain, validateChain(), system prompt
 ├── index/                  # SQLite derived index (ephemeral — rebuilds from markdown)
 │   ├── sqlite.ts           # Database singleton, schema, FTS5 virtual tables
 │   ├── builder.ts          # initIndex(), reindexFile(), reindexProject()
