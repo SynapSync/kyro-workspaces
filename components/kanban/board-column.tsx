@@ -95,7 +95,7 @@ export function BoardColumn({
         <div
           ref={setNodeRef}
           className={cn(
-            "flex-1 rounded-xl border border-dashed p-2 transition-colors min-h-[200px]",
+            "min-w-0 flex-1 rounded-xl border border-dashed p-2 transition-colors min-h-[200px]",
             isOver
               ? "border-primary/50 bg-primary/5"
               : "border-transparent bg-muted/30"
@@ -106,7 +106,7 @@ export function BoardColumn({
               items={tasks.map((t) => t.id)}
               strategy={verticalListSortingStrategy}
             >
-              <div className="flex flex-col gap-2">
+              <div className="flex min-w-0 flex-col gap-2">
                 {tasks.map((task) => (
                   <TaskCard
                     key={task.id}

@@ -52,7 +52,7 @@ export function TaskCard({ task, isUpdating = false }: TaskCardProps) {
       ref={setNodeRef}
       style={style}
       className={cn(
-        "group rounded-lg border bg-card p-3 shadow-sm transition-all hover:border-primary/30",
+        "group min-w-0 rounded-lg border bg-card p-3 shadow-sm transition-all hover:border-primary/30",
         isDragging && "opacity-50 rotate-2 scale-105 shadow-lg",
         isUpdating && "opacity-70 ring-2 ring-primary/20",
         isBlocked && "border-red-300 dark:border-red-800 bg-red-50/50 dark:bg-red-950/20",
@@ -78,20 +78,20 @@ export function TaskCard({ task, isUpdating = false }: TaskCardProps) {
               </Badge>
             )}
           </div>
-          <p className="text-sm font-medium text-foreground leading-snug">
+          <p className="text-sm font-medium text-foreground leading-snug [overflow-wrap:anywhere]">
             {task.title}
           </p>
         </div>
       </div>
 
       {task.description && (
-        <p className="text-xs text-muted-foreground line-clamp-2 mb-2 ml-6">
+        <p className="text-xs text-muted-foreground line-clamp-2 mb-2 ml-6 [overflow-wrap:anywhere]">
           {task.description}
         </p>
       )}
 
-      <div className="flex items-center justify-between ml-6">
-        <div className="flex items-center gap-1.5 flex-wrap">
+      <div className="ml-6 flex min-w-0 items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-1.5 flex-wrap">
           <Badge
             variant="secondary"
             className={cn("text-[10px] h-5 border-0", priority.className)}
@@ -125,13 +125,13 @@ export function TaskCard({ task, isUpdating = false }: TaskCardProps) {
             <Badge
               key={tag}
               variant="outline"
-              className="text-[10px] h-5 text-muted-foreground"
+              className="h-5 max-w-full text-[10px] text-muted-foreground [overflow-wrap:anywhere]"
             >
               {tag}
             </Badge>
           ))}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           {isUpdating ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
           ) : (
