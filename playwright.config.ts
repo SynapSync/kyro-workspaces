@@ -8,6 +8,8 @@ export default defineConfig({
   workers: 1,
   retries: 1,
   reporter: "list",
+  timeout: 60_000,
+  expect: { timeout: 15_000 },
   use: {
     baseURL: E2E_BASE_URL,
     headless: true,
