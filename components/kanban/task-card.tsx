@@ -7,7 +7,7 @@ import { GripVertical, Ban, Sparkles, FileCode, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import type { Task } from "@/lib/types";
-import { PRIORITY_CONFIG, TAG_CONFIG, TASK_TAGS, NEW_TASK_THRESHOLD_MS } from "@/lib/config";
+import { PRIORITY_CONFIG, TAG_CONFIG, TASK_TAGS } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
 interface TaskCardProps {
@@ -43,9 +43,7 @@ export function TaskCard({ task, isUpdating = false }: TaskCardProps) {
   const isBlocked = task.tags.includes(TASK_TAGS.BLOCKED);
   const isAICreated = task.tags.includes(TASK_TAGS.AI_CREATED);
   const isEmergent = task.taskRef?.startsWith("TE.");
-
-  // Check if task was created recently (within last 5 seconds)
-  const isNew = Date.now() - new Date(task.createdAt).getTime() < NEW_TASK_THRESHOLD_MS;
+  const isNew = false;
 
   return (
     <div
@@ -58,7 +56,7 @@ export function TaskCard({ task, isUpdating = false }: TaskCardProps) {
         isBlocked && "border-red-300 dark:border-red-800 bg-red-50/50 dark:bg-red-950/20",
         isAICreated && "border-purple-300 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-950/20",
         isEmergent && !isBlocked && !isAICreated && "border-purple-200 dark:border-purple-900",
-        isNew && "animate-pulse ring-2 ring-primary/30"
+        isNew && "animate-pulse ring-2 ring-inset ring-primary/30"
       )}
     >
       <div className="flex items-start justify-between gap-2 mb-2">
