@@ -100,25 +100,25 @@ Extend the AI interpret layer to detect and execute multi-step action chains fro
 
 **Tasks**:
 
-- [ ] **T3.1**: Replace single-action preview with chain preview card — when AI returns a chain, show a numbered list of steps (step number, action icon, preview text). Each step shows its status: pending (circle), executing (spinner), done (check), failed (x), cancelled (dash). Single-step chains look identical to the current single-action preview (no visual regression).
+- [x] **T3.1**: Replace single-action preview with chain preview card — when AI returns a chain, show a numbered list of steps (step number, action icon, preview text). Each step shows its status: pending (circle), executing (spinner), done (check), failed (x), cancelled (dash). Single-step chains look identical to the current single-action preview (no visual regression).
   - Files: `components/command-palette.tsx`
-  - Evidence:
-  - Verification: Chain with 1 step looks like current UI; chain with 3 steps shows numbered list with status icons
+  - Evidence: `StepStatusIcon` component renders 6 status states (pending=Circle, executing=Loader2 spin, done=CheckCircle2 green, failed=XCircle red, cancelled=MinusCircle, confirm=AlertTriangle yellow). `ACTION_ICONS` maps each `SupportedAction` to a Lucide icon. Steps rendered as numbered list with action icon, preview text, step number, and conditional background tint for active/confirm/failed states.
+  - Verification: Chain with 1 step shows single preview line + "Execute" button; multi-step chains show numbered list with status icons ✅
 
-- [ ] **T3.2**: Add chain execution controls — "Execute All" button starts sequential execution. "Cancel" button stops at current step (completed steps remain, pending steps become cancelled). Add a "Step" button for manual step-by-step mode (executes one step, waits for user to click "Next" or "Cancel"). Show overall progress (e.g., "Step 2 of 4").
+- [x] **T3.2**: Add chain execution controls — "Execute All" button starts sequential execution. "Cancel" button stops at current step (completed steps remain, pending steps become cancelled). Add a "Step" button for manual step-by-step mode (executes one step, waits for user to click "Next" or "Cancel"). Show overall progress (e.g., "Step 2 of 4").
   - Files: `components/command-palette.tsx`
-  - Evidence:
-  - Verification: Execute All runs all steps; Cancel stops mid-chain; Step mode waits between steps
+  - Evidence: 4 control states: (1) Preview — Execute/Execute All + Step + Cancel buttons; single-step chains show only Execute. (2) Paused — Confirm/Next + Skip + Cancel. (3) Failed — Retry + Skip + Cancel. (4) Completed/Cancelled — Dismiss. Header shows "Step X of Y" during execution and "Chain Complete"/"Chain Cancelled" at end.
+  - Verification: Execute All runs all steps; Cancel stops mid-chain; Step mode waits between steps ✅
 
-- [ ] **T3.3**: Add chain execution state management — create `useChainExecution` hook or manage state within the command palette: `chainState: ChainExecutionState | null`, `executeChain(chain)`, `executeNextStep()`, `cancelChain()`. Use `useCallback` and `useRef` for stable references. Reset state when palette closes.
-  - Files: `components/command-palette.tsx` (or `hooks/use-chain-execution.ts` if complex enough)
-  - Evidence:
-  - Verification: State transitions correctly: preview → executing → completed/cancelled; cleanup on close
-
-- [ ] **T3.4**: Wire chain step execution to existing action handlers — each step's `action` type maps to existing handlers: `update_task_status` → `updateTaskStatus()`, `generate_sprint` → open forge wizard, `refresh_project` → `refreshProject()`, `navigate` → `router.push()`, `search` → set search query. Some actions (forge wizard) are "terminal" — they close the palette, so the chain should mark remaining steps as cancelled.
+- [x] **T3.3**: Add chain execution state management — create `useChainExecution` hook or manage state within the command palette: `chainState: ChainExecutionState | null`, `executeChain(chain)`, `executeNextStep()`, `cancelChain()`. Use `useCallback` and `useRef` for stable references. Reset state when palette closes.
   - Files: `components/command-palette.tsx`
-  - Evidence:
-  - Verification: Each action type executes correctly in chain context; terminal actions handled gracefully
+  - Evidence: State managed inline (complexity didn't warrant separate hook). `chainState: ChainExecutionState | null`, `chainMode: "auto" | "step"`, `chainCancelledRef` for async cancellation. Functions: `handleExecuteChain(mode)`, `handleContinueChain()`, `handleRetryStep()`, `handleSkipStep()`, `handleCancelChain()`, `getStepStatus(index)`. All use `useCallback` for stable refs. State reset in palette open `useEffect`.
+  - Verification: State transitions: preview → executing → completed/cancelled; cleanup on close ✅
+
+- [x] **T3.4**: Wire chain step execution to existing action handlers — each step's `action` type maps to existing handlers: `update_task_status` → `updateTaskStatus()`, `generate_sprint` → open forge wizard, `refresh_project` → `refreshProject()`, `navigate` → `router.push()`, `search` → set search query. Some actions (forge wizard) are "terminal" — they close the palette, so the chain should mark remaining steps as cancelled.
+  - Files: `components/command-palette.tsx`
+  - Evidence: `executeStep(intent)` returns `{ success, terminal?, error? }`. Terminal actions (`update_task_status` → task picker, `generate_sprint` → forge wizard) set `terminal: true`, which stops chain execution. `refresh_project` calls `refreshProject()`, `navigate` uses `router.push()`, `search` sets search query + tab. `DESTRUCTIVE_ACTIONS` array defines actions that pause for confirmation in auto mode.
+  - Verification: Each action type executes correctly in chain context; terminal actions handled gracefully ✅
 
 ### Phase 4 — Activity Logging & Chain Tracking
 
