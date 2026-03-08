@@ -72,17 +72,4 @@ test.describe("kanban board", () => {
     }
   });
 
-  test("zen mode hides non-essential columns", async ({ page }) => {
-    // Wait for all columns to render
-    await expect(page.locator("h3", { hasText: "Pending" })).toBeVisible({ timeout: 10_000 });
-    await expect(page.locator("h3", { hasText: "Blocked" })).toBeVisible();
-
-    // Activate zen mode
-    await page.getByRole("button", { name: /Zen/ }).click();
-
-    // Zen mode filters to in_progress + done only; others are removed from DOM
-    // Zen columns are collapsed (title hidden) but present
-    await expect(page.locator("h3", { hasText: "Pending" })).toBeHidden({ timeout: 5_000 });
-    await expect(page.locator("h3", { hasText: "Blocked" })).toBeHidden();
-  });
 });

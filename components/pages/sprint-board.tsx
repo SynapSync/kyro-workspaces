@@ -14,14 +14,14 @@ import {
   type DragEndEvent,
   type DragOverEvent,
 } from "@dnd-kit/core";
-import { ArrowLeft, FileText, Focus, EyeOff, Ban, ChevronDown, ChevronRight } from "lucide-react";
+import { ArrowLeft, FileText, Ban, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BoardColumn } from "@/components/kanban/board-column";
 import { TaskCard } from "@/components/kanban/task-card";
 import { ActionConfirmDialog } from "@/components/dialogs/action-confirm-dialog";
 import { useAppStore } from "@/lib/store";
-import { COLUMNS, SPRINT_STATUS_CONFIG, ZEN_COLUMNS } from "@/lib/config";
+import { COLUMNS, SPRINT_STATUS_CONFIG } from "@/lib/config";
 import { type Task, type TaskStatus, type Phase } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -36,12 +36,6 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
     activeProjectId,
     collapsedColumns,
     setColumnCollapsed,
-    focusMode,
-    focusedColumnId,
-    setFocusedColumn,
-    toggleFocusMode,
-    zenMode,
-    setZenMode,
     updateTaskStatus,
     updatingTasks,
   } = useAppStore();
@@ -229,26 +223,6 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
         </div>
         <div className="flex gap-2">
           <Button
-            variant={zenMode ? "default" : "outline"}
-            size="sm"
-            className="gap-1.5"
-            onClick={() => setZenMode(!zenMode)}
-            title="Zen Mode (In Progress + Review)"
-          >
-            <EyeOff className="h-3.5 w-3.5" />
-            Zen
-          </Button>
-          <Button
-            variant={focusMode ? "default" : "outline"}
-            size="sm"
-            className="gap-1.5"
-            onClick={toggleFocusMode}
-            title="Focus Mode"
-          >
-            <Focus className="h-3.5 w-3.5" />
-            Focus
-          </Button>
-          <Button
             variant="outline"
             size="sm"
             className="gap-1.5"
@@ -267,16 +241,11 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
         <div className="flex h-full min-w-max flex-col px-6">
           {/* Column Headers — fixed row, never scrolls vertically */}
           <div className="flex shrink-0 gap-4 pt-4 pb-2">
-            {COLUMNS.filter(col => {
-              if (zenMode) return ZEN_COLUMNS.includes(col.id);
-              if (focusMode && focusedColumnId) return col.id === focusedColumnId;
-              return true;
-            }).map((col) => {
+            {COLUMNS.map((col) => {
               const persistedCollapsed = collapsedColumns[`${sprintId}-${col.id}`];
               const colTasks = columnTasks[col.id] || [];
               const defaultCollapsed = colTasks.length === 0;
-              const shouldBeCollapsed = zenMode || (focusMode && focusedColumnId && focusedColumnId !== col.id);
-              const isCollapsed = shouldBeCollapsed || (persistedCollapsed ?? defaultCollapsed);
+              const isCollapsed = persistedCollapsed ?? defaultCollapsed;
               const blockedCount = colTasks.filter((t) => t.tags.includes("blocked")).length;
 
               return (
@@ -291,15 +260,7 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
                     variant="ghost"
                     size="icon"
                     className="h-6 w-6 shrink-0"
-                    onClick={() => {
-                      if (focusMode && !focusedColumnId) {
-                        setFocusedColumn(col.id);
-                      } else if (focusedColumnId === col.id) {
-                        setFocusedColumn(null);
-                      } else {
-                        setColumnCollapsed(sprintId, col.id, !isCollapsed);
-                      }
-                    }}
+                    onClick={() => setColumnCollapsed(sprintId, col.id, !isCollapsed)}
                   >
                     {isCollapsed ? (
                       <ChevronRight className="h-3.5 w-3.5" />
@@ -344,16 +305,11 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
               onDragOver={handleDragOver}
               onDragEnd={handleDragEnd}
             >
-              {COLUMNS.filter(col => {
-                if (zenMode) return ZEN_COLUMNS.includes(col.id);
-                if (focusMode && focusedColumnId) return col.id === focusedColumnId;
-                return true;
-              }).map((col) => {
+              {COLUMNS.map((col) => {
                 const persistedCollapsed = collapsedColumns[`${sprintId}-${col.id}`];
                 const colTasks = columnTasks[col.id] || [];
                 const defaultCollapsed = colTasks.length === 0;
-                const shouldBeCollapsed = zenMode || (focusMode && focusedColumnId && focusedColumnId !== col.id);
-                const isCollapsed = shouldBeCollapsed || (persistedCollapsed ?? defaultCollapsed);
+                const isCollapsed = persistedCollapsed ?? defaultCollapsed;
 
                 return (
                   <BoardColumn
@@ -365,15 +321,7 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
                     collapsed={isCollapsed}
                     hideHeader
                     updatingTasks={updatingTasks}
-                    onToggleCollapse={() => {
-                      if (focusMode && !focusedColumnId) {
-                        setFocusedColumn(col.id);
-                      } else if (focusedColumnId === col.id) {
-                        setFocusedColumn(null);
-                      } else {
-                        setColumnCollapsed(sprintId, col.id, !isCollapsed);
-                      }
-                    }}
+                    onToggleCollapse={() => setColumnCollapsed(sprintId, col.id, !isCollapsed)}
                     onEditTask={() => {}}
                     onDeleteTask={() => {}}
                   />

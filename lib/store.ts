@@ -2,7 +2,6 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type {
   Project,
-  Task,
   TaskStatus,
   AgentActivity,
   AgentActionType,
@@ -97,14 +96,6 @@ interface AppState {
   collapsedColumns: Record<string, boolean>;
   setColumnCollapsed: (sprintId: string, columnId: string, collapsed: boolean) => void;
   toggleColumnCollapsed: (sprintId: string, columnId: string) => void;
-
-  // Focus Mode / Zen Mode
-  focusMode: boolean;
-  focusedColumnId: string | null;
-  setFocusedColumn: (columnId: string | null) => void;
-  toggleFocusMode: () => void;
-  zenMode: boolean;
-  setZenMode: (enabled: boolean) => void;
 
   // Command Palette
   commandPaletteOpen: boolean;
@@ -410,14 +401,6 @@ export const useAppStore = create<AppState>()(
         [`${sprintId}-${columnId}`]: !state.collapsedColumns[`${sprintId}-${columnId}`],
       },
     })),
-
-  // Focus Mode / Zen Mode
-  focusMode: false,
-  focusedColumnId: null,
-  setFocusedColumn: (columnId) => set({ focusedColumnId: columnId }),
-  toggleFocusMode: () => set((state) => ({ focusMode: !state.focusMode })),
-  zenMode: false,
-  setZenMode: (enabled) => set({ zenMode: enabled }),
 
   // Command Palette
   commandPaletteOpen: false,

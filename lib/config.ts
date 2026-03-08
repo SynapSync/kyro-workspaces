@@ -146,10 +146,6 @@ export const SPRINT_STATUS_CONFIG: Record<SprintStatus, SprintStatusConfig> = {
   closed: { label: "Closed", variant: "outline" },
 };
 
-// --- Zen Mode Columns ---
-
-export const ZEN_COLUMNS: TaskStatus[] = ["in_progress", "done"];
-
 // --- Task Tag Config ---
 
 export const TASK_TAGS = {

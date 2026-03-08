@@ -5,8 +5,6 @@ import { useRouter } from "next/navigation";
 import {
   Plus,
   Sidebar,
-  Focus,
-  EyeOff,
   Zap,
   CheckSquare,
   Search,
@@ -72,9 +70,6 @@ export function CommandPalette() {
     activeProjectId,
     projects,
     findings,
-    toggleFocusMode,
-    zenMode,
-    setZenMode,
     toggleSidebar,
     setAddProjectDialogOpen,
     getActiveProject,
@@ -185,16 +180,6 @@ export function CommandPalette() {
 
   const handleToggleSidebar = () => {
     toggleSidebar();
-    setCommandPaletteOpen(false);
-  };
-
-  const handleToggleFocusMode = () => {
-    toggleFocusMode();
-    setCommandPaletteOpen(false);
-  };
-
-  const handleToggleZenMode = () => {
-    setZenMode(!zenMode);
     setCommandPaletteOpen(false);
   };
 
@@ -529,14 +514,6 @@ export function CommandPalette() {
                 <Sidebar className="mr-2 h-4 w-4" />
                 <span>Toggle Sidebar</span>
                 <span className="ml-auto text-muted-foreground text-xs">⌘B</span>
-              </CommandItem>
-              <CommandItem onSelect={handleToggleFocusMode}>
-                <Focus className="mr-2 h-4 w-4" />
-                <span>Toggle Focus Mode</span>
-              </CommandItem>
-              <CommandItem onSelect={handleToggleZenMode}>
-                <EyeOff className="mr-2 h-4 w-4" />
-                <span>Toggle Zen Mode</span>
               </CommandItem>
             </CommandGroup>
           </>
