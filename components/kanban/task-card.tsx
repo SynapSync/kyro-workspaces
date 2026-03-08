@@ -125,7 +125,7 @@ export function TaskCard({ task, isUpdating = false }: TaskCardProps) {
             <Badge
               key={tag}
               variant="outline"
-              className="h-5 max-w-full text-[10px] text-muted-foreground [overflow-wrap:anywhere]"
+              className="h-5 max-w-full text-[10px] text-muted-foreground"
             >
               {tag}
             </Badge>
