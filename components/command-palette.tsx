@@ -112,6 +112,7 @@ export function CommandPalette() {
     updateTaskStatus,
     refreshProject,
     roadmaps,
+    addActivity,
   } = useAppStore();
 
   const [forgeWizardOpen, setForgeWizardOpen] = useState(false);
@@ -397,12 +398,39 @@ export function CommandPalette() {
     [chainState],
   );
 
+  const logChainActivity = useCallback(
+    (chainId: string, step: number, description: string) => {
+      if (!activeProjectId) return;
+      addActivity({
+        id: `${chainId}-step-${step}`,
+        projectId: activeProjectId,
+        actionType: "moved_task",
+        description,
+        timestamp: new Date().toISOString(),
+        metadata: { source: "ai-chain" },
+        chainId,
+        chainStep: step,
+      });
+    },
+    [activeProjectId, addActivity],
+  );
+
   const runChainSteps = useCallback(
     async (chain: ActionChain, startFrom: number, mode: "auto" | "step") => {
       chainCancelledRef.current = false;
 
+      // Log chain start (only on first step)
+      if (startFrom === 0) {
+        logChainActivity(
+          chain.id,
+          -1,
+          `Chain started: ${chain.steps.length} step${chain.steps.length > 1 ? "s" : ""} — ${chain.steps.map((s) => s.preview).join(", ")}`,
+        );
+      }
+
       for (let i = startFrom; i < chain.steps.length; i++) {
         if (chainCancelledRef.current) {
+          logChainActivity(chain.id, -2, `Chain cancelled at step ${i + 1} of ${chain.steps.length}`);
           setChainState((prev) => prev ? { ...prev, status: "cancelled" } : null);
           return;
         }
@@ -426,6 +454,15 @@ export function CommandPalette() {
         setChainState((prev) => prev ? { ...prev, currentStep: i, status: "executing" } : null);
         const result = await executeStep(step);
 
+        // Log step result
+        logChainActivity(
+          chain.id,
+          i,
+          result.success
+            ? `Step ${i + 1}: ${step.preview}`
+            : `Step ${i + 1} failed: ${step.preview} — ${result.error ?? "unknown error"}`,
+        );
+
         setChainState((prev) => {
           if (!prev) return null;
           const newResults = { ...prev.results, [i]: { success: result.success, error: result.error } };
@@ -433,20 +470,23 @@ export function CommandPalette() {
         });
 
         if (!result.success || result.terminal) {
-          // Terminal actions (forge wizard, task picker) end the chain
           setChainState((prev) => {
             if (!prev) return null;
             const finalStatus = result.terminal ? "completed" : "paused";
             return { ...prev, status: finalStatus };
           });
+          if (result.terminal && i === chain.steps.length - 1) {
+            logChainActivity(chain.id, -3, `Chain completed: all ${chain.steps.length} steps done`);
+          }
           return;
         }
       }
 
       // All steps completed
+      logChainActivity(chain.id, -3, `Chain completed: all ${chain.steps.length} steps done`);
       setChainState((prev) => prev ? { ...prev, status: "completed" } : null);
     },
-    [executeStep],
+    [executeStep, logChainActivity],
   );
 
   const handleExecuteChain = useCallback(

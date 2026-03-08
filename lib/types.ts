@@ -230,6 +230,8 @@ export const AgentActivitySchema = z.object({
   description: z.string(),
   timestamp: z.string(),
   metadata: z.record(z.string()).optional(),
+  chainId: z.string().optional(),
+  chainStep: z.number().optional(),
 });
 
 // --- Git Types ---

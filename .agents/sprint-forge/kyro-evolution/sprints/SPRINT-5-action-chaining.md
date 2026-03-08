@@ -126,20 +126,20 @@ Extend the AI interpret layer to detect and execute multi-step action chains fro
 
 **Tasks**:
 
-- [ ] **T4.1**: Extend `AgentActivity` type to support chain references — add optional `chainId?: string` and `chainStep?: number` fields to the activity schema. These fields link individual activities to their parent chain without breaking the existing flat activity log structure.
+- [x] **T4.1**: Extend `AgentActivity` type to support chain references — add optional `chainId?: string` and `chainStep?: number` fields to the activity schema. These fields link individual activities to their parent chain without breaking the existing flat activity log structure.
   - Files: `lib/types.ts`
-  - Evidence:
-  - Verification: Schema accepts new fields; existing activities without chain fields still valid
+  - Evidence: Added `chainId: z.string().optional()` and `chainStep: z.number().optional()` to `AgentActivitySchema`. Both fields are optional, so existing activities without chain fields remain valid. The inferred `AgentActivity` type automatically includes the new fields.
+  - Verification: Schema accepts new fields; existing activities without chain fields still valid ✅
 
-- [ ] **T4.2**: Log chain execution activities — when a chain executes, log each step as a separate `AgentActivity` with `chainId` and `chainStep`. Log a chain-start activity (action: "chain_started", with step count) and chain-end activity (action: "chain_completed" or "chain_cancelled", with results summary). Use `addActivity()` from the store.
+- [x] **T4.2**: Log chain execution activities — when a chain executes, log each step as a separate `AgentActivity` with `chainId` and `chainStep`. Log a chain-start activity (action: "chain_started", with step count) and chain-end activity (action: "chain_completed" or "chain_cancelled", with results summary). Use `addActivity()` from the store.
   - Files: `components/command-palette.tsx`
-  - Evidence:
-  - Verification: Activity log shows individual step entries linked by chainId; start/end entries bracket the chain
+  - Evidence: Added `logChainActivity(chainId, step, description)` helper. Chain start logged with `chainStep: -1`, cancellation with `-2`, completion with `-3`. Each executed step logged with its index. Description includes step preview on success, error message on failure. Uses `addActivity()` from store with `metadata: { source: "ai-chain" }`.
+  - Verification: Activity log shows individual step entries linked by chainId; start/end entries bracket the chain ✅
 
-- [ ] **T4.3**: Update agents activity page to display chain groups — in `AgentsActivityPage`, detect consecutive activities sharing a `chainId` and render them as a collapsible group with an expand/collapse toggle. Chain header shows: chain action summary, step count, overall status (completed/cancelled). Individual steps are indented under the group.
+- [x] **T4.3**: Update agents activity page to display chain groups — in `AgentsActivityPage`, detect consecutive activities sharing a `chainId` and render them as a collapsible group with an expand/collapse toggle. Chain header shows: chain action summary, step count, overall status (completed/cancelled). Individual steps are indented under the group.
   - Files: `components/pages/agents-activity-page.tsx`
-  - Evidence:
-  - Verification: Chain activities render as grouped entries; non-chain activities unchanged
+  - Evidence: Added `groupActivities()` function that groups activities by `chainId` into `ActivityGroup` unions (`single` | `chain`). Chain groups render as collapsible cards with Link2 icon, step count, success count. Expanded view shows numbered steps sorted by `chainStep`, with failed steps highlighted in destructive color. `expandedChains` state (Set) tracks toggle state. Extracted `ActivityCard` component for single activities.
+  - Verification: Chain activities render as grouped entries with expand/collapse; non-chain activities unchanged ✅
 
 ### Phase 5 — Safety, Debt Fixes & Testing
 
