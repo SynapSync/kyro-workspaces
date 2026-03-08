@@ -8,7 +8,7 @@ agents:
 # kyro-evolution — Re-entry Prompts
 
 > Last updated: 2026-03-08
-> Current sprint: 4 (completed)
+> Current sprint: 5 (generated, pending execution)
 
 These prompts help you (or a new agent) recover full project context in a new session.
 
@@ -32,7 +32,7 @@ This is where all sprint-forge documents for this project live. All file paths b
 | 2 | `sprints/SPRINT-2-e2e-ai-tests.md` | completed |
 | 3 | `sprints/SPRINT-3-url-routing-ssr.md` | completed |
 | 4 | `sprints/SPRINT-4-sqlite-index-file-watcher.md` | completed |
-| 5 | `sprints/SPRINT-5-action-chaining.md` | pending |
+| 5 | `sprints/SPRINT-5-action-chaining.md` | active |
 
 ---
 
@@ -43,23 +43,23 @@ This is where all sprint-forge documents for this project live. All file paths b
 | Codebase | `/Users/rperaza/joicodev/ideas/kyro` |
 | Working Directory | `/Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-evolution` |
 | Roadmap | `/Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-evolution/ROADMAP.md` |
-| Latest Sprint | `/Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-evolution/sprints/SPRINT-4-sqlite-index-file-watcher.md` |
+| Latest Sprint | `/Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-evolution/sprints/SPRINT-5-action-chaining.md` |
 
 ---
 
-## Scenario 1 — Next Sprint (Sprint 5)
+## Scenario 1 — Next Sprint (Sprint 6)
 
-Use this prompt to generate Sprint 5.
+Use this prompt after Sprint 5 is completed to generate Sprint 6.
 
 ```
-I'm continuing work on the kyro-evolution project. Sprint 4 (SQLite Index + File Watcher) has been completed.
+I'm continuing work on the kyro-evolution project. Sprint 5 (Action Chaining) has been completed.
 
 Read these files in order:
 1. /Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-evolution/README.md
 2. /Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-evolution/ROADMAP.md
-3. /Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-evolution/sprints/SPRINT-4-sqlite-index-file-watcher.md (pay attention to Retro, Recommendations, and Debt table)
+3. /Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-evolution/sprints/SPRINT-5-action-chaining.md (pay attention to Retro, Recommendations, and Debt table)
 
-Then use /sprint-forge to generate Sprint 5. Ensure all recommendations from Sprint 4
+Then use /sprint-forge to generate Sprint 6. Ensure all recommendations from Sprint 5
 are addressed in the Disposition table.
 ```
 

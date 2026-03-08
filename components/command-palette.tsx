@@ -34,7 +34,7 @@ import { cn } from "@/lib/utils";
 import { useSearchIndex, groupByType, type SearchEntryType, type SearchEntry } from "@/lib/search";
 import { SprintForgeWizard } from "@/components/dialogs/sprint-forge-wizard";
 import { assembleSprintContext } from "@/lib/forge/context";
-import type { ActionIntent, ProjectContext } from "@/lib/ai/interpret";
+import type { ActionIntent, ActionChain, ProjectContext } from "@/lib/ai/interpret";
 
 type PaletteTab = "search" | "commands";
 
@@ -82,8 +82,11 @@ export function CommandPalette() {
 
   // AI smart mode state
   const [aiPending, setAiPending] = useState(false);
-  const [aiResult, setAiResult] = useState<ActionIntent | null>(null);
+  const [aiChain, setAiChain] = useState<ActionChain | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
+
+  // Backward-compatible: extract first step for single-action preview
+  const aiResult: ActionIntent | null = aiChain?.steps[0] ?? null;
   const inputRef = useRef("");
 
   // Sub-mode for "Update Task Status" action flow
@@ -95,7 +98,16 @@ export function CommandPalette() {
     sprintId: string;
   } | null>(null);
 
-  const clientSearchIndex = useSearchIndex(projects, findings);
+  // Filter to active project only
+  const activeProjectsForSearch = useMemo(
+    () => projects.filter((p) => p.id === activeProjectId),
+    [projects, activeProjectId]
+  );
+  const activeFindingsForSearch = useMemo(
+    () => (activeProjectId ? { [activeProjectId]: findings[activeProjectId] ?? [] } : {}),
+    [findings, activeProjectId]
+  );
+  const clientSearchIndex = useSearchIndex(activeProjectsForSearch, activeFindingsForSearch);
   const clientGrouped = useMemo(() => groupByType(clientSearchIndex), [clientSearchIndex]);
 
   // Server-side FTS5 search (debounced)
@@ -113,7 +125,8 @@ export function CommandPalette() {
 
     searchTimerRef.current = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(searchQuery.trim())}&limit=50`);
+        const projectParam = activeProjectId ? `&project=${encodeURIComponent(activeProjectId)}` : "";
+        const res = await fetch(`/api/search?q=${encodeURIComponent(searchQuery.trim())}&limit=50${projectParam}`);
         if (res.ok) {
           const { results } = await res.json();
           setServerResults(results as SearchEntry[]);
@@ -126,7 +139,7 @@ export function CommandPalette() {
     return () => {
       if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
     };
-  }, [searchQuery]);
+  }, [searchQuery, activeProjectId]);
 
   // Use server results when available, otherwise client-side
   const grouped = useMemo(() => {
@@ -175,7 +188,7 @@ export function CommandPalette() {
       setActiveTab("search");
       setActionSubMode("none");
       setSelectedTaskForUpdate(null);
-      setAiResult(null);
+      setAiChain(null);
       setAiError(null);
       setAiPending(false);
       setServerResults(null);
@@ -265,7 +278,7 @@ export function CommandPalette() {
     if (!ctx) return;
 
     setAiPending(true);
-    setAiResult(null);
+    setAiChain(null);
     setAiError(null);
 
     try {
@@ -278,7 +291,7 @@ export function CommandPalette() {
       if (!res.ok) {
         setAiError(json.error ?? "AI request failed");
       } else {
-        setAiResult(json.data as ActionIntent);
+        setAiChain(json.data as ActionChain);
       }
     } catch {
       setAiError("Failed to reach AI service");
@@ -293,7 +306,7 @@ export function CommandPalette() {
         case "update_task_status": {
           // Switch to task picker flow
           setActionSubMode("pick-task");
-          setAiResult(null);
+          setAiChain(null);
           return; // Keep palette open
         }
         case "generate_sprint":
@@ -316,10 +329,10 @@ export function CommandPalette() {
         case "search":
           inputRef.current = intent.params.query ?? "";
           setActiveTab("search");
-          setAiResult(null);
+          setAiChain(null);
           return; // Keep palette open
       }
-      setAiResult(null);
+      setAiChain(null);
     },
     [activeProjectId, refreshProject, router, setCommandPaletteOpen],
   );
@@ -432,7 +445,7 @@ export function CommandPalette() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setAiResult(null)}
+                      onClick={() => setAiChain(null)}
                       className="rounded-md border px-3 py-1 text-xs font-medium text-muted-foreground hover:text-foreground"
                     >
                       Cancel

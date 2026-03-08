@@ -32,8 +32,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const intent = await interpretInstruction(body.instruction, body.context);
-    return NextResponse.json({ data: intent });
+    const chain = await interpretInstruction(body.instruction, body.context);
+    return NextResponse.json({ data: chain });
   } catch (err) {
     const message = err instanceof Error ? err.message : "AI interpretation failed";
     return NextResponse.json({ error: message }, { status: 502 });
