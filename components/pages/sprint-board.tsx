@@ -36,7 +36,6 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
     activeProjectId,
     collapsedColumns,
     setColumnCollapsed,
-    toggleColumnCollapsed,
     focusMode,
     focusedColumnId,
     setFocusedColumn,
@@ -273,10 +272,11 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
               if (focusMode && focusedColumnId) return col.id === focusedColumnId;
               return true;
             }).map((col) => {
-              const isColumnCollapsed = collapsedColumns[`${sprintId}-${col.id}`] ?? false;
-              const shouldBeCollapsed = zenMode || (focusMode && focusedColumnId && focusedColumnId !== col.id);
-              const isCollapsed = shouldBeCollapsed || isColumnCollapsed;
+              const persistedCollapsed = collapsedColumns[`${sprintId}-${col.id}`];
               const colTasks = columnTasks[col.id] || [];
+              const defaultCollapsed = colTasks.length === 0;
+              const shouldBeCollapsed = zenMode || (focusMode && focusedColumnId && focusedColumnId !== col.id);
+              const isCollapsed = shouldBeCollapsed || (persistedCollapsed ?? defaultCollapsed);
               const blockedCount = colTasks.filter((t) => t.tags.includes("blocked")).length;
 
               return (
@@ -297,7 +297,7 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
                       } else if (focusedColumnId === col.id) {
                         setFocusedColumn(null);
                       } else {
-                        toggleColumnCollapsed(sprintId, col.id);
+                        setColumnCollapsed(sprintId, col.id, !isCollapsed);
                       }
                     }}
                   >
@@ -349,8 +349,11 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
                 if (focusMode && focusedColumnId) return col.id === focusedColumnId;
                 return true;
               }).map((col) => {
-                const isColumnCollapsed = collapsedColumns[`${sprintId}-${col.id}`] ?? false;
+                const persistedCollapsed = collapsedColumns[`${sprintId}-${col.id}`];
+                const colTasks = columnTasks[col.id] || [];
+                const defaultCollapsed = colTasks.length === 0;
                 const shouldBeCollapsed = zenMode || (focusMode && focusedColumnId && focusedColumnId !== col.id);
+                const isCollapsed = shouldBeCollapsed || (persistedCollapsed ?? defaultCollapsed);
 
                 return (
                   <BoardColumn
@@ -358,8 +361,8 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
                     id={col.id}
                     title={col.title}
                     color={col.color}
-                    tasks={columnTasks[col.id] || []}
-                    collapsed={shouldBeCollapsed || isColumnCollapsed}
+                    tasks={colTasks}
+                    collapsed={isCollapsed}
                     hideHeader
                     updatingTasks={updatingTasks}
                     onToggleCollapse={() => {
@@ -368,7 +371,7 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
                       } else if (focusedColumnId === col.id) {
                         setFocusedColumn(null);
                       } else {
-                        toggleColumnCollapsed(sprintId, col.id);
+                        setColumnCollapsed(sprintId, col.id, !isCollapsed);
                       }
                     }}
                     onEditTask={() => {}}

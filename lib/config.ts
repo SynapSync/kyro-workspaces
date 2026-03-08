@@ -72,10 +72,10 @@ export const NAV_ITEMS: NavItem[] = [
 export const COLUMNS: { id: TaskStatus; title: string; color: string }[] = [
   { id: "pending", title: "Pending", color: "bg-blue-500" },
   { id: "in_progress", title: "In Progress", color: "bg-amber-500" },
-  { id: "done", title: "Done", color: "bg-emerald-500" },
   { id: "blocked", title: "Blocked", color: "bg-red-500" },
   { id: "skipped", title: "Skipped", color: "bg-muted-foreground/60" },
   { id: "carry_over", title: "Carry-over", color: "bg-purple-500" },
+  { id: "done", title: "Done", color: "bg-emerald-500" },
 ];
 
 // --- Sprint Section Metadata ---
