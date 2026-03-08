@@ -80,7 +80,7 @@ These items are inherited from the predecessor project `kyro-sprint-forge-reader
 Sprint 1 (AST Writer)
     |
     v
-Sprint 2 (E2E + AI Tests) ---> Sprint 3 (URL Routing / SSR)
+Sprint 2 (E2E + AI Tests) ---> Sprint 3 (SSR Data Fetching & Consolidation)
                                     |
                                     v
                                 Sprint 4 (SQLite Index + File Watcher)
@@ -101,8 +101,8 @@ Sprint 5 depends on Sprint 4 (action chaining benefits from instant queries).
 | Sprint | Finding Source | Version | Type | Focus | Dependencies | Status |
 |--------|--------------|---------|------|-------|-------------|--------|
 | 1 | `01-ast-writer-regex-replacement.md` | 3.1.0 | refactor | Replace regex writes with AST-based markdown manipulation | — | completed |
-| 2 | `02-e2e-tests-outdated.md`, `06-inherited-debt.md` (D21) | 3.1.1 | debt | Fix E2E tests + add AI integration tests | Sprint 1 | pending |
-| 3 | `03-url-routing-ssr.md` | 3.2.0 | feature | URL routing with App Router + Server Components | Sprint 2 | pending |
+| 2 | `02-e2e-tests-outdated.md`, `06-inherited-debt.md` (D21) | 3.1.1 | debt | Fix E2E tests + add AI integration tests | Sprint 1 | completed |
+| 3 | `03-url-routing-ssr.md` | 3.2.0 | refactor | SSR data fetching & routing consolidation (URL routing already complete) | Sprint 2 | active |
 | 4 | `04-sqlite-index-file-watcher.md` | 3.3.0 | feature | SQLite derived index + file watcher for auto-refresh | Sprint 3 | pending |
 | 5 | `05-action-chaining.md`, `06-inherited-debt.md` (D22) | 3.4.0 | feature | AI multi-step action chains | Sprint 4 | pending |
 
@@ -138,19 +138,20 @@ Sprint 5 depends on Sprint 4 (action chaining benefits from instant queries).
   4. AI Integration Tests — Mock Anthropic client, JSON fixtures, classification scenarios (D21)
   5. CI Configuration — Wire `pnpm test:e2e` into PR checks
 
-### Sprint 3 — URL Routing / SSR
+### Sprint 3 — SSR Data Fetching & Routing Consolidation
 
 - **Source**: `findings/03-url-routing-ssr.md`
 - **Version Target**: 3.2.0
-- **Type**: feature
-- **Focus**: Replace Zustand-based navigation with App Router URL routing + Server Components
+- **Type**: refactor
+- **Focus**: SSR data fetching, documentation update, D6/D7 fixes, AST writer enhancement
 - **Dependencies**: Sprint 2
+- **Adaptation Note**: URL routing was already implemented during predecessor project lifecycle (17 page.tsx files, `<Link>` navigation, `ContentRouter` deleted, Zustand nav state removed). Sprint scope adapted per Rule 8.
 - **Suggested Phases**:
-  1. URL Schema & Page Scaffolding — Define routes, create App Router page files
-  2. Server-Side Data Fetching — Migrate from client `useEffect` to server `fetch` in page components
-  3. Navigation Migration — Sidebar `<Link>`, breadcrumbs from URL, `ContentRouter` elimination
-  4. Command Palette & Store Cleanup — Cmd+K uses `router.push()`, strip nav state from Zustand
-  5. E2E Updates — Update E2E tests for URL-based navigation
+  1. CLAUDE.md & Documentation Update — Reflect current URL routing architecture
+  2. Root Page Fix (D6) — Fix infinite spinner when no projects
+  3. Server Components Data Fetching — Migrate initial data loads from client to server
+  4. AST Writer: updateFrontmatterField() — Generic frontmatter manipulation (deferred from Sprint 1)
+  5. E2E Test Improvements — Production build, parallel workers, finding drill-down test (D7)
 
 ### Sprint 4 — SQLite Index + File Watcher
 

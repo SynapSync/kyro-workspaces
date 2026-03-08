@@ -5,6 +5,7 @@ import {
   updateTaskStatus,
   appendTask,
   updateSprintStatus,
+  updateFrontmatterField,
   deleteTask,
 } from "../ast-writer";
 
@@ -215,6 +216,102 @@ describe("updateSprintStatus", () => {
     const noFm = "# Sprint\n\nSome content\n";
     const result = updateSprintStatus(noFm, "completed");
     expect(result).toBe(noFm);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// updateFrontmatterField
+// ---------------------------------------------------------------------------
+
+const FM_SAMPLE = `---
+title: "Sprint 1 — Test"
+status: active
+progress: 50
+version: 3.1.0
+agents:
+  - claude-opus-4-6
+---
+
+# Sprint 1
+
+Content here.
+`;
+
+describe("updateFrontmatterField", () => {
+  it("updates a string field", () => {
+    const result = updateFrontmatterField(FM_SAMPLE, "status", "completed");
+    expect(result).toContain("status: completed");
+    expect(result).not.toContain("status: active");
+  });
+
+  it("updates a number field", () => {
+    const result = updateFrontmatterField(FM_SAMPLE, "progress", 100);
+    expect(result).toContain("progress: 100");
+    expect(result).not.toContain("progress: 50");
+  });
+
+  it("updates a boolean field", () => {
+    const result = updateFrontmatterField(FM_SAMPLE, "status", true);
+    expect(result).toContain("status: true");
+  });
+
+  it("updates an array field", () => {
+    const result = updateFrontmatterField(FM_SAMPLE, "agents", [
+      "claude-opus-4-6",
+      "gpt-4o",
+    ]);
+    expect(result).toContain("agents:");
+    expect(result).toContain("  - claude-opus-4-6");
+    expect(result).toContain("  - gpt-4o");
+  });
+
+  it("updates array field to empty array", () => {
+    const result = updateFrontmatterField(FM_SAMPLE, "agents", []);
+    expect(result).toContain("agents: []");
+  });
+
+  it("adds a new field when it doesn't exist", () => {
+    const result = updateFrontmatterField(FM_SAMPLE, "type", "feature");
+    expect(result).toContain("type: feature");
+    expect(result).toContain("status: active"); // existing fields preserved
+    expect(result).toContain('title: "Sprint 1 — Test"');
+  });
+
+  it("preserves other frontmatter fields", () => {
+    const result = updateFrontmatterField(FM_SAMPLE, "status", "completed");
+    expect(result).toContain('title: "Sprint 1 — Test"');
+    expect(result).toContain("progress: 50");
+    expect(result).toContain("version: 3.1.0");
+  });
+
+  it("preserves content outside frontmatter", () => {
+    const result = updateFrontmatterField(FM_SAMPLE, "status", "completed");
+    expect(result).toContain("# Sprint 1");
+    expect(result).toContain("Content here.");
+  });
+
+  it("returns original when no frontmatter exists", () => {
+    const noFm = "# Sprint\n\nSome content\n";
+    const result = updateFrontmatterField(noFm, "status", "completed");
+    expect(result).toBe(noFm);
+  });
+
+  it("quotes strings with special characters", () => {
+    const result = updateFrontmatterField(FM_SAMPLE, "title", "Sprint: The Beginning");
+    expect(result).toContain('title: "Sprint: The Beginning"');
+  });
+
+  it("quotes numeric-looking strings", () => {
+    const result = updateFrontmatterField(FM_SAMPLE, "version", "123");
+    expect(result).toContain('version: "123"');
+  });
+
+  it("handles updateSprintStatus delegation", () => {
+    // updateSprintStatus now delegates to updateFrontmatterField
+    const result = updateSprintStatus(FM_SAMPLE, "closed");
+    expect(result).toContain("status: closed");
+    expect(result).not.toContain("status: active");
+    expect(result).toContain('title: "Sprint 1 — Test"');
   });
 });
 

@@ -66,52 +66,72 @@ Projects are external sprint-forge directories registered in the registry:
 
 ## Architecture
 
-Kyro is a **read-only viewer** for sprint-forge project directories. It renders sprint data (kanban, findings, roadmaps, debt tracking) from markdown files. No backend — state is client-side via Zustand, API routes read directly from disk.
+Kyro is a **viewer + cockpit** for sprint-forge project directories. It renders sprint data (kanban, findings, roadmaps, debt tracking) from markdown files and supports task mutations via AST-based writes. API routes read/write the filesystem; UI state lives in Zustand.
 
 ### Data Flow
 
 ```
 Filesystem (sprint-forge dirs)
-  → API routes (app/api/) read markdown files
+  → API routes (app/api/) read/write markdown files
     → lib/file-format/ parses markdown into typed structures
-      → lib/api/load-sprints.ts embeds sprints in project responses
-        → lib/services/ (file/ or mock/) provides data to the store
-          → lib/store.ts (Zustand) holds all client state
-            → components/ render the UI
+    → lib/file-format/ast-writer.ts writes via AST manipulation
+      → lib/services/ (file/ or mock/) provides data to the store
+        → lib/store.ts (Zustand) holds client state + UI preferences
+          → components/pages/ render views via App Router
 ```
 
 ### App Layout
 
 ```
-app/page.tsx renders:
-┌──────────────────────────────────────────────┐
-│ <div className="flex h-screen">              │
-│  ┌──────────┬───────────────────────────┐    │
-│  │ AppSidebar│ <div flex-1 flex-col>     │    │
-│  │ (w-64 or │  ┌─────────────────────┐  │    │
-│  │  w-16)   │  │ AppTopbar (h-14)    │  │    │
-│  │          │  ├─────────────────────┤  │    │
-│  │          │  │ <main flex-1>       │  │    │
-│  │          │  │   ContentRouter     │  │    │
-│  │          │  │                     │  │    │
-│  │          │  └─────────────────────┘  │    │
-│  └──────────┴───────────────────────────┘    │
-└──────────────────────────────────────────────┘
+app/layout.tsx (root)
+  └── app/(workspace)/layout.tsx — WorkspaceShell
+      ┌──────────┬───────────────────────────┐
+      │ AppSidebar│ <div flex-1 flex-col>     │
+      │ (w-64 or │  ┌─────────────────────┐  │
+      │  w-16)   │  │ AppTopbar (h-14)    │  │
+      │          │  ├─────────────────────┤  │
+      │          │  │ <main flex-1>       │  │
+      │          │  │   {children}        │  │
+      │          │  │   (App Router page) │  │
+      │          │  └─────────────────────┘  │
+      └──────────┴───────────────────────────┘
 ```
 
-### Navigation (Client-Side Only)
+### URL Routing (App Router)
 
-**No URL routing** — all navigation is Zustand state. `ContentRouter` dispatches views:
+Navigation uses Next.js App Router with URL-based routing. All navigation state comes from the URL — Zustand holds only data and UI preferences.
 
-```typescript
-if (activeSprintDetailId) → <SprintDetailPage />
-if (activeSprintId)       → <SprintBoard />       // kanban
-else                      → PAGE_MAP[activeSidebarItem]
+**Route structure**:
+
+```
+/                                              → WorkspaceRoot (→ first project or onboarding)
+/(workspace)/                                  → WorkspaceRoot (→ first project)
+/(workspace)/[projectId]/                      → ProjectLayout (syncs URL → store)
+/(workspace)/[projectId]/overview              → ProjectOverviewPage
+/(workspace)/[projectId]/readme                → ReadmePage
+/(workspace)/[projectId]/sprints               → SprintsPage
+/(workspace)/[projectId]/sprints/[sprintId]    → SprintBoardPage (kanban)
+/(workspace)/[projectId]/sprints/[sprintId]/detail → SprintDetailPage
+/(workspace)/[projectId]/findings              → FindingsPage
+/(workspace)/[projectId]/roadmap               → RoadmapPage
+/(workspace)/[projectId]/debt                  → DebtDashboardPage
+/(workspace)/[projectId]/documents             → DocumentsPage
+/(workspace)/[projectId]/agents                → AgentsActivityPage
+/(workspace)/[projectId]/reentry               → ReentryPromptsPage
 ```
 
-PAGE_MAP: `overview`, `readme`, `sprints`, `findings`, `roadmap`, `debt`, `documents`, `agents`
+**Layout hierarchy**:
 
-A breadcrumb in `AppTopbar` shows: `Project > Section > Sprint > Finding`
+- `app/layout.tsx` — Root: wraps with `<Providers>` (Zustand, React Query)
+- `app/(workspace)/layout.tsx` — `WorkspaceShell`: renders `AppSidebar` + `AppTopbar` + `CommandPalette` + `{children}`; shows `WorkspaceOnboarding` if no projects
+- `app/(workspace)/[projectId]/layout.tsx` — `ProjectLayout`: validates `projectId` from URL params, syncs `store.activeProjectId`
+
+**Navigation patterns**:
+
+- Sidebar uses `<Link href={...}>` from `next/link`
+- Command palette uses `router.push()` from `next/navigation`
+- Breadcrumbs in `AppTopbar` derived from URL pathname + project/sprint data from store
+- Active nav item derived from URL pathname segment (not store state)
 
 ### API Routes
 
@@ -144,31 +164,33 @@ Components consume via `import { services } from "@/lib/services"` — never imp
 
 ## State Management (Zustand)
 
-**Store**: `lib/store.ts` — Zustand 5.0.2 with `persist` middleware (sessionStorage, key: `"kyro-nav-state"`).
+**Store**: `lib/store.ts` — Zustand 5.0.2 with `persist` middleware (sessionStorage, key: `"kyro-ui-state"`).
 
 ### Key State Slices
 
 | Slice | State | Purpose |
 |-------|-------|---------|
 | **Projects** | `projects`, `activeProjectId` | Multi-project management |
-| **Findings** | `findings[projectId]`, `activeFindingId` | Per-project lazy loading + drill-down |
-| **Roadmaps** | `roadmaps[projectId]` | Per-project lazy loading |
+| **Findings** | `findings[projectId]`, `findingsLoading` | Per-project lazy loading |
+| **Roadmaps** | `roadmaps[projectId]`, `roadmapLoading` | Per-project lazy loading |
+| **Re-entry Prompts** | `reentryPrompts[projectId]` | Per-project lazy loading |
 | **Members** | `members[]` | Team roster |
-| **Activities** | `activities[]`, `activityWriteWarning` | Audit log with error resilience |
-| **Navigation** | `activeSidebarItem`, `activeSprintId`, `activeSprintDetailId` | View routing |
-| **UI** | `sidebarCollapsed`, `focusMode`, `zenMode`, `commandPaletteOpen` | Display preferences |
+| **Activities** | `activities[]`, `activitiesDiagnostics` | Audit log with diagnostics |
+| **Task Mutations** | `updatingTasks[taskId]` | Per-task loading indicators |
+| **UI** | `sidebarCollapsed`, `focusMode`, `zenMode`, `commandPaletteOpen`, `addProjectDialogOpen` | Display preferences |
+| **Columns** | `collapsedColumns[sprintId-columnId]` | Per-sprint kanban column collapse |
 | **Async** | `isInitializing`, `initError`, `isSaving`, `saveError` | Loading/error states |
 
 ### Persisted to sessionStorage
 
-`activeProjectId`, `activeSidebarItem`, `activeSprintId`, `activeSprintDetailId`, `sidebarCollapsed`
+`activeProjectId`, `sidebarCollapsed`
 
-### Navigation Interactions
+**Note**: No navigation state is persisted — all navigation is URL-based via App Router.
 
-- **Project switch** (`setActiveProjectId`): clears sprint IDs, resets sidebar to `"overview"`
-- **Sprint selection** (`setActiveSprintId`): opens kanban board
-- **Sprint detail** (`setActiveSprintDetailId`): opens structured section view (overrides sprint board)
-- **Finding drill-down** (`setActiveFindingId`): independent of sprint nav
+### Project Interactions
+
+- **Project switch** (`setActiveProjectId`): used by `ProjectLayout` to sync URL → store
+- **Lazy loading** (`loadFindings`, `loadRoadmap`, `loadReentryPrompts`): fetched on demand per project
 
 ### Error Patterns
 
@@ -182,9 +204,23 @@ Components consume via `import { services } from "@/lib/services"` — never imp
 
 ```
 app/
-├── layout.tsx              # Root metadata + analytics
-├── page.tsx                # Main entry: Providers + Sidebar + Topbar + ContentRouter
+├── layout.tsx              # Root: HTML shell + metadata
 ├── globals.css             # Tailwind v4 entry (theme, plugins, base)
+├── (workspace)/            # Workspace route group
+│   ├── layout.tsx          # WorkspaceShell: sidebar + topbar + command palette
+│   ├── page.tsx            # WorkspaceRoot redirect
+│   └── [projectId]/        # Project routes
+│       ├── layout.tsx      # ProjectLayout: URL→store sync
+│       ├── page.tsx        # Redirect to /overview
+│       ├── overview/       # ProjectOverviewPage
+│       ├── sprints/        # SprintsPage, [sprintId]/ (board + detail)
+│       ├── findings/       # FindingsPage
+│       ├── roadmap/        # RoadmapPage
+│       ├── debt/           # DebtDashboardPage
+│       ├── documents/      # DocumentsPage
+│       ├── agents/         # AgentsActivityPage
+│       ├── readme/         # ReadmePage
+│       └── reentry/        # ReentryPromptsPage
 └── api/                    # Server-side API routes
 
 lib/
@@ -217,17 +253,16 @@ lib/
     └── file/               # Filesystem implementations (calls API routes)
 
 components/
-├── ui/                     # shadcn/ui primitives (~59 components)
-├── pages/                  # Full-page views (one per nav item)
+├── ui/                     # shadcn/ui primitives (~18 components)
+├── pages/                  # Full-page views (one per route)
 ├── sprint/                 # Sprint-forge structured renderers (tables, checklists, phases)
 ├── kanban/                 # Kanban board (dnd-kit drag-drop)
 ├── dialogs/                # Modal dialogs
 ├── markdown-renderer.tsx   # Full markdown pipeline (GFM + highlight + sanitize)
 ├── inline-markdown.tsx     # Lightweight inline-only markdown (no block elements)
-├── content-router.tsx      # Main view dispatcher
-├── app-sidebar.tsx         # Navigation sidebar (collapsible, ⌘B)
-├── app-topbar.tsx          # Breadcrumb + search + agent context
-├── command-palette.tsx     # ⌘K command palette
+├── app-sidebar.tsx         # Navigation sidebar (collapsible, ⌘B), uses <Link>
+├── app-topbar.tsx          # Breadcrumb from URL + project/sprint context
+├── command-palette.tsx     # ⌘K command palette, uses router.push()
 ├── providers.tsx           # QueryClient + AppInitializer
 └── workspace-onboarding.tsx # First-run setup flow
 
@@ -288,7 +323,7 @@ Flex containers need `min-h-0` for ScrollArea to work:
 </div>
 ```
 
-`ContentRouter` uses `overflow-hidden` for pages with own scroll (sprint detail/board), `overflow-auto` for others.
+Page components use `overflow-hidden` for pages with own scroll (sprint detail/board), `overflow-auto` for others.
 
 ### Icon System
 
@@ -339,9 +374,9 @@ No React component testing (jsdom + @testing-library/react). Unit tests cover pu
 
 ### Adding a New Page
 
-1. Create `components/pages/my-page.tsx` with named export
-2. Add entry to `PAGE_MAP` in `content-router.tsx`
-3. Add nav item to `NAV_ITEMS` in `lib/config.ts` (with Lucide icon)
+1. Create `components/pages/my-page.tsx` with named export (`"use client"`)
+2. Create `app/(workspace)/[projectId]/my-section/page.tsx` that renders the component
+3. Add nav item to `NAV_ITEMS` in `lib/config.ts` (with Lucide icon and `href: "/my-section"`)
 
 ### API Route Pattern
 
@@ -357,6 +392,11 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 }
 ```
 
-### Read-Only Principle
+### Write Capabilities
 
-Sprint-forge files (sprints, tasks, findings, documents) are **never modified** by the UI. Only workspace metadata (project registry, members, activities) is writable.
+Task status updates and sprint mutations are handled via AST-based writes (`lib/file-format/ast-writer.ts`). The UI supports:
+- Task status changes via kanban drag-drop (with confirmation dialog)
+- Task creation/deletion via API routes
+- Sprint status updates
+
+All markdown writes use `unified` + `remark` AST manipulation — no regex-based writes. Workspace metadata (project registry, members, activities) is also writable.

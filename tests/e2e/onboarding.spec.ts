@@ -63,8 +63,8 @@ test("workspace onboarding initializes and reaches ready state", async ({ page }
     });
   });
 
-  // Navigate to a workspace route (not /) so WorkspaceShell renders
-  await page.goto("/init/overview");
+  // Navigate to root — with no projects, WorkspaceShell shows onboarding (D6 fix)
+  await page.goto("/");
 
   await expect(page.getByText("Initialize workspace")).toBeVisible({ timeout: 10_000 });
   await page.getByRole("button", { name: "Create workspace files" }).click();

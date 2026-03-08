@@ -189,14 +189,17 @@ export function appendTask(
 }
 
 /**
- * Update the sprint status in YAML frontmatter.
+ * Update a single YAML frontmatter field.
  *
  * Locates the YAML frontmatter node via AST, then does a targeted
- * string replacement of the `status:` value within the frontmatter bounds.
+ * string replacement of the specified field within the frontmatter bounds.
+ * Supports string, number, boolean, and simple array values.
+ * If the field doesn't exist, it is appended to the frontmatter.
  */
-export function updateSprintStatus(
+export function updateFrontmatterField(
   content: string,
-  newStatus: string,
+  field: string,
+  value: string | number | boolean | string[],
 ): string {
   const tree = parseMarkdown(content);
 
@@ -207,16 +210,41 @@ export function updateSprintStatus(
       const endOff = yaml.position?.end.offset;
       if (startOff == null || endOff == null) return content;
 
-      // Extract the frontmatter text (between --- delimiters)
       const fmStart = startOff;
       const fmEnd = endOff;
       const fmText = content.slice(fmStart, fmEnd);
 
-      // Replace status value within frontmatter bounds
-      const patched = fmText.replace(
-        /^(status:\s*).+$/m,
-        `$1${newStatus}`,
+      const serialized = serializeFrontmatterValue(value);
+
+      // Try to replace existing field
+      // Match the field name at the start of a line, followed by its value
+      // For array fields, also match the indented list items that follow
+      const fieldRegex = new RegExp(
+        `^(${escapeRegex(field)}:)[ \\t]*.*(?:\\n[ \\t]+-[ \\t]+.*)*`,
+        "m",
       );
+      const match = fmText.match(fieldRegex);
+
+      let patched: string;
+      if (match) {
+        // Replace existing field
+        patched = fmText.replace(fieldRegex, `${field}: ${serialized}`);
+      } else {
+        // Append new field before the closing ---
+        // The fmText includes the opening --- and closing ---
+        // yaml.value is just the content between them
+        // But fmText is the full range including delimiters
+        // We need to insert before the last line
+        const lines = fmText.split("\n");
+        const lastLine = lines[lines.length - 1];
+        if (lastLine.trim() === "---") {
+          lines.splice(lines.length - 1, 0, `${field}: ${serialized}`);
+          patched = lines.join("\n");
+        } else {
+          // No closing ---, just append
+          patched = fmText + `\n${field}: ${serialized}`;
+        }
+      }
 
       if (patched === fmText) return content;
       return spliceContent(content, fmStart, fmEnd, patched);
@@ -224,6 +252,44 @@ export function updateSprintStatus(
   }
 
   return content;
+}
+
+/** Serialize a value for YAML frontmatter. */
+function serializeFrontmatterValue(
+  value: string | number | boolean | string[],
+): string {
+  if (typeof value === "boolean") return value ? "true" : "false";
+  if (typeof value === "number") return String(value);
+  if (Array.isArray(value)) {
+    if (value.length === 0) return "[]";
+    return "\n" + value.map((v) => `  - ${quoteIfNeeded(v)}`).join("\n");
+  }
+  return quoteIfNeeded(String(value));
+}
+
+/** Quote a YAML string value if it contains special characters. */
+function quoteIfNeeded(s: string): string {
+  if (/[:#\[\]{}&*!|>'"%@`,?]/.test(s) || s === "" || s === "true" || s === "false" || /^\d+$/.test(s)) {
+    return `"${s.replace(/"/g, '\\"')}"`;
+  }
+  return s;
+}
+
+/** Escape special regex characters in a string. */
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Update the sprint status in YAML frontmatter.
+ *
+ * Convenience wrapper around updateFrontmatterField() for the `status` field.
+ */
+export function updateSprintStatus(
+  content: string,
+  newStatus: string,
+): string {
+  return updateFrontmatterField(content, "status", newStatus);
 }
 
 /**

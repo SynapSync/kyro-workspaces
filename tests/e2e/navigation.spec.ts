@@ -87,4 +87,22 @@ test.describe("finding drill-down", () => {
     await expect(page.getByRole("heading", { name: "Findings", level: 1 })).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText("Architecture Layer Violations")).toBeVisible();
   });
+
+  test("navigates to finding detail and shows content", async ({ page }) => {
+    await setupCommonRoutes(page);
+    await page.goto(`/${TEST_PROJECT.id}/findings`);
+    await waitForAppReady(page);
+
+    // Click the finding to drill down
+    await page.getByText("Architecture Layer Violations").click();
+
+    // Verify detail view renders with expected content
+    await expect(page.getByRole("heading", { name: /Architecture Layer Violations/ })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText("medium")).toBeVisible(); // severity badge
+    await expect(page.getByText("Detailed analysis of architecture violations")).toBeVisible();
+
+    // Verify back button exists and works
+    await page.getByRole("button", { name: /Back/ }).click();
+    await expect(page.getByRole("heading", { name: "Findings", level: 1 })).toBeVisible({ timeout: 10_000 });
+  });
 });
