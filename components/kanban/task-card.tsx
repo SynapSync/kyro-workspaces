@@ -79,7 +79,7 @@ export function TaskCard({ task, isUpdating = false }: TaskCardProps) {
           </div>
           <InlineMarkdown
             content={task.title}
-            className="text-sm font-medium text-foreground leading-snug wrap-anywhere"
+            className="text-sm font-normal text-foreground leading-snug wrap-anywhere"
           />
         </div>
       </div>
