@@ -14,7 +14,7 @@ import {
   type DragEndEvent,
   type DragOverEvent,
 } from "@dnd-kit/core";
-import { ArrowLeft, FileText, Ban, ChevronDown, ChevronRight } from "lucide-react";
+import { ArrowLeft, FileText, Ban, ChevronDown, ChevronRight, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BoardColumn } from "@/components/kanban/board-column";
@@ -28,6 +28,20 @@ import { cn } from "@/lib/utils";
 interface SprintBoardProps {
   sprintId: string;
 }
+
+type ColumnLayoutMode = "empty_only" | "collapse_all" | "expand_all" | "custom";
+
+const COLUMN_LAYOUT_LABEL: Record<Exclude<ColumnLayoutMode, "custom">, string> = {
+  empty_only: "Empty Only",
+  collapse_all: "Collapse All",
+  expand_all: "Expand All",
+};
+
+const COLUMN_LAYOUT_ICON = {
+  empty_only: Layers,
+  collapse_all: ChevronRight,
+  expand_all: ChevronDown,
+} as const;
 
 export function SprintBoardPage({ sprintId }: SprintBoardProps) {
   const router = useRouter();
@@ -161,6 +175,51 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
 
   const statusCfg = SPRINT_STATUS_CONFIG[sprint.status];
 
+  const columnStates = COLUMNS.map((col) => {
+    const persistedCollapsed = collapsedColumns[`${sprintId}-${col.id}`];
+    const tasks = columnTasks[col.id] || [];
+    const defaultCollapsed = tasks.length === 0;
+    const isCollapsed = persistedCollapsed ?? defaultCollapsed;
+    return { col, tasks, isCollapsed };
+  });
+
+  const allCollapsed = columnStates.every(({ isCollapsed }) => isCollapsed);
+  const allExpanded = columnStates.every(({ isCollapsed }) => !isCollapsed);
+  const emptyOnly = columnStates.every(
+    ({ tasks, isCollapsed }) => isCollapsed === (tasks.length === 0)
+  );
+
+  const columnLayoutMode: ColumnLayoutMode = allCollapsed
+    ? "collapse_all"
+    : allExpanded
+      ? "expand_all"
+      : emptyOnly
+        ? "empty_only"
+        : "custom";
+
+  const nextColumnLayoutMode: Exclude<ColumnLayoutMode, "custom"> =
+    columnLayoutMode === "empty_only"
+      ? "collapse_all"
+      : columnLayoutMode === "collapse_all"
+        ? "expand_all"
+        : "empty_only";
+
+  const columnLayoutDisplayMode: Exclude<ColumnLayoutMode, "custom"> =
+    columnLayoutMode === "custom" ? nextColumnLayoutMode : columnLayoutMode;
+  const ColumnLayoutIcon = COLUMN_LAYOUT_ICON[columnLayoutDisplayMode];
+
+  const handleCycleColumnLayoutMode = () => {
+    columnStates.forEach(({ col, tasks }) => {
+      const collapsed =
+        nextColumnLayoutMode === "collapse_all"
+          ? true
+          : nextColumnLayoutMode === "expand_all"
+            ? false
+            : tasks.length === 0;
+      setColumnCollapsed(sprintId, col.id, collapsed);
+    });
+  };
+
   return (
     <div className="flex h-full flex-col">
       {/* Board Header */}
@@ -226,6 +285,16 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
             variant="outline"
             size="sm"
             className="gap-1.5"
+            onClick={handleCycleColumnLayoutMode}
+            title="Cycle column layout: Empty Only → Collapse All → Expand All"
+          >
+            <ColumnLayoutIcon className="h-3.5 w-3.5" />
+            {COLUMN_LAYOUT_LABEL[columnLayoutDisplayMode]}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
             asChild
           >
             <Link href={`/${activeProjectId}/sprints/${sprintId}/detail`}>
@@ -241,11 +310,7 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
         <div className="flex h-full min-w-max flex-col px-6">
           {/* Column Headers — fixed row, never scrolls vertically */}
           <div className="flex shrink-0 gap-4 pt-4 pb-2">
-            {COLUMNS.map((col) => {
-              const persistedCollapsed = collapsedColumns[`${sprintId}-${col.id}`];
-              const colTasks = columnTasks[col.id] || [];
-              const defaultCollapsed = colTasks.length === 0;
-              const isCollapsed = persistedCollapsed ?? defaultCollapsed;
+            {columnStates.map(({ col, tasks: colTasks, isCollapsed }) => {
               const blockedCount = colTasks.filter((t) => t.tags.includes("blocked")).length;
 
               return (
@@ -297,7 +362,7 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
           </div>
 
           {/* Column Content — each column scrolls independently */}
-          <div className="flex flex-1 min-h-0 gap-4 pb-4">
+          <div className="flex flex-1 min-h-0 gap-4">
             <DndContext
               sensors={sensors}
               collisionDetection={closestCorners}
@@ -305,12 +370,7 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
               onDragOver={handleDragOver}
               onDragEnd={handleDragEnd}
             >
-              {COLUMNS.map((col) => {
-                const persistedCollapsed = collapsedColumns[`${sprintId}-${col.id}`];
-                const colTasks = columnTasks[col.id] || [];
-                const defaultCollapsed = colTasks.length === 0;
-                const isCollapsed = persistedCollapsed ?? defaultCollapsed;
-
+              {columnStates.map(({ col, tasks: colTasks, isCollapsed }) => {
                 return (
                   <BoardColumn
                     key={col.id}

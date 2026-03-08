@@ -6,6 +6,7 @@ import { formatDistanceToNow } from "date-fns";
 import { GripVertical, Ban, Sparkles, FileCode, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { InlineMarkdown } from "@/components/inline-markdown";
 import type { Task } from "@/lib/types";
 import { PRIORITY_CONFIG, TAG_CONFIG, TASK_TAGS } from "@/lib/config";
 import { cn } from "@/lib/utils";
@@ -76,16 +77,18 @@ export function TaskCard({ task, isUpdating = false }: TaskCardProps) {
               </Badge>
             )}
           </div>
-          <p className="text-sm font-medium text-foreground leading-snug wrap-anywhere">
-            {task.title}
-          </p>
+          <InlineMarkdown
+            content={task.title}
+            className="text-sm font-medium text-foreground leading-snug wrap-anywhere"
+          />
         </div>
       </div>
 
       {task.description && (
-        <p className="text-xs text-muted-foreground line-clamp-2 mb-2 ml-6 wrap-anywhere">
-          {task.description}
-        </p>
+        <InlineMarkdown
+          content={task.description}
+          className="mb-2 ml-6 block line-clamp-2 text-xs text-muted-foreground wrap-anywhere"
+        />
       )}
 
       <div className="ml-6 flex min-w-0 items-center justify-between gap-2">
