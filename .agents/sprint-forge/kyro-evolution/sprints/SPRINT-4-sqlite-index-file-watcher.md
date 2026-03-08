@@ -129,7 +129,7 @@ Build a derived SQLite index over the workspace's markdown files and a file watc
   - Evidence: SKIPPED — Follows from T3.2 decision. The index is consumed via API routes (`/api/search`, `/api/events`) and the startup module, not through the service factory. The file service continues handling all CRUD operations. The index augments (not replaces) the service layer.
   - Justification: Index consumed via API routes, not service factory
 
-- [-] **T3.4**: Evaluate and implement SSR page migration (D8) — if Phase 1 T1.3 concluded that SQLite enables server-side reads, migrate at least the overview and sprints list pages to fetch from SQLite in their Server Component wrappers; if not feasible, document why and update D8 status
+- [-] **T3.4**: Evaluate and implement SSR page migration (D8) — if `Phase 1 T1.3` concluded that SQLite enables server-side reads, migrate at least the overview and sprints list pages to fetch from SQLite in their Server Component wrappers; if not feasible, document why and update D8 status
   - Files: N/A
   - Evidence: SKIPPED — T1.3 concluded hybrid approach is best. All page components are `"use client"` with deep Zustand dependencies (`activeProjectId` for link construction, `useAppStore()` for data + UI state). Migrating to Server Components requires: (1) splitting each page into server wrapper + client interactive parts, (2) prop-drilling project data, (3) handling the dual-source problem. This is a substantial refactor that should be its own sprint. D8 updated to deferred with Sprint 5+ target.
   - Justification: Page-level SSR migration is a separate refactor effort; D8 deferred

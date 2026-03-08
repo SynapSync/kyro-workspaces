@@ -87,4 +87,20 @@ export class FileProjectsService implements ProjectsService {
     );
     return task;
   }
+
+  async updateTask(
+    projectId: string,
+    sprintId: string,
+    taskId: string,
+    updates: { title?: string; status?: TaskStatus }
+  ): Promise<Task> {
+    const { task } = await localFetch<{ task: Task }>(
+      `/api/projects/${projectId}/sprints/${sprintId}/tasks/${taskId}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(updates),
+      }
+    );
+    return task;
+  }
 }

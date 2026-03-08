@@ -18,9 +18,13 @@ interface SprintProgressBarProps {
 }
 
 export function SprintProgressBar({ data, status, className }: SprintProgressBarProps) {
-  const { totalTasks, doneTasks, sprintProgress, completionRate } = data;
+  const { totalTasks, doneTasks, addressedTasks, sprintProgress, completionRate } = data;
 
   if (totalTasks === 0) return null;
+
+  // Derive effective status from task state
+  const effectiveStatus: SprintStatus =
+    addressedTasks < totalTasks ? "active" : status === "planned" ? "planned" : "closed";
 
   return (
     <div className={className}>
@@ -30,9 +34,9 @@ export function SprintProgressBar({ data, status, className }: SprintProgressBar
           <span>{doneTasks}/{totalTasks}</span>
           <Badge
             variant="outline"
-            className={cn("text-[10px] px-1.5 py-0 h-4 font-normal", SPRINT_STATUS_STYLE[status])}
+            className={cn("text-[10px] px-1.5 py-0 h-4 font-normal", SPRINT_STATUS_STYLE[effectiveStatus])}
           >
-            {status}
+            {effectiveStatus}
           </Badge>
           {completionRate < sprintProgress && (
             <Badge

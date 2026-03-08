@@ -33,6 +33,7 @@ export function useRealtimeSync(): void {
             projectId: string;
             files: string[];
           };
+          console.log(`[sse] index:updated for ${data.projectId}, files:`, data.files);
           refreshProject(data.projectId);
         } catch {
           // Ignore parse errors

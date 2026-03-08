@@ -77,12 +77,18 @@ function isTaskItem(item: ListItem, content: string): boolean {
   return /- \[.\]/.test(lineText);
 }
 
+/** Strip inline markdown formatting (backticks, bold, italic) for comparison. */
+function stripInlineFormatting(text: string): string {
+  return text.replace(/`([^`]*)`/g, "$1").replace(/\*{1,2}([^*]*)\*{1,2}/g, "$1");
+}
+
 /** Find a task list item whose text contains `title` and return it with its parent list. */
 function findTaskInTree(
   tree: Root,
   title: string,
   content: string,
 ): { item: ListItem; list: List; index: number } | undefined {
+  const normalizedTitle = stripInlineFormatting(title);
   for (const node of tree.children) {
     if (node.type !== "list") continue;
     const list = node as List;
@@ -90,7 +96,7 @@ function findTaskInTree(
       const item = list.children[i];
       if (!isTaskItem(item, content)) continue;
       const text = nodeText(item);
-      if (text.includes(title)) {
+      if (text.includes(normalizedTitle)) {
         return { item, list, index: i };
       }
     }
@@ -146,6 +152,22 @@ export function updateTaskStatus(
   // Replace the single character inside the brackets
   const bracketIndex = lineStart + searchArea.indexOf("[") + 1;
   return spliceContent(content, bracketIndex, bracketIndex + 1, symbol);
+}
+
+/**
+ * Update a task's title in sprint markdown.
+ *
+ * Locates the task line by taskRef (e.g. "T2.4") and replaces the title portion
+ * while preserving the checkbox, taskRef, and any sub-items below.
+ */
+export function updateTaskTitle(
+  content: string,
+  taskRef: string,
+  newTitle: string,
+): string {
+  const escaped = taskRef.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = new RegExp(`^(- \\[.\\] \\*\\*${escaped}\\*\\*:\\s*)(.+)$`, "m");
+  return content.replace(pattern, `$1${newTitle}`);
 }
 
 /**

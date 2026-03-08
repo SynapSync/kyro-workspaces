@@ -59,6 +59,7 @@ export interface ProjectsService {
 
   // Write operations
   updateTaskStatus(projectId: string, sprintId: string, taskId: string, status: TaskStatus): Promise<Task>;
+  updateTask(projectId: string, sprintId: string, taskId: string, updates: { title?: string; status?: TaskStatus }): Promise<Task>;
 }
 
 export interface MembersService {

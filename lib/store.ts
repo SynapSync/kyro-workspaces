@@ -65,6 +65,7 @@ interface AppState {
   // Task Mutations
   updatingTasks: Record<string, boolean>; // taskId -> isUpdating
   updateTaskStatus: (projectId: string, sprintId: string, taskId: string, newStatus: TaskStatus) => void;
+  updateTask: (projectId: string, sprintId: string, taskId: string, updates: { title?: string; status?: TaskStatus }) => void;
   refreshProject: (projectId: string) => Promise<void>;
 
   // Async initialization state
@@ -252,6 +253,8 @@ export const useAppStore = create<AppState>()(
     const oldStatus = task.status;
     if (oldStatus === newStatus) return;
 
+    console.log(`[task-update] START: ${taskId} ${oldStatus} → ${newStatus}`);
+
     // Optimistic update
     set((state) => ({
       updatingTasks: { ...state.updatingTasks, [taskId]: true },
@@ -279,6 +282,7 @@ export const useAppStore = create<AppState>()(
     services.projects
       .updateTaskStatus(projectId, sprintId, taskId, newStatus)
       .then(() => {
+        console.log(`[task-update] SUCCESS: ${taskId} written to disk`);
         set((state) => ({
           updatingTasks: { ...state.updatingTasks, [taskId]: false },
         }));
@@ -290,7 +294,57 @@ export const useAppStore = create<AppState>()(
         }, (warning) => set({ activityWriteWarning: warning }));
       })
       .catch((err) => {
+        console.error(`[task-update] FAILED: ${taskId}`, err);
         // Rollback
+        set((state) => ({
+          projects: prev,
+          updatingTasks: { ...state.updatingTasks, [taskId]: false },
+          saveError: errorMsg(err),
+        }));
+      });
+  },
+
+  updateTask: (projectId, sprintId, taskId, updates) => {
+    const prev = get().projects;
+    const project = prev.find((p) => p.id === projectId);
+    if (!project) return;
+    const sprint = project.sprints.find((s) => s.id === sprintId);
+    if (!sprint) return;
+    const task = sprint.tasks.find((t) => t.id === taskId);
+    if (!task) return;
+
+    // Optimistic update
+    set((state) => ({
+      updatingTasks: { ...state.updatingTasks, [taskId]: true },
+      projects: state.projects.map((p) =>
+        p.id === projectId
+          ? {
+              ...p,
+              sprints: p.sprints.map((s) =>
+                s.id === sprintId
+                  ? {
+                      ...s,
+                      tasks: s.tasks.map((t) =>
+                        t.id === taskId
+                          ? { ...t, ...updates, updatedAt: new Date().toISOString() }
+                          : t
+                      ),
+                    }
+                  : s
+              ),
+            }
+          : p
+      ),
+    }));
+
+    services.projects
+      .updateTask(projectId, sprintId, taskId, updates)
+      .then(() => {
+        set((state) => ({
+          updatingTasks: { ...state.updatingTasks, [taskId]: false },
+        }));
+      })
+      .catch((err) => {
         set((state) => ({
           projects: prev,
           updatingTasks: { ...state.updatingTasks, [taskId]: false },
@@ -302,14 +356,19 @@ export const useAppStore = create<AppState>()(
   refreshProject: async (projectId) => {
     // Skip refresh while tasks are being written — avoids overwriting optimistic updates
     const hasPendingWrites = Object.values(get().updatingTasks).some(Boolean);
-    if (hasPendingWrites) return;
+    if (hasPendingWrites) {
+      console.log(`[refresh] SKIPPED: pending writes for project ${projectId}`);
+      return;
+    }
 
+    console.log(`[refresh] START: fetching project ${projectId}`);
     try {
       const project = await services.projects.getProject(projectId);
       if (!project) return;
       set((state) => ({
         projects: state.projects.map((p) => (p.id === projectId ? project : p)),
       }));
+      console.log(`[refresh] DONE: project ${projectId} updated in store`);
     } catch (err) {
       console.warn("[refresh] Failed:", errorMsg(err));
     }

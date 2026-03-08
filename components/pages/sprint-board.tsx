@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { BoardColumn } from "@/components/kanban/board-column";
 import { TaskCard } from "@/components/kanban/task-card";
 import { ActionConfirmDialog } from "@/components/dialogs/action-confirm-dialog";
+import { TaskEditDialog } from "@/components/dialogs/task-edit-dialog";
 import { useAppStore } from "@/lib/store";
 import { COLUMNS, SPRINT_STATUS_CONFIG } from "@/lib/config";
 import { type Task, type TaskStatus, type Phase } from "@/lib/types";
@@ -51,6 +52,7 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
     collapsedColumns,
     setColumnCollapsed,
     updateTaskStatus,
+    updateTask,
     updatingTasks,
   } = useAppStore();
 
@@ -62,6 +64,7 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
     fromStatus: TaskStatus;
     toStatus: TaskStatus;
   } | null>(null);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   // Load persisted column state on mount
   useEffect(() => {
@@ -382,7 +385,7 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
                     hideHeader
                     updatingTasks={updatingTasks}
                     onToggleCollapse={() => setColumnCollapsed(sprintId, col.id, !isCollapsed)}
-                    onEditTask={() => {}}
+                    onEditTask={setEditingTask}
                     onDeleteTask={() => {}}
                   />
                 );
@@ -415,6 +418,18 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
         }
         actionLabel="Move"
         onConfirm={handleConfirmMove}
+      />
+
+      <TaskEditDialog
+        task={editingTask}
+        open={editingTask !== null}
+        onOpenChange={(open) => { if (!open) setEditingTask(null); }}
+        onSave={(updates) => {
+          if (!editingTask) return;
+          const sprintForTask = sprint?.tasks.find((t) => t.id === editingTask.id) ? sprintId : "";
+          if (!sprintForTask) return;
+          updateTask(activeProjectId, sprintForTask, editingTask.id, updates);
+        }}
       />
     </div>
   );

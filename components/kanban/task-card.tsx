@@ -18,7 +18,7 @@ interface TaskCardProps {
   onDelete: (taskId: string) => void;
 }
 
-export function TaskCard({ task, isUpdating = false }: TaskCardProps) {
+export function TaskCard({ task, isUpdating = false, onEdit }: TaskCardProps) {
   const {
     attributes,
     listeners,
@@ -69,7 +69,10 @@ export function TaskCard({ task, isUpdating = false }: TaskCardProps) {
           <GripVertical className="h-4 w-4" />
           <span className="sr-only">Drag task</span>
         </button>
-        <div className="flex-1 min-w-0">
+        <div
+          className="flex-1 min-w-0 cursor-pointer"
+          onClick={() => onEdit(task)}
+        >
           <div className="flex items-center gap-1.5 mb-0.5">
             {task.taskRef && (
               <Badge variant="outline" className="text-[10px] h-4 font-mono px-1.5 shrink-0">

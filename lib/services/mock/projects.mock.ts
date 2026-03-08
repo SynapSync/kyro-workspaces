@@ -90,4 +90,24 @@ export class MockProjectsService implements ProjectsService {
     task.updatedAt = new Date().toISOString();
     return task;
   }
+
+  async updateTask(
+    projectId: string,
+    sprintId: string,
+    taskId: string,
+    updates: { title?: string; status?: TaskStatus }
+  ): Promise<Task> {
+    await mockDelay();
+    const project = this.projects.find((p) => p.id === projectId);
+    if (!project) throw new Error(`Project ${projectId} not found`);
+    const sprint = project.sprints.find((s) => s.id === sprintId);
+    if (!sprint) throw new Error(`Sprint ${sprintId} not found`);
+    const task = sprint.tasks.find((t) => t.id === taskId);
+    if (!task) throw new Error(`Task ${taskId} not found`);
+
+    if (updates.title) task.title = updates.title;
+    if (updates.status) task.status = updates.status;
+    task.updatedAt = new Date().toISOString();
+    return task;
+  }
 }
