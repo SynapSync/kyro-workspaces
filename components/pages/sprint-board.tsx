@@ -17,7 +17,6 @@ import {
 import { ArrowLeft, FileText, Focus, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { BoardColumn } from "@/components/kanban/board-column";
 import { TaskCard } from "@/components/kanban/task-card";
 import { ActionConfirmDialog } from "@/components/dialogs/action-confirm-dialog";
@@ -265,9 +264,8 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
       </div>
 
       {/* Board */}
-      <div className="flex-1 overflow-hidden">
-        <ScrollArea className="h-full">
-          <div className="flex gap-4 p-6 h-full min-h-[500px]">
+      <div className="flex-1 min-h-0 overflow-x-auto overflow-y-hidden">
+        <div className="flex gap-4 p-6 h-full">
             <DndContext
               sensors={sensors}
               collisionDetection={closestCorners}
@@ -318,9 +316,7 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
                 ) : null}
               </DragOverlay>
             </DndContext>
-          </div>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
+        </div>
       </div>
 
       {/* Confirmation dialog for drag-drop status changes */}
