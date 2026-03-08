@@ -78,14 +78,14 @@ export function TaskCard({ task, isUpdating = false }: TaskCardProps) {
               </Badge>
             )}
           </div>
-          <p className="text-sm font-medium text-foreground leading-snug [overflow-wrap:anywhere]">
+          <p className="text-sm font-medium text-foreground leading-snug wrap-anywhere">
             {task.title}
           </p>
         </div>
       </div>
 
       {task.description && (
-        <p className="text-xs text-muted-foreground line-clamp-2 mb-2 ml-6 [overflow-wrap:anywhere]">
+        <p className="text-xs text-muted-foreground line-clamp-2 mb-2 ml-6 wrap-anywhere">
           {task.description}
         </p>
       )}
