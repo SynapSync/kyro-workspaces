@@ -90,6 +90,9 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
     })
   );
 
+  // Column IDs are TaskStatus values — used to distinguish column droppables from task sortables
+  const columnIds = useMemo(() => new Set(COLUMNS.map((c) => c.id as string)), []);
+
   const columnTasks = useMemo(() => {
     if (!sprint) return {} as Record<TaskStatus, Task[]>;
     const map: Record<TaskStatus, Task[]> = {
@@ -127,9 +130,6 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
   const handleDragOver = (_event: DragOverEvent) => {
     // handled in dragEnd
   };
-
-  // Column IDs are TaskStatus values — used to distinguish column droppables from task sortables
-  const columnIds = useMemo(() => new Set(COLUMNS.map((c) => c.id as string)), []);
 
   const handleDragEnd = (event: DragEndEvent) => {
     setActiveTask(null);

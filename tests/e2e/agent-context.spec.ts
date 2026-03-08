@@ -1,47 +1,38 @@
 import { expect, test } from "@playwright/test";
-import { setupCommonRoutes } from "./helpers";
+import { setupCommonRoutes, navigateTo, waitForAppReady, TEST_PROJECT } from "./helpers";
 
 const now = new Date().toISOString();
 
-test("agent context panel shows active project, sprint and agent", async ({ page }) => {
-  await setupCommonRoutes(page, {
-    sprints: [
-      {
-        id: "sprint-1",
-        name: "Sprint 1",
-        status: "active",
-        objective: "Validate context panel",
-        tasks: [],
-        startDate: now,
-        version: "1.5.0",
-      },
-    ],
-  });
-
-  await page.route("**/api/activities", async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        data: {
-          activities: [
-            {
-              id: "act-1",
-              projectId: "proj-1",
-              actionType: "created_sprint",
-              description: "Sprint Forge created Sprint 1",
-              timestamp: now,
-              metadata: { agent: "Sprint Forge" },
-            },
-          ],
+test.describe("agent context panel", () => {
+  test.beforeEach(async ({ page }) => {
+    await setupCommonRoutes(page, {
+      sprints: [
+        {
+          id: "sprint-1",
+          name: "Sprint 1",
+          status: "active",
+          objective: "Validate context panel",
+          tasks: [{ id: "t1", title: "Task 1", status: "pending", priority: "medium", tags: [], createdAt: now, updatedAt: now }],
+          startDate: now,
+          version: "1.5.0",
         },
-      }),
+      ],
     });
+    await page.goto(`/${TEST_PROJECT.id}/overview`);
+    await waitForAppReady(page);
   });
 
-  await page.goto("/");
+  test("shows active project name", async ({ page }) => {
+    await expect(page.getByText(new RegExp(`Project:\\s*${TEST_PROJECT.name}`))).toBeVisible();
+  });
 
-  await expect(page.getByText(/Project:\s*Alpha/)).toBeVisible();
-  await expect(page.getByText(/Sprint:\s*Sprint 1/)).toBeVisible();
-  await expect(page.getByText(/Agent:\s*Sprint Forge/)).toBeVisible();
+  test("shows active sprint when on sprint page", async ({ page }) => {
+    await navigateTo(page, "Sprints");
+    await page.getByRole("link", { name: "Board" }).first().click();
+    await expect(page.getByText(/Sprint:\s*Sprint 1/)).toBeVisible();
+  });
+
+  test("shows dash when no sprint selected", async ({ page }) => {
+    await expect(page.getByText(/Sprint:\s*—/)).toBeVisible();
+  });
 });

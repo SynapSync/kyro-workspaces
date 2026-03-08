@@ -38,7 +38,7 @@ export async function localFetch<T>(
     });
   } catch (err) {
     if (timeoutEnabled && err instanceof Error && err.name === "AbortError") {
-      throw new Error(`Request timed out after ${timeoutMs}ms`);
+      throw new Error(`Request timed out after ${timeoutMs}ms`, { cause: err });
     }
     throw err;
   } finally {

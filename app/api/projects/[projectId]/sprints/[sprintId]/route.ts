@@ -10,7 +10,7 @@ import { resolveSprintFilePath } from "@/lib/api/sprint-files";
 import {
   parseSprintFile,
 } from "@/lib/file-format/parsers";
-import { patchSprintStatusInMarkdown } from "@/lib/file-format/serializers";
+import { updateSprintStatus as astUpdateSprintStatus } from "@/lib/file-format/ast-writer";
 import { syncProjectReentryPrompts } from "@/lib/file-format/templates";
 
 interface RouteParams {
@@ -68,9 +68,9 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
       tasks: body.tasks ?? existing.tasks,
     };
 
-    // Surgical patch: only modify sprint status in the raw markdown
+    // AST-based patch: locates YAML frontmatter via AST, replaces status value
     if (body.status && body.status !== existing.status) {
-      const patched = patchSprintStatusInMarkdown(existingContent, body.status);
+      const patched = astUpdateSprintStatus(existingContent, body.status);
       await fs.writeFile(filePath, patched, "utf-8");
     }
 

@@ -11,8 +11,9 @@ import {
   parseSprintFile,
 } from "@/lib/file-format/parsers";
 import {
-  patchTaskStatusInMarkdown,
-} from "@/lib/file-format/serializers";
+  updateTaskStatus as astUpdateTaskStatus,
+  deleteTask as astDeleteTask,
+} from "@/lib/file-format/ast-writer";
 
 
 interface RouteParams {
@@ -37,10 +38,9 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
     const existingTask = sprint.tasks[taskIndex];
     const newStatus = body.status ?? existingTask.status;
 
-    // Surgical patch: only modify the checkbox symbol in the raw markdown
-    // This preserves the entire sprint-forge file structure (phases, debt, retro, etc.)
+    // AST-based patch: locates task via AST, replaces only the checkbox character
     if (body.status && body.status !== existingTask.status) {
-      const patched = patchTaskStatusInMarkdown(content, existingTask.title, newStatus);
+      const patched = astUpdateTaskStatus(content, existingTask.title, newStatus);
       await fs.writeFile(filePath, patched, "utf-8");
     }
 
@@ -70,14 +70,9 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       return notFound("Task not found");
     }
 
-    // Remove the task line from the raw markdown content
+    // AST-based delete: locates task via AST, removes the line range
     const task = sprint.tasks[taskIndex];
-    const escaped = task.title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const pattern = new RegExp(
-      `^\\s*- \\[[^\\]]\\]\\s+(?:\\*\\*\\w[\\w.]*\\*\\*:\\s*)?${escaped}\\s*$\\n?`,
-      "m",
-    );
-    const patched = content.replace(pattern, "");
+    const patched = astDeleteTask(content, task.title);
     await fs.writeFile(filePath, patched, "utf-8");
 
     return ok({ deleted: true }, 200);

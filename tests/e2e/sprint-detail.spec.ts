@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
-import { setupCommonRoutes } from "./helpers";
+import { setupCommonRoutes, navigateTo, waitForAppReady } from "./helpers";
+
+const now = new Date().toISOString();
 
 test.describe("sprint detail page", () => {
   test.beforeEach(async ({ page }) => {
@@ -11,17 +13,18 @@ test.describe("sprint detail page", () => {
           status: "closed",
           sprintType: "refactor",
           tasks: [
-            { id: "t1", title: "Setup types", status: "done", priority: "medium", taskRef: "T1.1" },
-            { id: "t2", title: "Add parsers", status: "done", priority: "medium", taskRef: "T1.2" },
+            { id: "t1", title: "Setup types", status: "done", priority: "medium", taskRef: "T1.1", tags: [], createdAt: now, updatedAt: now },
+            { id: "t2", title: "Add parsers", status: "done", priority: "medium", taskRef: "T1.2", tags: [], createdAt: now, updatedAt: now },
           ],
           phases: [
             {
+              id: "phase-1-1",
               name: "Phase 1 — Type System",
               objective: "Create domain types",
               isEmergent: false,
               tasks: [
-                { id: "t1", title: "Setup types", status: "done", priority: "medium", taskRef: "T1.1" },
-                { id: "t2", title: "Add parsers", status: "done", priority: "medium", taskRef: "T1.2" },
+                { id: "t1", title: "Setup types", status: "done", priority: "medium", taskRef: "T1.1", tags: [], createdAt: now, updatedAt: now },
+                { id: "t2", title: "Add parsers", status: "done", priority: "medium", taskRef: "T1.2", tags: [], createdAt: now, updatedAt: now },
               ],
             },
           ],
@@ -35,19 +38,19 @@ test.describe("sprint detail page", () => {
         },
       ],
     });
+    await page.goto("/");
+    await waitForAppReady(page);
   });
 
   test("navigates from sprint list to sprint detail", async ({ page }) => {
-    await page.goto("/");
+    await navigateTo(page, "Sprints");
+    await expect(page.getByRole("heading", { name: "Sprints", level: 1 })).toBeVisible();
 
-    // Go to Sprints page
-    await page.getByRole("button", { name: "Sprints" }).first().click();
-    await expect(page.getByRole("heading", { name: "Sprints" })).toBeVisible();
+    // Click the "Details" link on the sprint card
+    await page.getByRole("link", { name: "Details" }).first().click();
 
-    // Click on sprint to open detail
-    await page.getByText("Sprint 1 — Foundation").click();
-
-    // Should see the sprint detail page with section tabs
-    await expect(page.getByText("Sprint 1 — Foundation")).toBeVisible();
+    // Should navigate to sprint detail view
+    await expect(page).toHaveURL(/\/sprints\/sprint-1\/detail/);
+    await expect(page.getByRole("heading", { name: /Sprint 1/ })).toBeVisible();
   });
 });

@@ -1,10 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { parseSprintFile } from "@/lib/file-format/parsers";
 import {
-  patchTaskStatusInMarkdown,
-  patchSprintStatusInMarkdown,
-  appendTaskToMarkdown,
-} from "@/lib/file-format/serializers";
+  updateTaskStatus,
+  updateSprintStatus,
+  appendTask,
+} from "@/lib/file-format/ast-writer";
 
 const SAMPLE_SPRINT_MD = `---
 id: sprint-01
@@ -85,50 +85,50 @@ describe("parseSprintFile", () => {
 
   it("patches task status with task ref (sprint-forge format)", () => {
     const md = `### Phase 1\n\n- [ ] **T1.1**: Setup repo\n- [x] **T1.2**: Run tests\n`;
-    const patched = patchTaskStatusInMarkdown(md, "Setup repo", "done");
+    const patched = updateTaskStatus(md, "Setup repo", "done");
     expect(patched).toContain("- [x] **T1.1**: Setup repo");
     expect(patched).toContain("- [x] **T1.2**: Run tests");
   });
 
   it("patches task status without task ref (simple format)", () => {
     const md = `- [ ] Pending task\n- [x] Done task\n`;
-    const patched = patchTaskStatusInMarkdown(md, "Pending task", "in_progress");
+    const patched = updateTaskStatus(md, "Pending task", "in_progress");
     expect(patched).toContain("- [~] Pending task");
   });
 
   it("returns content unchanged when no match found", () => {
     const md = `- [ ] Some task\n`;
-    const patched = patchTaskStatusInMarkdown(md, "Nonexistent task", "done");
+    const patched = updateTaskStatus(md, "Nonexistent task", "done");
     expect(patched).toBe(md);
   });
 
   it("patches correct task when multiple tasks have similar names", () => {
     const md = `- [ ] **T1.1**: Create user service\n- [ ] **T1.2**: Create user controller\n`;
-    const patched = patchTaskStatusInMarkdown(md, "Create user controller", "done");
+    const patched = updateTaskStatus(md, "Create user controller", "done");
     expect(patched).toContain("- [ ] **T1.1**: Create user service");
     expect(patched).toContain("- [x] **T1.2**: Create user controller");
   });
 });
 
-describe("patchSprintStatusInMarkdown", () => {
+describe("updateSprintStatus", () => {
   it("patches status in YAML frontmatter", () => {
     const md = `---\nid: sprint-1\nstatus: active\n---\n\n# Sprint 1\n`;
-    const patched = patchSprintStatusInMarkdown(md, "closed");
+    const patched = updateSprintStatus(md, "closed");
     expect(patched).toContain("status: closed");
     expect(patched).not.toContain("status: active");
   });
 
   it("returns unchanged content when no frontmatter status found", () => {
     const md = `# Sprint 1\n\nNo frontmatter here\n`;
-    const patched = patchSprintStatusInMarkdown(md, "closed");
+    const patched = updateSprintStatus(md, "closed");
     expect(patched).toBe(md);
   });
 });
 
-describe("appendTaskToMarkdown", () => {
+describe("appendTask", () => {
   it("appends task after the last task line", () => {
     const md = `### Phase 1\n\n- [ ] **T1.1**: First task\n- [x] **T1.2**: Second task\n\n---\n`;
-    const patched = appendTaskToMarkdown(md, "New task", "T1.3");
+    const patched = appendTask(md, "New task", "T1.3");
     expect(patched).toContain("- [ ] **T1.3**: New task");
     // Should appear after T1.2
     const lines = patched.split("\n");
@@ -139,19 +139,19 @@ describe("appendTaskToMarkdown", () => {
 
   it("appends task without task ref", () => {
     const md = `- [ ] First task\n- [x] Second task\n`;
-    const patched = appendTaskToMarkdown(md, "Simple task");
+    const patched = appendTask(md, "Simple task");
     expect(patched).toContain("- [ ] Simple task");
   });
 
   it("returns unchanged content when no task lines exist", () => {
     const md = `# No tasks here\n\nJust text.\n`;
-    const patched = appendTaskToMarkdown(md, "New task");
+    const patched = appendTask(md, "New task");
     expect(patched).toBe(md);
   });
 
   it("skips sub-items when finding insert position", () => {
     const md = `- [ ] **T1.1**: Task with details\n  - Files: lib/foo.ts\n  - Verification: tsc passes\n\n---\n`;
-    const patched = appendTaskToMarkdown(md, "Next task", "T1.2");
+    const patched = appendTask(md, "Next task", "T1.2");
     const lines = patched.split("\n");
     const verIndex = lines.findIndex((l) => l.includes("Verification"));
     const newIndex = lines.findIndex((l) => l.includes("T1.2"));

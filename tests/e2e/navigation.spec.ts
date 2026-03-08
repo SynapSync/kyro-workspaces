@@ -1,70 +1,90 @@
 import { expect, test } from "@playwright/test";
-import { setupCommonRoutes } from "./helpers";
+import { setupCommonRoutes, navigateTo, waitForAppReady, TEST_PROJECT } from "./helpers";
 
 test.describe("sidebar navigation", () => {
   test.beforeEach(async ({ page }) => {
-    await setupCommonRoutes(page, {
-      sprints: [
-        {
-          id: "sprint-1",
-          name: "Sprint 1 — Foundation",
-          status: "closed",
-          sprintType: "refactor",
-          tasks: [
-            { id: "t1", title: "Task 1", status: "done", priority: "medium" },
-          ],
-          sections: {
-            retrospective: "## Retro\nGood sprint.",
-          },
-          debtItems: [
-            { number: 1, item: "Test debt", origin: "Sprint 1", sprintTarget: "Sprint 2", status: "open", resolvedIn: "" },
-          ],
-        },
-      ],
-      findings: [
-        {
-          id: "f-01",
-          number: 1,
-          title: "Architecture Layer Violations",
-          summary: "Components import directly from data layer",
-          severity: "medium",
-          details: "Detailed analysis of violations...",
-          affectedFiles: ["lib/store.ts", "components/app.tsx"],
-          recommendations: ["Add service layer"],
-        },
-      ],
-    });
+    await setupCommonRoutes(page);
   });
 
-  test("navigates through all main nav items", async ({ page }) => {
+  test("redirects to first project overview on load", async ({ page }) => {
     await page.goto("/");
+    await page.waitForURL(new RegExp(`/${TEST_PROJECT.id}/overview`), { timeout: 15_000 });
+    await expect(
+      page.getByRole("heading", { name: TEST_PROJECT.name, level: 1 })
+    ).toBeVisible({ timeout: 10_000 });
+  });
 
-    // Should start at Overview
-    await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
+  test("navigates through main nav items", async ({ page }) => {
+    await page.goto(`/${TEST_PROJECT.id}/overview`);
+    await waitForAppReady(page);
 
-    // Navigate to Sprints
-    await page.getByRole("button", { name: "Sprints" }).first().click();
-    await expect(page.getByRole("heading", { name: "Sprints" })).toBeVisible();
-    await expect(page.getByText("Sprint 1 — Foundation")).toBeVisible();
+    const navSteps = [
+      { label: "Sprints", heading: "Sprints", path: "sprints" },
+      { label: "Findings", heading: "Findings", path: "findings" },
+      { label: "Roadmap", heading: "Roadmap", path: "roadmap" },
+      { label: "Debt", heading: "Technical Debt", path: "debt" },
+      { label: "Documents", heading: "Documents", path: "documents" },
+    ];
 
-    // Navigate to Findings
-    await page.getByRole("button", { name: "Findings" }).first().click();
-    await expect(page.getByRole("heading", { name: "Findings" })).toBeVisible();
-    await expect(page.getByText("Architecture Layer Violations")).toBeVisible();
+    for (const step of navSteps) {
+      await navigateTo(page, step.label);
+      await page.waitForURL(new RegExp(`/${TEST_PROJECT.id}/${step.path}`), { timeout: 10_000 });
+      await expect(page.getByRole("heading", { name: step.heading, level: 1 })).toBeVisible({ timeout: 10_000 });
+    }
 
-    // Navigate to Roadmap
-    await page.getByRole("button", { name: "Roadmap" }).first().click();
-    await expect(page.getByRole("heading", { name: "Roadmap" })).toBeVisible();
-    await expect(page.getByText("Foundation")).toBeVisible();
+    await navigateTo(page, "Overview");
+    await page.waitForURL(new RegExp(`/${TEST_PROJECT.id}/overview`), { timeout: 10_000 });
+    await expect(
+      page.getByRole("heading", { name: TEST_PROJECT.name, level: 1 })
+    ).toBeVisible({ timeout: 10_000 });
+  });
 
-    // Navigate to Debt
-    await page.getByRole("button", { name: "Debt" }).first().click();
-    await expect(page.getByRole("heading", { name: "Technical Debt" })).toBeVisible();
-    await expect(page.getByText("Test debt")).toBeVisible();
+  test("shows workspace name in sidebar", async ({ page }) => {
+    await page.goto(`/${TEST_PROJECT.id}/overview`);
+    await waitForAppReady(page);
+    await expect(page.getByText("Kyro E2E")).toBeVisible();
   });
 
   test("shows project name in sidebar", async ({ page }) => {
-    await page.goto("/");
-    await expect(page.getByText("Alpha")).toBeVisible();
+    await page.goto(`/${TEST_PROJECT.id}/overview`);
+    await waitForAppReady(page);
+    await expect(page.locator("aside").getByText(TEST_PROJECT.name).first()).toBeVisible();
+  });
+});
+
+test.describe("sprint drill-down", () => {
+  test.beforeEach(async ({ page }) => {
+    await setupCommonRoutes(page);
+    await page.goto(`/${TEST_PROJECT.id}/sprints`);
+    await waitForAppReady(page);
+  });
+
+  test("navigates from sprint list to kanban board via Board button", async ({ page }) => {
+    await expect(page.getByRole("heading", { name: "Sprints", level: 1 })).toBeVisible({ timeout: 10_000 });
+
+    await page.getByRole("link", { name: "Board" }).nth(1).click();
+    await expect(page).toHaveURL(new RegExp(`/sprints/sprint-2`));
+    await expect(page.getByText("Pending")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText("In Progress")).toBeVisible();
+    await expect(page.getByText("Done")).toBeVisible();
+  });
+
+  test("navigates from sprint list to sprint detail via Details button", async ({ page }) => {
+    await expect(page.getByRole("heading", { name: "Sprints", level: 1 })).toBeVisible({ timeout: 10_000 });
+
+    await page.getByRole("link", { name: "Details" }).first().click();
+    await expect(page).toHaveURL(new RegExp(`/sprints/sprint-1/detail`));
+    await expect(page.getByRole("heading", { name: /Sprint 1/ })).toBeVisible({ timeout: 10_000 });
+  });
+});
+
+test.describe("finding drill-down", () => {
+  test("displays findings list", async ({ page }) => {
+    await setupCommonRoutes(page);
+    await page.goto(`/${TEST_PROJECT.id}/findings`);
+    await waitForAppReady(page);
+
+    await expect(page.getByRole("heading", { name: "Findings", level: 1 })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText("Architecture Layer Violations")).toBeVisible();
   });
 });

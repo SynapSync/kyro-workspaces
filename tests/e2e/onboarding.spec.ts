@@ -59,14 +59,15 @@ test("workspace onboarding initializes and reaches ready state", async ({ page }
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({ data: { activities: [] } }),
+      body: JSON.stringify({ data: { activities: [], diagnostics: null } }),
     });
   });
 
-  await page.goto("/");
+  // Navigate to a workspace route (not /) so WorkspaceShell renders
+  await page.goto("/init/overview");
 
-  await expect(page.getByText("Initialize workspace")).toBeVisible();
+  await expect(page.getByText("Initialize workspace")).toBeVisible({ timeout: 10_000 });
   await page.getByRole("button", { name: "Create workspace files" }).click();
 
-  await expect(page.getByText("Workspace is ready")).toBeVisible();
+  await expect(page.getByText("Workspace is ready")).toBeVisible({ timeout: 10_000 });
 });

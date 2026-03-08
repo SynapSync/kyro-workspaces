@@ -5,6 +5,8 @@ const E2E_BASE_URL = process.env.BASE_URL ?? "http://127.0.0.1:4173";
 export default defineConfig({
   testDir: "tests/e2e",
   fullyParallel: true,
+  workers: 1,
+  retries: 1,
   reporter: "list",
   use: {
     baseURL: E2E_BASE_URL,

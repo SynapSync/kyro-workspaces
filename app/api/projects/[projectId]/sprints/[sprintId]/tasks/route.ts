@@ -10,7 +10,7 @@ import { resolveSprintFilePath } from "@/lib/api/sprint-files";
 import {
   parseSprintFile,
 } from "@/lib/file-format/parsers";
-import { appendTaskToMarkdown } from "@/lib/file-format/serializers";
+import { appendTask as astAppendTask } from "@/lib/file-format/ast-writer";
 import type { Task } from "@/lib/types";
 
 interface RouteParams {
@@ -59,8 +59,8 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       updatedAt: new Date().toISOString(),
     };
 
-    // Surgical patch: append task line to the last phase's task list
-    const patched = appendTaskToMarkdown(content, newTask.title, body.taskRef);
+    // AST-based append: locates last task list via AST, inserts at correct position
+    const patched = astAppendTask(content, newTask.title, body.taskRef);
     await fs.writeFile(filePath, patched, "utf-8");
 
     return ok({ task: newTask }, 201);
