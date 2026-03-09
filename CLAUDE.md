@@ -130,7 +130,7 @@ Navigation uses Next.js App Router with URL-based routing. All navigation state 
 /(workspace)/[projectId]/overview              → ProjectOverviewPage
 /(workspace)/[projectId]/readme                → ReadmePage
 /(workspace)/[projectId]/sprints               → SprintsPage
-/(workspace)/[projectId]/sprints/[sprintId]    → SprintBoardPage (kanban)
+/(workspace)/[projectId]/sprints/[sprintId]    → SprintBoardPage (kanban, search/filter via ?q=&status=)
 /(workspace)/[projectId]/sprints/[sprintId]/detail → SprintDetailPage
 /(workspace)/[projectId]/findings              → FindingsPage
 /(workspace)/[projectId]/roadmap               → RoadmapPage
@@ -292,7 +292,7 @@ lib/
 components/
 ├── ui/                     # shadcn/ui primitives (~18 components)
 ├── pages/                  # Full-page views (one per route)
-├── sprint/                 # Sprint-forge structured renderers (tables, checklists, phases)
+├── sprint/                 # Sprint-forge structured renderers (tables, checklists, phases, analytics)
 ├── kanban/                 # Kanban board (dnd-kit drag-drop)
 ├── dialogs/                # Modal dialogs
 ├── markdown-renderer.tsx   # Full markdown pipeline (GFM + highlight + sanitize)

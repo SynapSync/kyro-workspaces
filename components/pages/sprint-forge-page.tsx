@@ -4,6 +4,7 @@ import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Hammer,
+  Wand2,
   Zap,
   ArrowRight,
   CheckCircle2,
@@ -16,7 +17,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { SprintForgeWizard } from "@/components/dialogs/sprint-forge-wizard";
 import { useAppStore } from "@/lib/store";
+import { assembleSprintContext } from "@/lib/forge/context";
 import { SPRINT_STATUS_CONFIG, computeSprintProgress } from "@/lib/config";
 import type { SprintStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -36,10 +39,21 @@ const statusIcons: Record<SprintStatus, typeof Zap> = {
 };
 
 export function SprintForgePage() {
-  const { getActiveProject, activeProjectId } = useAppStore();
+  const {
+    getActiveProject,
+    activeProjectId,
+    roadmaps,
+    roadmapLoading,
+    loadRoadmap,
+    findings,
+    findingsLoading,
+    loadFindings,
+    refreshProject,
+  } = useAppStore();
   const project = getActiveProject();
   const [health, setHealth] = useState<HealthData | null>(null);
   const [healthLoading, setHealthLoading] = useState(true);
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   useEffect(() => {
     fetch("/api/health")
@@ -48,6 +62,37 @@ export function SprintForgePage() {
       .catch(() => setHealth(null))
       .finally(() => setHealthLoading(false));
   }, []);
+
+  // Lazy-load roadmap and findings for the wizard
+  useEffect(() => {
+    if (activeProjectId && !roadmaps[activeProjectId] && !roadmapLoading[activeProjectId]) {
+      loadRoadmap(activeProjectId);
+    }
+  }, [activeProjectId, roadmaps, roadmapLoading, loadRoadmap]);
+
+  useEffect(() => {
+    if (activeProjectId && !findings[activeProjectId] && !findingsLoading[activeProjectId]) {
+      loadFindings(activeProjectId);
+    }
+  }, [activeProjectId, findings, findingsLoading, loadFindings]);
+
+  const roadmapSprints = roadmaps[activeProjectId]?.sprints ?? [];
+
+  const forgeContext = useMemo(() => {
+    if (!project || !roadmapSprints.length) return null;
+    return assembleSprintContext(
+      project,
+      findings[activeProjectId] ?? [],
+      roadmapSprints,
+    );
+  }, [project, roadmapSprints, findings, activeProjectId]);
+
+  const handleRefreshAfterGeneration = () => {
+    if (activeProjectId) {
+      refreshProject(activeProjectId);
+      loadRoadmap(activeProjectId);
+    }
+  };
 
   const sprints = project.sprints;
   const activeSprint = useMemo(
@@ -76,6 +121,15 @@ export function SprintForgePage() {
         <div className="max-w-4xl space-y-6">
           {/* Quick Actions */}
           <div className="flex gap-3">
+            <Button
+              size="sm"
+              variant="default"
+              onClick={() => setWizardOpen(true)}
+              className="gap-1.5"
+            >
+              <Wand2 className="h-3.5 w-3.5" />
+              Generate Next Sprint
+            </Button>
             {latestSprint && (
               <Button variant="outline" size="sm" className="gap-1.5" asChild>
                 <Link
@@ -241,7 +295,7 @@ export function SprintForgePage() {
                     No sprints generated yet
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Use the command palette (⌘K) to generate your first sprint.
+                    Click &quot;Generate Next Sprint&quot; above to get started.
                   </p>
                 </div>
               )}
@@ -249,6 +303,13 @@ export function SprintForgePage() {
           </div>
         </div>
       </div>
+
+      <SprintForgeWizard
+        open={wizardOpen}
+        onOpenChange={setWizardOpen}
+        context={forgeContext}
+        onRefreshProject={handleRefreshAfterGeneration}
+      />
     </div>
   );
 }

@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { SprintAnalytics } from "@/components/sprint/sprint-analytics";
 import { useAppStore } from "@/lib/store";
 import { SPRINT_SECTIONS } from "@/lib/config";
 import { cn } from "@/lib/utils";
@@ -173,6 +174,11 @@ export function ProjectOverviewPage() {
           </Card>
         )}
       </div>
+
+      {/* Sprint Analytics */}
+      {project.sprints.length > 1 && (
+        <SprintAnalytics sprints={project.sprints} className="mb-8" />
+      )}
 
       {/* Recent documented sprints */}
       {documentedSprints.length > 0 && (

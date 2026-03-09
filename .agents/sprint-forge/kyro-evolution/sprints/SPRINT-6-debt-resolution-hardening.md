@@ -9,7 +9,7 @@ progress: 100
 version: 3.5.0
 type: debt
 previous_doc: sprints/SPRINT-5-action-chaining.md
-next_doc: null
+next_doc: sprints/SPRINT-7-forge-interactivity-board-enhancements.md
 related_findings:
   - findings/06-inherited-debt.md
 agents:

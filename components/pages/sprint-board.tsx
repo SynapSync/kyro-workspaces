@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   DndContext,
   DragOverlay,
@@ -14,7 +14,7 @@ import {
   type DragEndEvent,
   type DragOverEvent,
 } from "@dnd-kit/core";
-import { ArrowLeft, FileText, Ban, ChevronDown, ChevronRight, Layers } from "lucide-react";
+import { ArrowLeft, FileText, Ban, ChevronDown, ChevronRight, Layers, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BoardColumn } from "@/components/kanban/board-column";
@@ -46,6 +46,7 @@ const COLUMN_LAYOUT_ICON = {
 
 export function SprintBoardPage({ sprintId }: SprintBoardProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const {
     getActiveProject,
     activeProjectId,
@@ -65,6 +66,49 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
     toStatus: TaskStatus;
   } | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+
+  // Search & filter state — initialized from URL params
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("q") ?? "");
+  const [activeStatusFilters, setActiveStatusFilters] = useState<Set<TaskStatus>>(() => {
+    const statusParam = searchParams.get("status");
+    if (!statusParam) return new Set<TaskStatus>();
+    return new Set(statusParam.split(",").filter(Boolean) as TaskStatus[]);
+  });
+
+  const hasActiveFilters = searchQuery.trim() !== "" || activeStatusFilters.size > 0;
+
+  // Sync filter state to URL search params
+  const syncFiltersToUrl = useCallback((query: string, statuses: Set<TaskStatus>) => {
+    const params = new URLSearchParams();
+    if (query.trim()) params.set("q", query.trim());
+    if (statuses.size > 0) params.set("status", [...statuses].join(","));
+    const search = params.toString();
+    const newUrl = search
+      ? `/${activeProjectId}/sprints/${sprintId}?${search}`
+      : `/${activeProjectId}/sprints/${sprintId}`;
+    router.replace(newUrl, { scroll: false });
+  }, [activeProjectId, sprintId, router]);
+
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchQuery(value);
+    syncFiltersToUrl(value, activeStatusFilters);
+  }, [activeStatusFilters, syncFiltersToUrl]);
+
+  const handleToggleStatus = useCallback((status: TaskStatus) => {
+    setActiveStatusFilters((prev) => {
+      const next = new Set(prev);
+      if (next.has(status)) next.delete(status);
+      else next.add(status);
+      syncFiltersToUrl(searchQuery, next);
+      return next;
+    });
+  }, [searchQuery, syncFiltersToUrl]);
+
+  const handleClearFilters = useCallback(() => {
+    setSearchQuery("");
+    setActiveStatusFilters(new Set());
+    syncFiltersToUrl("", new Set());
+  }, [syncFiltersToUrl]);
 
   // Load persisted column state on mount
   useEffect(() => {
@@ -112,7 +156,15 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
       skipped: [],
       carry_over: [],
     };
+
+    const query = searchQuery.trim().toLowerCase();
+
     sprint.tasks.forEach((task) => {
+      // Apply status filter
+      if (activeStatusFilters.size > 0 && !activeStatusFilters.has(task.status)) return;
+      // Apply keyword filter
+      if (query && !task.title.toLowerCase().includes(query)) return;
+
       const bucket = map[task.status];
       if (bucket) {
         bucket.push(task);
@@ -121,7 +173,7 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
       }
     });
     return map;
-  }, [sprint]);
+  }, [sprint, searchQuery, activeStatusFilters]);
 
   if (!sprint) {
     return (
@@ -306,6 +358,52 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
             </Link>
           </Button>
         </div>
+      </div>
+
+      {/* Search & Filter Bar */}
+      <div className="shrink-0 border-b border-border px-6 py-2 flex items-center gap-3">
+        <div className="relative flex-1 max-w-xs">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            placeholder="Filter tasks..."
+            className="w-full rounded-md border bg-background pl-8 pr-3 py-1.5 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          />
+        </div>
+        <div className="flex items-center gap-1.5">
+          {COLUMNS.map((col) => {
+            const isActive = activeStatusFilters.has(col.id);
+            return (
+              <button
+                key={col.id}
+                type="button"
+                onClick={() => handleToggleStatus(col.id)}
+                className={cn(
+                  "flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium border transition-colors",
+                  isActive
+                    ? "border-primary/50 bg-primary/10 text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                )}
+              >
+                <div className={cn("h-1.5 w-1.5 rounded-full", col.color)} />
+                {col.title}
+              </button>
+            );
+          })}
+        </div>
+        {hasActiveFilters && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleClearFilters}
+            className="h-6 gap-1 text-xs text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-3 w-3" />
+            Clear
+          </Button>
+        )}
       </div>
 
       {/* Board */}

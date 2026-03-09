@@ -64,9 +64,10 @@ test.describe("sprint drill-down", () => {
 
     await page.getByRole("link", { name: "Board" }).nth(1).click();
     await expect(page).toHaveURL(new RegExp(`/sprints/sprint-2`));
-    await expect(page.getByText("Pending")).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByText("In Progress")).toBeVisible();
-    await expect(page.getByText("Done")).toBeVisible();
+    // .first() needed because filter bar chips also contain these status names
+    await expect(page.getByText("Pending").first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText("In Progress").first()).toBeVisible();
+    await expect(page.getByText("Done").first()).toBeVisible();
   });
 
   test("navigates from sprint list to sprint detail via Details button", async ({ page }) => {

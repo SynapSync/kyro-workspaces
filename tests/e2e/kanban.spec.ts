@@ -9,12 +9,13 @@ test.describe("kanban board", () => {
   });
 
   test("renders all kanban columns", async ({ page }) => {
-    await expect(page.getByText("Pending")).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByText("In Progress")).toBeVisible();
-    await expect(page.getByText("Done")).toBeVisible();
-    await expect(page.getByText("Blocked")).toBeVisible();
-    await expect(page.getByText("Skipped")).toBeVisible();
-    await expect(page.getByText("Carry-over")).toBeVisible();
+    // .first() needed because filter bar chips also contain these status names
+    await expect(page.getByText("Pending").first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText("In Progress").first()).toBeVisible();
+    await expect(page.getByText("Done").first()).toBeVisible();
+    await expect(page.getByText("Blocked").first()).toBeVisible();
+    await expect(page.getByText("Skipped").first()).toBeVisible();
+    await expect(page.getByText("Carry-over").first()).toBeVisible();
   });
 
   test("displays task cards with correct info", async ({ page }) => {

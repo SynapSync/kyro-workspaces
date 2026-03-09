@@ -90,6 +90,9 @@ Sprint 2 (E2E + AI Tests) ---> Sprint 3 (SSR Data Fetching & Consolidation)
                                     |
                                     v
                                 Sprint 6 (Debt Resolution & Hardening)
+                                    |
+                                    v
+                                Sprint 7 (Forge Interactivity & Board Enhancements)
 ```
 
 Sprint 1 is prerequisite for all others (AST writer enables clean writes for testing).
@@ -97,6 +100,7 @@ Sprint 2 must complete before Sprint 3 (tests needed before large migration).
 Sprints 3 and 4 are sequential (URL routing informs index query patterns).
 Sprint 5 depends on Sprint 4 (action chaining benefits from instant queries).
 Sprint 6 depends on Sprint 5 (debt sprint — resolves accumulated items from Sprints 1-5).
+Sprint 7 depends on Sprint 6 (enhancement sprint — builds on stable, debt-free foundation).
 
 ---
 
@@ -110,6 +114,7 @@ Sprint 6 depends on Sprint 5 (debt sprint — resolves accumulated items from Sp
 | 4 | `04-sqlite-index-file-watcher.md` | 3.3.0 | feature | SQLite derived index + file watcher for auto-refresh | Sprint 3 | completed |
 | 5 | `05-action-chaining.md`, `06-inherited-debt.md` (D22) | 3.4.0 | feature | AI multi-step action chains | Sprint 4 | completed |
 | 6 | `06-inherited-debt.md` (D3, D4), Sprint 5 retro | 3.5.0 | debt | Debt resolution + hardening (D3, D4, D11, chain enum) | Sprint 5 | completed |
+| 7 | Sprint 6 retro + codebase exploration | 3.6.0 | enhancement | Forge page interactivity, board search/filtering, sprint analytics | Sprint 6 | completed |
 
 ---
 
@@ -200,3 +205,17 @@ Sprint 6 depends on Sprint 5 (debt sprint — resolves accumulated items from Sp
   3. CLI Spawn Sanitization — Write prompt to temp file, validate input size, cleanup (D4)
   4. File Watcher Integration Tests — End-to-end pipeline tests for watcher → reindex → SSE (D11)
   5. E2E Verification & Documentation — Run full E2E suite (Sprint 5 Rec 2), update CLAUDE.md (D9)
+
+### Sprint 7 — Sprint Forge Interactivity & Board Enhancements
+
+- **Source**: Sprint 6 retro + codebase exploration
+- **Version Target**: 3.6.0
+- **Type**: enhancement
+- **Focus**: Make Sprint Forge page interactive, add sprint board search/filtering, introduce sprint analytics
+- **Dependencies**: Sprint 6
+- **Adaptation Note**: All original roadmap sprints and debt sprint completed. Sprint 7 added per Rule 8 to enhance the cockpit experience now that the foundation is stable.
+- **Suggested Phases**:
+  1. Sprint Forge Page Interactivity — Wire "Generate Sprint" button + SprintForgeWizard directly into the forge page (Sprint 6 Rec 1)
+  2. Sprint Board Task Search & Filtering — Add search bar + status filter chips to the kanban board, persist in URL params
+  3. Sprint Progress Analytics — Velocity chart + debt trend visualization on project overview page
+  4. Verification & Documentation — Unit tests for filters, full test suite, CLAUDE.md update
