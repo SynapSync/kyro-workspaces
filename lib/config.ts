@@ -22,6 +22,7 @@ import {
   ListOrdered,
   Quote,
   Map,
+  Hammer,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type {
@@ -65,6 +66,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: "documents", label: "Documents", icon: FolderOpen, href: "/documents" },
   { id: "reentry", label: "Re-entry Prompts", icon: BookOpen, href: "/reentry" },
   { id: "agents", label: "Agents Activity", icon: Bot, href: "/agents" },
+  { id: "forge", label: "Sprint Forge", icon: Hammer, href: "/forge" },
 ];
 
 // --- Kanban Columns ---

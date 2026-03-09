@@ -8,7 +8,7 @@ agents:
 # kyro-evolution — Re-entry Prompts
 
 > Last updated: 2026-03-08
-> Current sprint: 5 (completed)
+> Current sprint: 6 (completed)
 
 These prompts help you (or a new agent) recover full project context in a new session.
 
@@ -33,6 +33,7 @@ This is where all sprint-forge documents for this project live. All file paths b
 | 3 | `sprints/SPRINT-3-url-routing-ssr.md` | completed |
 | 4 | `sprints/SPRINT-4-sqlite-index-file-watcher.md` | completed |
 | 5 | `sprints/SPRINT-5-action-chaining.md` | completed |
+| 6 | `sprints/SPRINT-6-debt-resolution-hardening.md` | completed |
 
 ---
 
@@ -43,31 +44,13 @@ This is where all sprint-forge documents for this project live. All file paths b
 | Codebase | `/Users/rperaza/joicodev/ideas/kyro` |
 | Working Directory | `/Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-evolution` |
 | Roadmap | `/Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-evolution/ROADMAP.md` |
-| Latest Sprint | `/Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-evolution/sprints/SPRINT-5-action-chaining.md` |
+| Latest Sprint | `/Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-evolution/sprints/SPRINT-6-debt-resolution-hardening.md` |
 
 ---
 
-## Scenario 1 — Next Sprint (Sprint 6)
+## Scenario 1 — Execute Sprint 6
 
-Use this prompt after Sprint 5 is completed to generate Sprint 6.
-
-```
-I'm continuing work on the kyro-evolution project. Sprint 5 (Action Chaining) has been completed.
-
-Read these files in order:
-1. /Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-evolution/README.md
-2. /Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-evolution/ROADMAP.md
-3. /Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-evolution/sprints/SPRINT-5-action-chaining.md (pay attention to Retro, Recommendations, and Debt table)
-
-Then use /sprint-forge to generate Sprint 6. Ensure all recommendations from Sprint 5
-are addressed in the Disposition table.
-```
-
----
-
-## Scenario 2 — Execute Sprint 6
-
-Use this prompt after Sprint 6 is generated.
+Use this prompt to execute Sprint 6 (already generated).
 
 ```
 I'm working on the kyro-evolution project. Sprint 6 has been generated and needs execution.
@@ -75,10 +58,28 @@ I'm working on the kyro-evolution project. Sprint 6 has been generated and needs
 Read these files in order:
 1. /Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-evolution/README.md
 2. /Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-evolution/ROADMAP.md
-3. /Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-evolution/sprints/SPRINT-6-*.md
+3. /Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-evolution/sprints/SPRINT-6-debt-resolution-hardening.md
 
 Then use /sprint-forge to execute Sprint 6. Work through each phase and task,
 marking progress as you go. Add emergent phases if new work is discovered.
+```
+
+---
+
+## Scenario 2 — Next Sprint (Sprint 7)
+
+Use this prompt after Sprint 6 is completed to generate Sprint 7.
+
+```
+I'm continuing work on the kyro-evolution project. Sprint 6 (Debt Resolution & Hardening) has been completed.
+
+Read these files in order:
+1. /Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-evolution/README.md
+2. /Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-evolution/ROADMAP.md
+3. /Users/rperaza/joicodev/ideas/kyro/.agents/sprint-forge/kyro-evolution/sprints/SPRINT-6-debt-resolution-hardening.md (pay attention to Retro, Recommendations, and Debt table)
+
+Then use /sprint-forge to generate Sprint 7. Ensure all recommendations from Sprint 6
+are addressed in the Disposition table.
 ```
 
 ---

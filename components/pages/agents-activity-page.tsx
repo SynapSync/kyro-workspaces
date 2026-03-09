@@ -55,6 +55,12 @@ const actionConfig: Record<
     bgColor: "bg-emerald-500/10",
     label: "Completed Task",
   },
+  chain_action: {
+    icon: Link2,
+    color: "text-primary",
+    bgColor: "bg-primary/10",
+    label: "Chain Action",
+  },
 };
 
 type ActivityGroup =

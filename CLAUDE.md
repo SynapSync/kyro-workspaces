@@ -137,6 +137,7 @@ Navigation uses Next.js App Router with URL-based routing. All navigation state 
 /(workspace)/[projectId]/debt                  → DebtDashboardPage
 /(workspace)/[projectId]/documents             → DocumentsPage
 /(workspace)/[projectId]/agents                → AgentsActivityPage
+/(workspace)/[projectId]/forge                 → SprintForgePage
 /(workspace)/[projectId]/reentry               → ReentryPromptsPage
 ```
 
@@ -168,6 +169,7 @@ Navigation uses Next.js App Router with URL-based routing. All navigation state 
 | `/api/search` | GET | Full-text search via SQLite FTS5 (`?q=query&type=task&project=id`) |
 | `/api/events` | GET (SSE) | Server-Sent Events for real-time index updates |
 | `/api/ai/interpret` | POST | AI instruction → ActionChain (1–5 steps) via Claude Haiku |
+| `/api/health` | GET | Infrastructure health: index status, watcher count, db size, project count |
 
 Routes use `getWorkspacePath()` + `resolveAndGuard()` (prevents directory traversal) + `handleError()` for consistent error responses.
 
@@ -244,6 +246,7 @@ app/
 │       ├── debt/           # DebtDashboardPage
 │       ├── documents/      # DocumentsPage
 │       ├── agents/         # AgentsActivityPage
+│       ├── forge/          # SprintForgePage
 │       ├── readme/         # ReadmePage
 │       └── reentry/        # ReentryPromptsPage
 └── api/                    # Server-side API routes

@@ -98,7 +98,7 @@ test.describe("finding drill-down", () => {
 
     // Verify detail view renders with expected content
     await expect(page.getByRole("heading", { name: /Architecture Layer Violations/ })).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByText("medium")).toBeVisible(); // severity badge
+    await expect(page.getByText("medium").first()).toBeVisible(); // severity badge
     await expect(page.getByText("Detailed analysis of architecture violations")).toBeVisible();
 
     // Verify back button exists and works

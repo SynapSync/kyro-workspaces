@@ -87,12 +87,16 @@ Sprint 2 (E2E + AI Tests) ---> Sprint 3 (SSR Data Fetching & Consolidation)
                                     |
                                     v
                                 Sprint 5 (Action Chaining)
+                                    |
+                                    v
+                                Sprint 6 (Debt Resolution & Hardening)
 ```
 
 Sprint 1 is prerequisite for all others (AST writer enables clean writes for testing).
 Sprint 2 must complete before Sprint 3 (tests needed before large migration).
 Sprints 3 and 4 are sequential (URL routing informs index query patterns).
 Sprint 5 depends on Sprint 4 (action chaining benefits from instant queries).
+Sprint 6 depends on Sprint 5 (debt sprint — resolves accumulated items from Sprints 1-5).
 
 ---
 
@@ -105,6 +109,7 @@ Sprint 5 depends on Sprint 4 (action chaining benefits from instant queries).
 | 3 | `03-url-routing-ssr.md` | 3.2.0 | refactor | SSR data fetching & routing consolidation (URL routing already complete) | Sprint 2 | completed |
 | 4 | `04-sqlite-index-file-watcher.md` | 3.3.0 | feature | SQLite derived index + file watcher for auto-refresh | Sprint 3 | completed |
 | 5 | `05-action-chaining.md`, `06-inherited-debt.md` (D22) | 3.4.0 | feature | AI multi-step action chains | Sprint 4 | completed |
+| 6 | `06-inherited-debt.md` (D3, D4), Sprint 5 retro | 3.5.0 | debt | Debt resolution + hardening (D3, D4, D11, chain enum) | Sprint 5 | completed |
 
 ---
 
@@ -180,3 +185,18 @@ Sprint 5 depends on Sprint 4 (action chaining benefits from instant queries).
   3. Chain UI — Preview card with all steps, step-by-step execution, progress indicator
   4. Execution & Logging — Step execution with confirmation, per-step activity logging
   5. Safety & Testing — Max 5 actions limit, cancellation, integration tests
+
+### Sprint 6 — Debt Resolution & Hardening
+
+- **Source**: `findings/06-inherited-debt.md` (D3, D4), Sprint 5 retro
+- **Version Target**: 3.5.0
+- **Type**: debt
+- **Focus**: Resolve accumulated debt (D3, D4, D11), incorporate Sprint 5 recommendations, harden codebase
+- **Dependencies**: Sprint 5
+- **Adaptation Note**: All 5 original roadmap sprints completed. Sprint 6 added per Rule 8 to resolve accumulated debt and stabilize before any new feature work.
+- **Suggested Phases**:
+  1. Activity Type Cleanup — Add `chain_action` enum to `AgentActionTypeSchema`, update consumers (Sprint 5 Rec 1)
+  2. Sprint Forge Integration Page — Dedicated page with generation history and health metrics (D3, Sprint 5 Rec 3)
+  3. CLI Spawn Sanitization — Write prompt to temp file, validate input size, cleanup (D4)
+  4. File Watcher Integration Tests — End-to-end pipeline tests for watcher → reindex → SSE (D11)
+  5. E2E Verification & Documentation — Run full E2E suite (Sprint 5 Rec 2), update CLAUDE.md (D9)

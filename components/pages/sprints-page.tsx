@@ -16,6 +16,7 @@ import { useAppStore } from "@/lib/store";
 import { SPRINT_SECTIONS, SPRINT_STATUS_CONFIG, computeSprintProgress } from "@/lib/config";
 import { type SprintStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { InlineMarkdown } from "@/components/inline-markdown";
 
 const statusIcons: Record<SprintStatus, typeof Zap> = {
   planned: Calendar,
@@ -65,7 +66,7 @@ export function SprintsPage() {
                     </div>
                     <div>
                       <h3 className="font-semibold text-foreground">
-                        {sprint.name}
+                        <InlineMarkdown content={sprint.name} />
                       </h3>
                       <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                         <Badge variant={config.variant} className="text-[10px] h-5">
@@ -119,9 +120,9 @@ export function SprintsPage() {
                 </div>
 
                 {sprint.objective && (
-                  <p className="text-xs text-muted-foreground mb-3 line-clamp-2 leading-relaxed">
-                    {sprint.objective}
-                  </p>
+                  <div className="text-xs text-muted-foreground mb-3 line-clamp-2 leading-relaxed">
+                    <InlineMarkdown content={sprint.objective} />
+                  </div>
                 )}
 
                 <SprintProgressBar data={progressData} status={sprint.status} />

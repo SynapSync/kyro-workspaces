@@ -9,6 +9,23 @@ import {
   handleError,
 } from "@/lib/api";
 
+const MAX_PROMPT_BYTES = 50 * 1024; // 50 KB
+
+/**
+ * Validate prompt content — reject null bytes, control characters (except \n \t),
+ * and prompts exceeding the size limit.
+ */
+function validatePrompt(prompt: string): string | null {
+  if (Buffer.byteLength(prompt, "utf-8") > MAX_PROMPT_BYTES) {
+    return `Prompt exceeds maximum size (${MAX_PROMPT_BYTES / 1024} KB)`;
+  }
+  // eslint-disable-next-line no-control-regex
+  if (/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/.test(prompt)) {
+    return "Prompt contains invalid control characters";
+  }
+  return null;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as {
@@ -20,6 +37,14 @@ export async function POST(req: NextRequest) {
     if (!body.projectId || !body.prompt) {
       return NextResponse.json(
         { error: "Missing 'projectId' or 'prompt' field" },
+        { status: 400 },
+      );
+    }
+
+    const validationError = validatePrompt(body.prompt);
+    if (validationError) {
+      return NextResponse.json(
+        { error: validationError },
         { status: 400 },
       );
     }
@@ -40,7 +65,7 @@ export async function POST(req: NextRequest) {
       path: promptPath,
     };
 
-    // Optional CLI trigger
+    // Optional CLI trigger — pass file path instead of raw prompt (D4 sanitization)
     if (body.triggerCli) {
       try {
         // Check if claude CLI exists
@@ -51,12 +76,15 @@ export async function POST(req: NextRequest) {
           });
         });
 
-        // Spawn claude in background (non-blocking)
-        const child = spawn(cliPath, ["-p", body.prompt], {
+        // Spawn claude with stdin pipe — prompt read from file, not passed as arg (D4)
+        const promptContent = await fs.readFile(promptPath, "utf-8");
+        const child = spawn(cliPath, ["-p", "-"], {
           cwd: projectRoot,
           detached: true,
-          stdio: "ignore",
+          stdio: ["pipe", "ignore", "ignore"],
         });
+        child.stdin?.write(promptContent);
+        child.stdin?.end();
         child.unref();
 
         result.triggered = true;

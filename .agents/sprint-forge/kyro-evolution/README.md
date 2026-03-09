@@ -99,3 +99,4 @@ If you are an AI agent resuming work on this project, read these files in order:
 | 3 | completed | SSR Data Fetching & Consolidation | Server Components, D6/D7 fixes, updateFrontmatterField(), CLAUDE.md update |
 | 4 | completed | SQLite Index + File Watcher | SQLite derived index (7 tables, 4 FTS5), file watcher, SSE push, 243 unit tests |
 | 5 | completed | Action Chaining | `ActionChain` types, chain UI in Cmd+K, per-step logging, D2/D10 resolved, 256 unit tests |
+| 6 | completed | Debt Resolution & Hardening | Sprint Forge page (D3), CLI sanitization (D4), 16 watcher tests (D11), chain_action enum, /api/health, 272 unit + 30 E2E |

@@ -9,7 +9,7 @@ progress: 100
 version: 3.4.0
 type: feature
 previous_doc: sprints/SPRINT-4-sqlite-index-file-watcher.md
-next_doc: null
+next_doc: sprints/SPRINT-6-debt-resolution-hardening.md
 related_findings:
   - findings/05-action-chaining.md
   - findings/06-inherited-debt.md

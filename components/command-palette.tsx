@@ -404,7 +404,7 @@ export function CommandPalette() {
       addActivity({
         id: `${chainId}-step-${step}`,
         projectId: activeProjectId,
-        actionType: "moved_task",
+        actionType: "chain_action",
         description,
         timestamp: new Date().toISOString(),
         metadata: { source: "ai-chain" },
