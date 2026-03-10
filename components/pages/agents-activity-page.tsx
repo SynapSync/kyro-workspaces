@@ -13,6 +13,7 @@ import {
   ChevronDown,
   ChevronRight,
   Link2,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -59,6 +60,12 @@ const actionConfig: Record<
     color: "text-primary",
     bgColor: "bg-primary/10",
     label: "Chain Action",
+  },
+  removed_project: {
+    icon: Trash2,
+    color: "text-destructive",
+    bgColor: "bg-destructive/10",
+    label: "Removed Project",
   },
 };
 

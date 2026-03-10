@@ -40,7 +40,7 @@ interface AppState {
   projects: Project[];
   activeProjectId: string;
   setActiveProjectId: (id: string) => void;
-  addProject: (path: string, name?: string, color?: string) => void;
+  addProject: (path: string, name?: string, color?: string) => Promise<void>;
   updateProject: (id: string, updates: { name?: string; color?: string }) => void;
   deleteProject: (id: string) => void;
 
@@ -117,20 +117,20 @@ export const useAppStore = create<AppState>()(
 
   setActiveProjectId: (id) => set({ activeProjectId: id }),
 
-  addProject: (path, name, color) => {
+  addProject: async (path, name, color) => {
     set({ isSaving: true, saveError: null });
-    services.projects.createProject({ path, name, color })
-      .then((entry) => {
-        return services.projects.getProject(entry.id).then((full) => full ?? entry);
-      })
-      .then((project) => {
-        set((state) => ({
-          projects: [...state.projects, project],
-          activeProjectId: project.id,
-          isSaving: false,
-        }));
-      })
-      .catch((err) => set({ isSaving: false, saveError: errorMsg(err) }));
+    try {
+      const entry = await services.projects.createProject({ path, name, color });
+      const project = (await services.projects.getProject(entry.id)) ?? entry;
+      set((state) => ({
+        projects: [...state.projects, project],
+        activeProjectId: project.id,
+        isSaving: false,
+      }));
+    } catch (err) {
+      set({ isSaving: false, saveError: errorMsg(err) });
+      throw err;
+    }
   },
 
   updateProject: (id, updates) => {
@@ -161,8 +161,18 @@ export const useAppStore = create<AppState>()(
             : state.activeProjectId,
       };
     });
+    const deletedProject = prev.find((p) => p.id === id);
     services.projects.deleteProject(id)
-      .then(() => set({ isSaving: false }))
+      .then(() => {
+        set({ isSaving: false });
+        if (deletedProject) {
+          recordActivity({
+            projectId: id,
+            actionType: "removed_project",
+            description: `Removed project "${deletedProject.name}"`,
+          }, (warning) => set({ activityWriteWarning: warning }));
+        }
+      })
       .catch((err) => set({ projects: prev, isSaving: false, saveError: errorMsg(err) }));
   },
 

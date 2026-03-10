@@ -19,6 +19,7 @@ export const AgentActionTypeSchema = z.enum([
   "created_sprint",
   "completed_task",
   "chain_action",
+  "removed_project",
 ]);
 
 export const TaskSchema = z.object({
