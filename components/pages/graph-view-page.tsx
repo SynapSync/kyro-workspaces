@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo, useLayoutEffect } from "react";
 import { Network, ChevronDown, ChevronUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,7 +33,10 @@ export function GraphViewPage() {
   const [hoveredNode, setHoveredNode] = useState<HoveredNodeInfo | null>(null);
   const canvasRef = useRef<GraphCanvasHandle>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
+  const [dimensions, setDimensions] = useState(() => ({
+    width: typeof window !== "undefined" ? window.innerWidth : 1024,
+    height: typeof window !== "undefined" ? Math.max(window.innerHeight - 200, 600) : 768,
+  }));
 
   useEffect(() => {
     if (activeProjectId && !graph) {
@@ -76,38 +79,28 @@ export function GraphViewPage() {
   }, [graph, filterState.hiddenTypes, filterState.selectedTags]);
 
   // --- Responsive sizing via ResizeObserver ---
-  useEffect(() => {
+  useLayoutEffect(() => {
     const el = containerRef.current;
     if (!el) return;
 
-    let timeout: ReturnType<typeof setTimeout>;
-    const observer = new ResizeObserver((entries) => {
-      clearTimeout(timeout);
-      timeout = setTimeout(() => {
-        for (const entry of entries) {
-          const { width, height } = entry.contentRect;
-          if (width > 0 && height > 0) {
-            setDimensions({
-              width: Math.floor(width),
-              height: Math.floor(height),
-            });
-          }
-        }
-      }, 100);
-    });
+    const measure = () => {
+      const rect = el.getBoundingClientRect();
+      const width = rect.width > 0 ? Math.round(rect.width) : dimensions.width;
+      const height = rect.height > 0 ? Math.round(rect.height) : dimensions.height;
+      setDimensions({ width, height });
+    };
 
-    observer.observe(el);
-    const rect = el.getBoundingClientRect();
-    if (rect.width > 0 && rect.height > 0) {
-      setDimensions({
-        width: Math.floor(rect.width),
-        height: Math.floor(rect.height),
-      });
-    }
+    // Initial measure asap + after paint
+    measure();
+    requestAnimationFrame(measure);
+
+    const observer = new ResizeObserver(() => measure());
+    observer.observe(el, { box: "border-box" as ResizeObserverBoxOptions });
+    window.addEventListener("resize", measure);
 
     return () => {
-      clearTimeout(timeout);
       observer.disconnect();
+      window.removeEventListener("resize", measure);
     };
   }, []);
 
@@ -295,7 +288,7 @@ export function GraphViewPage() {
 
       {/* Graph Canvas */}
       <div
-        className="relative flex-1 min-h-0"
+        className="relative flex-1 min-h-0 w-full"
         ref={containerRef}
         role="img"
         aria-label={`Knowledge graph with ${graph.metadata.nodeCount} nodes and ${graph.metadata.edgeCount} edges`}

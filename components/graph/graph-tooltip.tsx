@@ -49,7 +49,9 @@ export function GraphTooltip({
       role="tooltip"
       aria-label={`${label}: ${fileType}, ${edgeCount} connections`}
     >
-      <div className="text-sm font-semibold text-foreground">{label}</div>
+      <div className="text-sm font-semibold leading-tight text-foreground break-words">
+        {label}
+      </div>
       <div className="mt-1 flex items-center gap-2">
         <Badge variant="outline" className={`text-[10px] ${colorClass}`}>
           {fileType}

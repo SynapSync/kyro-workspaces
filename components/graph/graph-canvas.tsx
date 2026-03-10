@@ -362,22 +362,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           ctx.stroke();
         }
 
-        // Label: readable size, show on zoom or hover
-        const showLabel = globalScale > 0.8 || isHovered;
-        if (showLabel) {
-          const fontSize = Math.max(10, 12 / globalScale);
-          ctx.font = `${isHovered ? "600 " : "400 "}${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
-          ctx.textAlign = "center";
-          ctx.textBaseline = "top";
-          const labelAlpha = isHovered ? 0.9 : highlighted ? 0.5 : 0.08;
-          ctx.fillStyle = isDark
-            ? `rgba(200, 200, 210, ${labelAlpha})`
-            : `rgba(50, 50, 60, ${labelAlpha})`;
-          ctx.fillText(node.label, x, y + radius + 3);
-        }
-
-        // Tooltip is now rendered as a React overlay (GraphTooltip component)
-        // Canvas no longer draws tooltip boxes
+        // Tooltip is rendered via React overlay (GraphTooltip); canvas skips labels to avoid overlap
       },
       [isDark, hoveredNodeId, isHighlighted]
     );
@@ -527,10 +512,12 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
 
     return (
       <ForceGraph2D
+        key={`${width}x${height}`}
         ref={fgRef}
         graphData={graphInput}
         width={width}
         height={height}
+        style={{ width: "100%", height: "100%" }}
         backgroundColor={bgColor}
         nodeRelSize={1}
         nodeVal={0.5}
