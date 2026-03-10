@@ -1,27 +1,44 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertTriangle, Loader2, FolderPlus } from "lucide-react";
+import { AlertTriangle, FolderOpen, FolderSearch, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useAppStore } from "@/lib/store";
+import { cn } from "@/lib/utils";
 
-type OnboardingState = "loading" | "needs_onboarding" | "needs_init" | "ready_empty" | "error";
+type OnboardingState = "loading" | "needs_env" | "ready" | "error";
 
 interface WorkspaceOnboardingProps {
   initError?: string | null;
-  onInitialized: () => void | Promise<void>;
 }
 
-export function WorkspaceOnboarding({ initError, onInitialized }: WorkspaceOnboardingProps) {
+const COLORS = [
+  "bg-blue-500",
+  "bg-emerald-500",
+  "bg-purple-500",
+  "bg-amber-500",
+  "bg-red-500",
+  "bg-pink-500",
+  "bg-cyan-500",
+  "bg-orange-500",
+];
+
+export function WorkspaceOnboarding({ initError }: WorkspaceOnboardingProps) {
+  const { addProject, initializeApp } = useAppStore();
   const [state, setState] = useState<OnboardingState>("loading");
-  const [workspaceName, setWorkspaceName] = useState("Kyro Workspace");
+  const [needsInit, setNeedsInit] = useState(false);
+  const [path, setPath] = useState("");
+  const [color, setColor] = useState("");
+  const [isBrowsing, setIsBrowsing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
 
-    const loadStatus = async () => {
+    const checkStatus = async () => {
       try {
         const response = await fetch("/api/workspace");
         const json = (await response.json()) as {
@@ -30,60 +47,89 @@ export function WorkspaceOnboarding({ initError, onInitialized }: WorkspaceOnboa
             needsOnboarding?: boolean;
             needsInit?: boolean;
           };
-          error?: { message?: string };
         };
 
         if (!mounted) return;
 
-        if (response.ok && json.data?.workspace) {
-          setWorkspaceName(json.data.workspace.name ?? "Kyro Workspace");
-          setState("ready_empty");
-          return;
-        }
-
         if (response.status === 503 && json.data?.needsOnboarding) {
-          setState("needs_onboarding");
+          setState("needs_env");
           return;
         }
 
         if (response.status === 404 && json.data?.needsInit) {
-          setState("needs_init");
-          return;
+          setNeedsInit(true);
         }
 
-        setState("error");
-        setError(json.error?.message ?? initError ?? "Unknown workspace error");
-      } catch (err) {
+        setState("ready");
+      } catch {
         if (!mounted) return;
         setState("error");
-        setError(err instanceof Error ? err.message : "Failed to fetch workspace status");
+        setError(initError ?? "Failed to check workspace status");
       }
     };
 
-    void loadStatus();
+    void checkStatus();
     return () => {
       mounted = false;
     };
   }, [initError]);
 
-  const handleInit = async () => {
-    setIsSubmitting(true);
+  const handleBrowse = async () => {
+    setIsBrowsing(true);
     setError(null);
     try {
-      const response = await fetch("/api/workspace/init", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: workspaceName.trim() || "Kyro Workspace" }),
-      });
+      const response = await fetch("/api/filesystem/browse", { method: "POST" });
+      const json = (await response.json()) as {
+        data?: { path?: string; cancelled?: boolean };
+        error?: { message?: string };
+      };
 
       if (!response.ok) {
-        const json = (await response.json()) as { error?: { message?: string } };
-        throw new Error(json.error?.message ?? "Workspace initialization failed");
+        throw new Error(json.error?.message ?? "Failed to open folder picker");
       }
 
-      await onInitialized();
+      if (json.data?.cancelled) return;
+      if (json.data?.path) {
+        setPath(json.data.path);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Initialization failed");
+      setError(err instanceof Error ? err.message : "Failed to browse folders");
+    } finally {
+      setIsBrowsing(false);
+    }
+  };
+
+  const handleOpenProject = async () => {
+    if (!path.trim()) {
+      setError("Path is required");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      // Auto-initialize workspace if needed
+      if (needsInit) {
+        const initResponse = await fetch("/api/workspace/init", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        });
+
+        if (!initResponse.ok) {
+          const json = (await initResponse.json()) as { error?: { message?: string } };
+          throw new Error(json.error?.message ?? "Workspace initialization failed");
+        }
+      }
+
+      // Register the project
+      await addProject(path.trim(), undefined, color || undefined);
+
+      // Reload the full app state
+      await initializeApp();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to open project");
     } finally {
       setIsSubmitting(false);
     }
@@ -100,7 +146,7 @@ export function WorkspaceOnboarding({ initError, onInitialized }: WorkspaceOnboa
     );
   }
 
-  if (state === "needs_onboarding") {
+  if (state === "needs_env") {
     return (
       <div className="flex h-full items-center justify-center px-6">
         <div className="max-w-lg rounded-xl border bg-card p-6 shadow-sm">
@@ -120,53 +166,101 @@ export function WorkspaceOnboarding({ initError, onInitialized }: WorkspaceOnboa
     );
   }
 
-  if (state === "needs_init") {
-    return (
-      <div className="flex h-full items-center justify-center px-6">
-        <div className="w-full max-w-lg rounded-xl border bg-card p-6 shadow-sm">
-          <div className="mb-4 flex items-center gap-2 text-primary">
-            <FolderPlus className="h-4 w-4" />
-            <p className="text-sm font-semibold">Initialize workspace</p>
-          </div>
-          <p className="mb-4 text-sm text-muted-foreground">
-            Kyro found the workspace path, but this workspace has not been initialized yet.
-          </p>
-          <div className="mb-3">
-            <p className="mb-1 text-xs font-medium text-muted-foreground">Workspace name</p>
-            <Input
-              value={workspaceName}
-              onChange={(event) => setWorkspaceName(event.target.value)}
-              placeholder="Kyro Workspace"
-            />
-          </div>
-          {error && <p className="mb-3 text-xs text-destructive">{error}</p>}
-          <Button onClick={handleInit} disabled={isSubmitting} className="gap-2">
-            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            Create workspace files
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  if (state === "ready_empty") {
+  if (state === "error") {
     return (
       <div className="flex h-full items-center justify-center px-6">
         <div className="max-w-lg rounded-xl border bg-card p-6 text-center shadow-sm">
-          <p className="text-sm font-semibold">Workspace is ready</p>
-          <p className="mt-2 text-sm text-muted-foreground">
-            No projects found yet. Create your first project from the sidebar to start.
-          </p>
+          <p className="text-sm font-semibold text-destructive">Workspace error</p>
+          <p className="mt-2 text-sm text-muted-foreground">{error ?? initError ?? "Unknown error"}</p>
         </div>
       </div>
     );
   }
 
+  // state === "ready" — show the open-project form
   return (
     <div className="flex h-full items-center justify-center px-6">
-      <div className="max-w-lg rounded-xl border bg-card p-6 text-center shadow-sm">
-        <p className="text-sm font-semibold text-destructive">Workspace error</p>
-        <p className="mt-2 text-sm text-muted-foreground">{error ?? initError ?? "Unknown error"}</p>
+      <div className="w-full max-w-lg rounded-xl border bg-card p-6 shadow-sm">
+        <div className="mb-4 flex items-center gap-2 text-primary">
+          <FolderOpen className="h-5 w-5" />
+          <p className="text-base font-semibold">Open a sprint-forge project</p>
+        </div>
+        <p className="mb-5 text-sm text-muted-foreground">
+          Point Kyro to an existing sprint-forge directory. It should contain a{" "}
+          <code className="rounded bg-muted px-1 py-0.5 text-xs">README.md</code> and a{" "}
+          <code className="rounded bg-muted px-1 py-0.5 text-xs">sprints/</code> folder.
+        </p>
+
+        <div className="flex flex-col gap-4">
+          <div>
+            <Label htmlFor="onboarding-path" className="text-sm font-medium">
+              Directory Path
+            </Label>
+            <div className="mt-2 flex gap-2">
+              <Input
+                id="onboarding-path"
+                value={path}
+                onChange={(e) => {
+                  setPath(e.target.value);
+                  setError(null);
+                }}
+                placeholder="/path/to/sprint-forge/project"
+                className="flex-1 font-mono text-sm"
+                onKeyDown={(e) => e.key === "Enter" && handleOpenProject()}
+                autoFocus
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleBrowse}
+                disabled={isBrowsing || isSubmitting}
+                title="Browse folders"
+              >
+                {isBrowsing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <FolderSearch className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          </div>
+
+          <div>
+            <Label className="text-sm font-medium">Color (optional)</Label>
+            <div className="flex gap-2 mt-2">
+              {COLORS.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setColor(color === c ? "" : c)}
+                  className={cn(
+                    "h-6 w-6 rounded-full transition-all",
+                    c,
+                    color === c
+                      ? "ring-2 ring-offset-2 ring-primary scale-110"
+                      : "hover:scale-110"
+                  )}
+                />
+              ))}
+            </div>
+          </div>
+
+          {error && <p className="text-sm text-destructive">{error}</p>}
+
+          <Button
+            onClick={handleOpenProject}
+            disabled={!path.trim() || isSubmitting}
+            className="gap-2"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Opening project...
+              </>
+            ) : (
+              "Open Project"
+            )}
+          </Button>
+        </div>
       </div>
     </div>
   );

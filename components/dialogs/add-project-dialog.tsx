@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FolderOpen, Loader2 } from "lucide-react";
+import { FolderOpen, FolderSearch, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,7 +27,33 @@ export function AddProjectDialog({ open, onOpenChange }: AddProjectDialogProps) 
   const [name, setName] = useState("");
   const [color, setColor] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [isBrowsing, setIsBrowsing] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
+
+  const handleBrowse = async () => {
+    setIsBrowsing(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/filesystem/browse", { method: "POST" });
+      const json = (await response.json()) as {
+        data?: { path?: string; cancelled?: boolean };
+        error?: { message?: string };
+      };
+
+      if (!response.ok) {
+        throw new Error(json.error?.message ?? "Failed to open folder picker");
+      }
+
+      if (json.data?.cancelled) return;
+      if (json.data?.path) {
+        setPath(json.data.path);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to browse folders");
+    } finally {
+      setIsBrowsing(false);
+    }
+  };
 
   const handleAdd = async () => {
     if (!path.trim()) {
@@ -39,7 +65,7 @@ export function AddProjectDialog({ open, onOpenChange }: AddProjectDialogProps) 
     setError(null);
 
     try {
-      addProject(path.trim(), name.trim() || undefined, color.trim() || undefined);
+      await addProject(path.trim(), name.trim() || undefined, color.trim() || undefined);
       onOpenChange(false);
       resetForm();
     } catch (err) {
@@ -90,17 +116,33 @@ export function AddProjectDialog({ open, onOpenChange }: AddProjectDialogProps) 
             <Label htmlFor="project-path" className="text-sm font-medium">
               Directory Path
             </Label>
-            <Input
-              id="project-path"
-              value={path}
-              onChange={(e) => {
-                setPath(e.target.value);
-                setError(null);
-              }}
-              placeholder="/path/to/sprint-forge/project"
-              className="mt-2 font-mono text-sm"
-              onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-            />
+            <div className="mt-2 flex gap-2">
+              <Input
+                id="project-path"
+                value={path}
+                onChange={(e) => {
+                  setPath(e.target.value);
+                  setError(null);
+                }}
+                placeholder="/path/to/sprint-forge/project"
+                className="flex-1 font-mono text-sm"
+                onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleBrowse}
+                disabled={isBrowsing || isValidating}
+                title="Browse folders"
+                type="button"
+              >
+                {isBrowsing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <FolderSearch className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
             <p className="text-[11px] text-muted-foreground mt-1.5">
               Path to a directory containing a sprint-forge README.md and sprints/ folder.
             </p>

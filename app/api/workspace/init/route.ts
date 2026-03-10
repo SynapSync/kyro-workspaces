@@ -6,7 +6,6 @@ import {
   ensureDir,
   ok,
   handleError,
-  validateBody,
 } from "@/lib/api";
 import {
   serializeWorkspaceConfig,
@@ -18,8 +17,7 @@ import { serializeProjectRegistry } from "@/lib/file-format/registry";
 export async function POST(req: NextRequest) {
   try {
     const workspacePath = getWorkspacePath();
-    const body = await req.json();
-    validateBody<{ name: string }>(body, ["name"]);
+    const body = (await req.json()) as { name?: string; description?: string };
 
     const now = new Date().toISOString();
     const workspaceId = `ws-${Date.now().toString(36)}`;
@@ -29,7 +27,7 @@ export async function POST(req: NextRequest) {
 
     const configContent = serializeWorkspaceConfig({
       id: workspaceId,
-      name: body.name,
+      name: body.name?.trim() || "Kyro Workspace",
       description: body.description ?? "",
       rootPath: workspacePath,
       createdAt: now,

@@ -15,7 +15,6 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
   const {
     isInitializing,
     initError,
-    initializeApp,
     projects,
     isSaving,
     saveError,
@@ -41,13 +40,11 @@ function WorkspaceShell({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // No projects or workspace error — full-screen onboarding (no sidebar)
   if (!isInitializing && (initError || projects.length === 0)) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <WorkspaceOnboarding
-          initError={initError}
-          onInitialized={() => initializeApp()}
-        />
+        <WorkspaceOnboarding initError={initError} />
       </div>
     );
   }
