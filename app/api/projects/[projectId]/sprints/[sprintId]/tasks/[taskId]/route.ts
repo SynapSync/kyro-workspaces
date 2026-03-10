@@ -27,41 +27,30 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
     const workspacePath = getWorkspacePath();
     const filePath = await resolveSprintFilePath(workspacePath, projectId, sprintId);
 
-    console.log(`[task-put] file: ${filePath}`);
     const body = await req.json();
     const content = await fs.readFile(filePath, "utf-8");
     const sprint = parseSprintFile(content);
 
-    console.log(`[task-put] parsed ${sprint.tasks.length} tasks, looking for ${taskId}`);
     const taskIndex = sprint.tasks.findIndex((t) => t.id === taskId);
     if (taskIndex === -1) {
-      console.log(`[task-put] task ${taskId} NOT FOUND in parsed tasks:`, sprint.tasks.map(t => t.id));
       return notFound("Task not found");
     }
 
     const existingTask = sprint.tasks[taskIndex];
     const newStatus = body.status ?? existingTask.status;
-    console.log(`[task-put] ${taskId}: ${existingTask.status} → ${newStatus}, title: "${existingTask.title}"`);
-
     const newTitle = body.title ?? existingTask.title;
     let current = content;
 
-    // AST-based status patch
     if (body.status && body.status !== existingTask.status) {
       current = astUpdateTaskStatus(current, existingTask.title, newStatus);
-      console.log(`[task-put] status patch changed: ${current !== content}`);
     }
 
-    // Title patch via taskRef
     if (body.title && body.title !== existingTask.title && existingTask.taskRef) {
-      const before = current;
       current = astUpdateTaskTitle(current, existingTask.taskRef, body.title);
-      console.log(`[task-put] title patch changed: ${current !== before}`);
     }
 
     if (current !== content) {
       await fs.writeFile(filePath, current, "utf-8");
-      console.log(`[task-put] file written successfully`);
     }
 
     const updatedTask = {
@@ -91,7 +80,6 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       return notFound("Task not found");
     }
 
-    // AST-based delete: locates task via AST, removes the line range
     const task = sprint.tasks[taskIndex];
     const patched = astDeleteTask(content, task.title);
     await fs.writeFile(filePath, patched, "utf-8");

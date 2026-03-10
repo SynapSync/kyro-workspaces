@@ -12,7 +12,6 @@ import {
   useSensors,
   type DragStartEvent,
   type DragEndEvent,
-  type DragOverEvent,
 } from "@dnd-kit/core";
 import { ArrowLeft, FileText, Ban, ChevronDown, ChevronRight, Layers, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -160,17 +159,10 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
     const query = searchQuery.trim().toLowerCase();
 
     sprint.tasks.forEach((task) => {
-      // Apply status filter
       if (activeStatusFilters.size > 0 && !activeStatusFilters.has(task.status)) return;
-      // Apply keyword filter
       if (query && !task.title.toLowerCase().includes(query)) return;
 
-      const bucket = map[task.status];
-      if (bucket) {
-        bucket.push(task);
-      } else {
-        map.pending.push(task);
-      }
+      map[task.status].push(task);
     });
     return map;
   }, [sprint, searchQuery, activeStatusFilters]);
@@ -186,10 +178,6 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
   const handleDragStart = (event: DragStartEvent) => {
     const task = sprint.tasks.find((t) => t.id === event.active.id);
     if (task) setActiveTask(task);
-  };
-
-  const handleDragOver = (_event: DragOverEvent) => {
-    // handled in dragEnd
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -468,7 +456,6 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
               sensors={sensors}
               collisionDetection={closestCorners}
               onDragStart={handleDragStart}
-              onDragOver={handleDragOver}
               onDragEnd={handleDragEnd}
             >
               {columnStates.map(({ col, tasks: colTasks, isCollapsed }) => {
@@ -484,7 +471,7 @@ export function SprintBoardPage({ sprintId }: SprintBoardProps) {
                     updatingTasks={updatingTasks}
                     onToggleCollapse={() => setColumnCollapsed(sprintId, col.id, !isCollapsed)}
                     onEditTask={setEditingTask}
-                    onDeleteTask={() => {}}
+                    onDeleteTask={() => { /* TODO: wire task deletion */ }}
                   />
                 );
               })}

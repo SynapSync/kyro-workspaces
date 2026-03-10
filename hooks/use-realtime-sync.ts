@@ -3,11 +3,6 @@
 import { useEffect, useRef } from "react";
 import { useAppStore } from "@/lib/store";
 
-/**
- * Subscribe to SSE endpoint for real-time index updates.
- * When files change externally, triggers a store refresh for the affected project.
- * Includes reconnection with exponential backoff.
- */
 export function useRealtimeSync(): void {
   const refreshProject = useAppStore((s) => s.refreshProject);
   const reconnectAttempt = useRef(0);
@@ -33,7 +28,6 @@ export function useRealtimeSync(): void {
             projectId: string;
             files: string[];
           };
-          console.log(`[sse] index:updated for ${data.projectId}, files:`, data.files);
           refreshProject(data.projectId);
         } catch {
           // Ignore parse errors

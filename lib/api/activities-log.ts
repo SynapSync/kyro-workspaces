@@ -116,33 +116,6 @@ function isValidPruneMetrics(value: unknown): value is PruneMetrics {
   return pruneEventsValid && totalValid && lastPrunedAtValid;
 }
 
-/**
- * Lifecycle of `.kyro/activities-metrics.json`
- *
- * This file tracks cumulative prune counters for the activities retention
- * policy. Key properties:
- *
- * - **Bounded size**: The file always contains the same fixed set of fields
- *   (`pruneEvents`, `prunedEntriesTotal`, `lastPrunedAt`). It does NOT grow
- *   linearly with activity volume — only the counter values increase.
- *
- * - **Cumulative counters**: Values accumulate across the workspace lifetime.
- *   They are intentionally never auto-reset; resetting would obscure historical
- *   prune patterns.
- *
- * - **Manual reset**: Delete or zero out the file if you want fresh counters
- *   (e.g., after migrating a workspace or archiving old data). The runtime
- *   reads defensively and falls back to DEFAULT_PRUNE_METRICS on missing or
- *   invalid content.
- *
- * - **Workspace wipe**: Deleting `.kyro/` (which includes both
- *   `activities.json` and `activities-metrics.json`) produces a clean slate.
- *   The next append will recreate both files.
- *
- * - **Future instrumentation**: If new counter fields are added, they must
- *   remain additive (never remove existing fields) and the `isValidPruneMetrics`
- *   guard must be kept in sync so existing files continue to parse correctly.
- */
 function getMetricsPath(workspacePath: string): string {
   return resolveAndGuard(workspacePath, ".kyro", "activities-metrics.json");
 }

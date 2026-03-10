@@ -253,9 +253,6 @@ export const useAppStore = create<AppState>()(
     const oldStatus = task.status;
     if (oldStatus === newStatus) return;
 
-    console.log(`[task-update] START: ${taskId} ${oldStatus} → ${newStatus}`);
-
-    // Optimistic update
     set((state) => ({
       updatingTasks: { ...state.updatingTasks, [taskId]: true },
       projects: state.projects.map((p) =>
@@ -282,7 +279,6 @@ export const useAppStore = create<AppState>()(
     services.projects
       .updateTaskStatus(projectId, sprintId, taskId, newStatus)
       .then(() => {
-        console.log(`[task-update] SUCCESS: ${taskId} written to disk`);
         set((state) => ({
           updatingTasks: { ...state.updatingTasks, [taskId]: false },
         }));
@@ -294,8 +290,6 @@ export const useAppStore = create<AppState>()(
         }, (warning) => set({ activityWriteWarning: warning }));
       })
       .catch((err) => {
-        console.error(`[task-update] FAILED: ${taskId}`, err);
-        // Rollback
         set((state) => ({
           projects: prev,
           updatingTasks: { ...state.updatingTasks, [taskId]: false },
@@ -356,21 +350,16 @@ export const useAppStore = create<AppState>()(
   refreshProject: async (projectId) => {
     // Skip refresh while tasks are being written — avoids overwriting optimistic updates
     const hasPendingWrites = Object.values(get().updatingTasks).some(Boolean);
-    if (hasPendingWrites) {
-      console.log(`[refresh] SKIPPED: pending writes for project ${projectId}`);
-      return;
-    }
+    if (hasPendingWrites) return;
 
-    console.log(`[refresh] START: fetching project ${projectId}`);
     try {
       const project = await services.projects.getProject(projectId);
       if (!project) return;
       set((state) => ({
         projects: state.projects.map((p) => (p.id === projectId ? project : p)),
       }));
-      console.log(`[refresh] DONE: project ${projectId} updated in store`);
-    } catch (err) {
-      console.warn("[refresh] Failed:", errorMsg(err));
+    } catch {
+      // Refresh is best-effort — failures are non-critical
     }
   },
 

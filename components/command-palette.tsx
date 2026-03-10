@@ -594,36 +594,6 @@ export function CommandPalette() {
         onValueChange={(v) => { inputRef.current = v; if (activeTab === "search") setSearchQuery(v); }}
       />
 
-      {/* Tab switcher — hidden, toggle via icon button next to close */}
-      <div className="hidden grid-cols-2 border-b">
-        <button
-          type="button"
-          className={cn(
-            "flex items-center justify-center gap-1.5 py-2 text-xs font-medium transition-colors",
-            activeTab === "search"
-              ? "border-b-2 border-primary text-foreground"
-              : "text-muted-foreground hover:text-foreground"
-          )}
-          onClick={() => setActiveTab("search")}
-        >
-          <Search className="h-3.5 w-3.5" />
-          Search
-        </button>
-        <button
-          type="button"
-          className={cn(
-            "flex items-center justify-center gap-1.5 py-2 text-xs font-medium transition-colors",
-            activeTab === "commands"
-              ? "border-b-2 border-primary text-foreground"
-              : "text-muted-foreground hover:text-foreground"
-          )}
-          onClick={() => setActiveTab("commands")}
-        >
-          <Terminal className="h-3.5 w-3.5" />
-          Commands
-        </button>
-      </div>
-
       <CommandList>
         <CommandEmpty>
           <div className="flex flex-col items-center gap-3 py-4">

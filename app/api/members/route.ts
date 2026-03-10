@@ -4,9 +4,7 @@ import {
   getWorkspacePath,
   resolveAndGuard,
   fileExists,
-  WorkspaceError,
   ok,
-  notFound,
   handleError,
   validateBody,
 } from "@/lib/api";

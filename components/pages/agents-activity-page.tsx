@@ -10,7 +10,6 @@ import {
   FileEdit,
   Zap,
   CheckCircle2,
-  Undo2,
   ChevronDown,
   ChevronRight,
   Link2,
@@ -360,14 +359,6 @@ function ActivityCard({ activity, index }: { activity: AgentActivity; index: num
                 {activity.description}
               </p>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
-            >
-              <Undo2 className="h-3.5 w-3.5" />
-              <span className="sr-only">Undo action</span>
-            </Button>
           </div>
         </CardContent>
       </Card>

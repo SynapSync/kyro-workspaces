@@ -44,8 +44,7 @@ export function TaskCard({ task, isUpdating = false, onEdit }: TaskCardProps) {
   const isBlocked = task.tags.includes(TASK_TAGS.BLOCKED);
   const isAICreated = task.tags.includes(TASK_TAGS.AI_CREATED);
   const isEmergent = task.taskRef?.startsWith("TE.");
-  const isNew = false;
-
+  const isNew = false; // TODO: wire when new/read distinction is implemented
   return (
     <div
       ref={setNodeRef}

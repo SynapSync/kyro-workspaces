@@ -80,24 +80,8 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
         description: `Updated document ${updated.title}`,
         metadata: { agent: "Kyro UI", docId: updated.id },
       });
-    } catch (gitErr) {
-      const message =
-        gitErr instanceof Error ? gitErr.message : "Unknown git error";
-      console.error("Git auto-commit failed:", message);
-      try {
-        await appendActivity(workspacePath, {
-          projectId,
-          actionType: "edited_doc",
-          description: `Git auto-commit failed for ${updated.title}`,
-          metadata: {
-            agent: "system",
-            docId: updated.id,
-            error: message.slice(0, 240),
-          },
-        });
-      } catch (activityErr) {
-        console.error("Failed to append git error activity:", activityErr);
-      }
+    } catch {
+      // Git commit is best-effort — document was already saved
     }
 
     return ok({ document: updated }, 200);
