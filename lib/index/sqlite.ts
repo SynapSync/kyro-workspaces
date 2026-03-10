@@ -164,6 +164,31 @@ function createSchema(database: Database.Database): void {
       PRIMARY KEY (id, project_id)
     );
 
+    -- Graph nodes table
+    CREATE TABLE IF NOT EXISTS graph_nodes (
+      id TEXT NOT NULL,
+      project_id TEXT NOT NULL,
+      label TEXT NOT NULL,
+      file_path TEXT NOT NULL,
+      file_type TEXT NOT NULL,
+      tags TEXT,
+      metadata TEXT,
+      PRIMARY KEY (id, project_id),
+      FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+    );
+
+    -- Graph edges table
+    CREATE TABLE IF NOT EXISTS graph_edges (
+      id TEXT NOT NULL,
+      project_id TEXT NOT NULL,
+      source_id TEXT NOT NULL,
+      target_id TEXT NOT NULL,
+      edge_type TEXT NOT NULL,
+      label TEXT,
+      weight REAL DEFAULT 1.0,
+      PRIMARY KEY (id, project_id)
+    );
+
     -- Indexes for common query patterns
     CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
     CREATE INDEX IF NOT EXISTS idx_tasks_project ON tasks(project_id);
@@ -174,6 +199,14 @@ function createSchema(database: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_debt_items_status ON debt_items(status);
     CREATE INDEX IF NOT EXISTS idx_debt_items_project ON debt_items(project_id);
     CREATE INDEX IF NOT EXISTS idx_documents_project ON documents(project_id);
+
+    -- Graph indexes
+    CREATE INDEX IF NOT EXISTS idx_graph_nodes_project ON graph_nodes(project_id);
+    CREATE INDEX IF NOT EXISTS idx_graph_nodes_type ON graph_nodes(file_type);
+    CREATE INDEX IF NOT EXISTS idx_graph_edges_project ON graph_edges(project_id);
+    CREATE INDEX IF NOT EXISTS idx_graph_edges_source ON graph_edges(source_id);
+    CREATE INDEX IF NOT EXISTS idx_graph_edges_target ON graph_edges(target_id);
+    CREATE INDEX IF NOT EXISTS idx_graph_edges_type ON graph_edges(edge_type);
 
     -- File checksums for incremental invalidation
     CREATE TABLE IF NOT EXISTS file_checksums (

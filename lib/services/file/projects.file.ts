@@ -3,7 +3,7 @@ import type {
   CreateProjectInput,
   UpdateProjectInput,
 } from "../types";
-import type { Project, Task, TaskStatus, Finding, RoadmapSprintEntry } from "@/lib/types";
+import type { Project, Task, TaskStatus, Finding, RoadmapSprintEntry, GraphData } from "@/lib/types";
 import { localFetch } from "./fetch";
 
 export class FileProjectsService implements ProjectsService {
@@ -102,5 +102,12 @@ export class FileProjectsService implements ProjectsService {
       }
     );
     return task;
+  }
+
+  async getGraph(projectId: string): Promise<GraphData> {
+    const { graph } = await localFetch<{ graph: GraphData }>(
+      `/api/projects/${projectId}/graph`
+    );
+    return graph;
   }
 }

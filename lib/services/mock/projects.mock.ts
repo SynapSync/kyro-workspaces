@@ -3,7 +3,7 @@ import type {
   CreateProjectInput,
   UpdateProjectInput,
 } from "../types";
-import type { Project, Task, TaskStatus, Finding, RoadmapSprintEntry } from "@/lib/types";
+import type { Project, Task, TaskStatus, Finding, RoadmapSprintEntry, GraphData, GraphNode, GraphEdge } from "@/lib/types";
 import { mockProjects, mockFindings, mockRoadmapSprints, mockReentryPrompts } from "@/lib/mock-data";
 import { mockDelay } from "./delay";
 import { slugFromPath } from "@/lib/utils";
@@ -109,5 +109,57 @@ export class MockProjectsService implements ProjectsService {
     if (updates.status) task.status = updates.status;
     task.updatedAt = new Date().toISOString();
     return task;
+  }
+
+  async getGraph(projectId: string): Promise<GraphData> {
+    await mockDelay();
+    const project = this.projects.find((p) => p.id === projectId);
+    const pName = project?.name ?? projectId;
+
+    // Generate mock graph from project sprints and structure
+    const nodes: GraphNode[] = [
+      { id: "readme", label: "README", filePath: "README.md", fileType: "readme", tags: [projectId] },
+      { id: "roadmap", label: "ROADMAP", filePath: "ROADMAP.md", fileType: "roadmap", tags: [projectId, "plan"] },
+    ];
+
+    const edges: GraphEdge[] = [
+      { id: "e-1", source: "readme", target: "roadmap", edgeType: "wiki-link", label: "ROADMAP", weight: 1.0 },
+    ];
+
+    // Add sprint nodes
+    if (project) {
+      for (const sprint of project.sprints) {
+        nodes.push({
+          id: sprint.id,
+          label: sprint.name,
+          filePath: `sprints/${sprint.id}.md`,
+          fileType: "sprint",
+          tags: [projectId, "sprint"],
+        });
+        edges.push({
+          id: `e-${sprint.id}-roadmap`,
+          source: sprint.id,
+          target: "roadmap",
+          edgeType: "frontmatter-ref",
+          label: "ROADMAP",
+          weight: 0.8,
+        });
+      }
+    }
+
+    return {
+      nodes,
+      edges,
+      clusters: [
+        { id: "cluster-sprint", label: "Sprints", nodeIds: nodes.filter((n) => n.fileType === "sprint").map((n) => n.id), clusterType: "type" as const },
+      ],
+      metadata: {
+        projectId,
+        projectName: pName,
+        buildTimestamp: new Date().toISOString(),
+        nodeCount: nodes.length,
+        edgeCount: edges.length,
+      },
+    };
   }
 }

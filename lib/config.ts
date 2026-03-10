@@ -23,6 +23,7 @@ import {
   Quote,
   Map,
   Hammer,
+  Network,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type {
@@ -31,6 +32,8 @@ import type {
   SprintStatus,
   SprintSectionMeta,
   MarkdownFormat,
+  GraphNodeType,
+  GraphEdgeType,
 } from "@/lib/types";
 
 // --- Priority Config ---
@@ -64,6 +67,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: "roadmap", label: "Roadmap", icon: Map, href: "/roadmap" },
   { id: "debt", label: "Debt", icon: AlertTriangle, href: "/debt" },
   { id: "documents", label: "Documents", icon: FolderOpen, href: "/documents" },
+  { id: "graph", label: "Graph View", icon: Network, href: "/graph" },
   { id: "reentry", label: "Re-entry Prompts", icon: BookOpen, href: "/reentry" },
   { id: "agents", label: "Agents Activity", icon: Bot, href: "/agents" },
   { id: "forge", label: "Sprint Forge", icon: Hammer, href: "/forge" },
@@ -324,3 +328,29 @@ export const QUERY_STALE_TIME_MS = 60 * 1_000; // 60 seconds
 export const DEFAULT_WORKSPACE_PATH =
   process.env.KYRO_WORKSPACE_PATH ??
   `${process.env.HOME ?? "~"}/kyro-workspace`;
+
+// --- Graph View ---
+
+export const GRAPH_NODE_COLORS: Record<GraphNodeType, string> = {
+  sprint: "bg-blue-400/15 text-blue-600 dark:text-blue-400",
+  finding: "bg-amber-400/15 text-amber-700 dark:text-amber-400",
+  document: "bg-emerald-400/15 text-emerald-700 dark:text-emerald-400",
+  readme: "bg-purple-400/15 text-purple-700 dark:text-purple-400",
+  roadmap: "bg-rose-400/15 text-rose-700 dark:text-rose-400",
+};
+
+export const GRAPH_NODE_HEX_COLORS: Record<GraphNodeType, string> = {
+  sprint: "#7c93b4",
+  finding: "#c4a46a",
+  document: "#6aad8c",
+  readme: "#9a85b8",
+  roadmap: "#b87a7a",
+};
+
+export const GRAPH_EDGE_STYLES: Record<GraphEdgeType, { color: string; dashArray: string; label: string }> = {
+  "wiki-link": { color: "hsl(var(--foreground) / 0.6)", dashArray: "none", label: "Wiki Link" },
+  "markdown-link": { color: "hsl(var(--foreground) / 0.5)", dashArray: "none", label: "Link" },
+  "frontmatter-ref": { color: "hsl(var(--foreground) / 0.4)", dashArray: "6,3", label: "Reference" },
+  "tag-similarity": { color: "hsl(var(--foreground) / 0.2)", dashArray: "3,3", label: "Shared Tags" },
+  "structural": { color: "hsl(var(--foreground) / 0.15)", dashArray: "2,4", label: "Same Directory" },
+};

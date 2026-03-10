@@ -5,7 +5,9 @@ import { useAppStore } from "@/lib/store";
 
 export function useRealtimeSync(): void {
   const refreshProject = useAppStore((s) => s.refreshProject);
+  const loadGraph = useAppStore((s) => s.loadGraph);
   const reconnectAttempt = useRef(0);
+  const graphDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const maxReconnectDelay = 30_000; // 30s max
 
   useEffect(() => {
@@ -29,6 +31,15 @@ export function useRealtimeSync(): void {
             files: string[];
           };
           refreshProject(data.projectId);
+
+          // Debounce graph refresh (500ms) to avoid rapid successive re-fetches
+          if (graphDebounceTimer.current) {
+            clearTimeout(graphDebounceTimer.current);
+          }
+          graphDebounceTimer.current = setTimeout(() => {
+            loadGraph(data.projectId);
+            graphDebounceTimer.current = null;
+          }, 500);
         } catch {
           // Ignore parse errors
         }
@@ -56,6 +67,7 @@ export function useRealtimeSync(): void {
       disposed = true;
       eventSource?.close();
       if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (graphDebounceTimer.current) clearTimeout(graphDebounceTimer.current);
     };
-  }, [refreshProject]);
+  }, [refreshProject, loadGraph]);
 }

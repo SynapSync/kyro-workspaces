@@ -373,3 +373,67 @@ export const STATUS_TO_SYMBOL: Record<TaskStatus, SprintTaskSymbol> = {
   skipped:      "-",
   carry_over:   ">",
 };
+
+// --- Graph View Types ---
+
+export const GraphNodeTypeSchema = z.enum([
+  "sprint",
+  "finding",
+  "document",
+  "readme",
+  "roadmap",
+]);
+
+export const GraphEdgeTypeSchema = z.enum([
+  "wiki-link",
+  "markdown-link",
+  "frontmatter-ref",
+  "tag-similarity",
+  "structural",
+]);
+
+export const GraphNodeSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  filePath: z.string(),
+  fileType: GraphNodeTypeSchema,
+  tags: z.array(z.string()),
+  metadata: z.record(z.string()).optional(),
+});
+
+export const GraphEdgeSchema = z.object({
+  id: z.string(),
+  source: z.string(),
+  target: z.string(),
+  edgeType: GraphEdgeTypeSchema,
+  label: z.string().optional(),
+  weight: z.number().default(1.0),
+});
+
+export const GraphClusterSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  nodeIds: z.array(z.string()),
+  color: z.string().optional(),
+  clusterType: z.enum(["directory", "tag", "type"]),
+});
+
+export const GraphDataSchema = z.object({
+  nodes: z.array(GraphNodeSchema),
+  edges: z.array(GraphEdgeSchema),
+  clusters: z.array(GraphClusterSchema),
+  metadata: z.object({
+    projectId: z.string(),
+    projectName: z.string(),
+    buildTimestamp: z.string(),
+    nodeCount: z.number(),
+    edgeCount: z.number(),
+  }),
+});
+
+export type GraphNodeType = z.infer<typeof GraphNodeTypeSchema>;
+export type GraphEdgeType = z.infer<typeof GraphEdgeTypeSchema>;
+export type GraphNode = z.infer<typeof GraphNodeSchema>;
+export type GraphEdge = z.infer<typeof GraphEdgeSchema>;
+export type GraphCluster = z.infer<typeof GraphClusterSchema>;
+export type GraphData = z.infer<typeof GraphDataSchema>;

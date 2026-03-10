@@ -25,6 +25,7 @@ import {
   parseFindingFile,
 } from "@/lib/file-format/sprint-forge-parsers";
 import { parseSprintFile } from "@/lib/file-format/parsers";
+import { buildProjectGraph, rebuildFileGraph } from "./graph-builder";
 import type { Sprint, Finding } from "@/lib/types";
 
 // --- Helpers ---
@@ -162,9 +163,22 @@ export async function initIndex(): Promise<InitIndexResult> {
     }
   }
 
+  // Build graph for each project
+  let graphNodeCount = 0;
+  let graphEdgeCount = 0;
+  for (const entry of entries) {
+    try {
+      const graphResult = await buildProjectGraph(entry.id, entry.path);
+      graphNodeCount += graphResult.nodes;
+      graphEdgeCount += graphResult.edges;
+    } catch (err) {
+      console.warn(`[kyro-index] Failed to build graph for project ${entry.id}:`, err);
+    }
+  }
+
   const durationMs = Date.now() - start;
   console.log(
-    `[kyro-index] Built index in ${durationMs}ms — ${projectCount} projects, ${sprintCount} sprints, ${taskCount} tasks, ${findingCount} findings, ${documentCount} documents`
+    `[kyro-index] Built index in ${durationMs}ms — ${projectCount} projects, ${sprintCount} sprints, ${taskCount} tasks, ${findingCount} findings, ${documentCount} documents, ${graphNodeCount} graph nodes, ${graphEdgeCount} graph edges`
   );
 
   return { projects: projectCount, sprints: sprintCount, tasks: taskCount, findings: findingCount, documents: documentCount, durationMs };
@@ -181,8 +195,13 @@ export async function reindexFile(filePath: string, projectId: string): Promise<
   if (!db) return false;
 
   if (!(await fileExists(filePath))) {
-    // File was deleted — remove from index
+    // File was deleted — remove from index and graph
     removeFileFromIndex(filePath, projectId);
+    try {
+      await rebuildFileGraph(filePath, projectId);
+    } catch {
+      // Best-effort graph cleanup
+    }
     return true;
   }
 
@@ -240,6 +259,13 @@ export async function reindexFile(filePath: string, projectId: string): Promise<
     INSERT OR REPLACE INTO file_checksums (file_path, checksum, project_id, file_type, indexed_at)
     VALUES (?, ?, ?, ?, ?)
   `).run(filePath, newChecksum, projectId, fileType, timestamp);
+
+  // Rebuild graph edges for this file
+  try {
+    await rebuildFileGraph(filePath, projectId);
+  } catch (err) {
+    console.warn(`[kyro-index] Failed to rebuild graph for ${filePath}:`, err);
+  }
 
   return true;
 }

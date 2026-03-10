@@ -9,6 +9,7 @@ import type {
   Finding,
   RoadmapSprintEntry,
   TeamMember,
+  GraphData,
 } from "./types";
 import { services } from "./services";
 import { APP_NAME } from "./config";
@@ -61,6 +62,11 @@ interface AppState {
   reentryPrompts: Record<string, string>;
   reentryLoading: Record<string, boolean>;
   loadReentryPrompts: (projectId: string) => Promise<void>;
+
+  // Graph Data (per-project, loaded on demand)
+  graphData: Record<string, GraphData>;
+  graphLoading: Record<string, boolean>;
+  loadGraph: (projectId: string) => Promise<void>;
 
   // Task Mutations
   updatingTasks: Record<string, boolean>; // taskId -> isUpdating
@@ -244,6 +250,28 @@ export const useAppStore = create<AppState>()(
         reentryLoading: { ...state.reentryLoading, [projectId]: false },
       }));
       console.warn("[reentry] Failed to load:", errorMsg(err));
+    }
+  },
+
+  // --- Graph Data ---
+
+  graphData: {},
+  graphLoading: {},
+  loadGraph: async (projectId) => {
+    set((state) => ({
+      graphLoading: { ...state.graphLoading, [projectId]: true },
+    }));
+    try {
+      const data = await services.projects.getGraph(projectId);
+      set((state) => ({
+        graphData: { ...state.graphData, [projectId]: data },
+        graphLoading: { ...state.graphLoading, [projectId]: false },
+      }));
+    } catch (err) {
+      set((state) => ({
+        graphLoading: { ...state.graphLoading, [projectId]: false },
+      }));
+      console.warn("[graph] Failed to load:", errorMsg(err));
     }
   },
 

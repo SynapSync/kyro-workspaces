@@ -8,6 +8,7 @@ import type {
   AgentActionType,
   AgentActivity,
   ActivitiesListResult,
+  GraphData,
 } from "@/lib/types";
 
 // --- Input Types ---
@@ -56,6 +57,9 @@ export interface ProjectsService {
   getFindings(projectId: string): Promise<Finding[]>;
   getRoadmap(projectId: string): Promise<{ raw: string; sprints: RoadmapSprintEntry[] }>;
   getReentryPrompts(projectId: string): Promise<string>;
+
+  // Graph
+  getGraph(projectId: string): Promise<GraphData>;
 
   // Write operations
   updateTaskStatus(projectId: string, sprintId: string, taskId: string, status: TaskStatus): Promise<Task>;

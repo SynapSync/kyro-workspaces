@@ -158,6 +158,36 @@ export const DEFAULT_FINDINGS: FindingRecord[] = [
  * so FileProjectsService makes fetch() calls to API routes.
  * page.route() intercepts these browser-level requests.
  */
+export const DEFAULT_GRAPH_DATA = {
+  nodes: [
+    { id: "readme", label: "README", filePath: "/proj/README.md", fileType: "readme", tags: ["project"] },
+    { id: "roadmap", label: "ROADMAP", filePath: "/proj/ROADMAP.md", fileType: "roadmap", tags: ["project", "plan"] },
+    { id: "sprint-01", label: "SPRINT-01", filePath: "/proj/sprints/SPRINT-01.md", fileType: "sprint", tags: ["sprint-1"] },
+    { id: "finding-01", label: "01-architecture", filePath: "/proj/findings/01-arch.md", fileType: "finding", tags: ["architecture"] },
+    { id: "doc-01", label: "guide", filePath: "/proj/documents/guide.md", fileType: "document", tags: ["project", "guide"] },
+  ],
+  edges: [
+    { id: "e1", source: "readme", target: "roadmap", edgeType: "wiki-link", label: "ROADMAP", weight: 1.0 },
+    { id: "e2", source: "sprint-01", target: "roadmap", edgeType: "frontmatter-ref", label: "ROADMAP", weight: 0.8 },
+    { id: "e3", source: "finding-01", target: "sprint-01", edgeType: "wiki-link", label: "SPRINT-01", weight: 1.0 },
+    { id: "e4", source: "readme", target: "doc-01", edgeType: "structural", weight: 0.2 },
+  ],
+  clusters: [
+    { id: "cluster-type-sprint", label: "Sprints", nodeIds: ["sprint-01"], clusterType: "type" },
+    { id: "cluster-type-finding", label: "Findings", nodeIds: ["finding-01"], clusterType: "type" },
+    { id: "cluster-type-document", label: "Documents", nodeIds: ["doc-01"], clusterType: "type" },
+    { id: "cluster-type-readme", label: "Readmes", nodeIds: ["readme"], clusterType: "type" },
+    { id: "cluster-type-roadmap", label: "Roadmaps", nodeIds: ["roadmap"], clusterType: "type" },
+  ],
+  metadata: {
+    projectId: "proj-e2e",
+    projectName: "E2E Project",
+    buildTimestamp: now,
+    nodeCount: 5,
+    edgeCount: 4,
+  },
+};
+
 export async function setupCommonRoutes(
   page: Page,
   options: {
@@ -252,6 +282,14 @@ export async function setupCommonRoutes(
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({ data: { members: [] } }),
+    });
+  });
+
+  await page.route("**/api/projects/proj-e2e/graph", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ data: { graph: DEFAULT_GRAPH_DATA } }),
     });
   });
 

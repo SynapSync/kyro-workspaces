@@ -448,6 +448,159 @@ export function searchIndex(query: string, options: SearchOptions = {}): SearchE
   return results;
 }
 
+// --- Graph Queries ---
+
+interface GraphNodeRow {
+  id: string;
+  project_id: string;
+  label: string;
+  file_path: string;
+  file_type: string;
+  tags: string | null;
+  metadata: string | null;
+}
+
+interface GraphEdgeRow {
+  id: string;
+  project_id: string;
+  source_id: string;
+  target_id: string;
+  edge_type: string;
+  label: string | null;
+  weight: number;
+}
+
+function rowToGraphNode(row: GraphNodeRow): GraphNodeResult {
+  return {
+    id: row.id,
+    label: row.label,
+    filePath: row.file_path,
+    fileType: row.file_type as GraphNodeResult["fileType"],
+    tags: row.tags ? JSON.parse(row.tags) : [],
+    metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
+  };
+}
+
+function rowToGraphEdge(row: GraphEdgeRow): GraphEdgeResult {
+  return {
+    id: row.id,
+    source: row.source_id,
+    target: row.target_id,
+    edgeType: row.edge_type as GraphEdgeResult["edgeType"],
+    label: row.label ?? undefined,
+    weight: row.weight,
+  };
+}
+
+export interface GraphNodeResult {
+  id: string;
+  label: string;
+  filePath: string;
+  fileType: "sprint" | "finding" | "document" | "readme" | "roadmap";
+  tags: string[];
+  metadata?: Record<string, string>;
+}
+
+export interface GraphEdgeResult {
+  id: string;
+  source: string;
+  target: string;
+  edgeType: "wiki-link" | "markdown-link" | "frontmatter-ref" | "tag-similarity" | "structural";
+  label?: string;
+  weight: number;
+}
+
+export interface GraphQueryFilters {
+  fileType?: string;
+  edgeType?: string;
+}
+
+/**
+ * Get all graph nodes and edges for a project.
+ */
+export function queryGraphData(projectId: string): { nodes: GraphNodeResult[]; edges: GraphEdgeResult[] } {
+  const db = getDb();
+  if (!db) return { nodes: [], edges: [] };
+
+  const nodeRows = db.prepare(
+    "SELECT * FROM graph_nodes WHERE project_id = ?"
+  ).all(projectId) as GraphNodeRow[];
+
+  const edgeRows = db.prepare(
+    "SELECT * FROM graph_edges WHERE project_id = ?"
+  ).all(projectId) as GraphEdgeRow[];
+
+  return {
+    nodes: nodeRows.map(rowToGraphNode),
+    edges: edgeRows.map(rowToGraphEdge),
+  };
+}
+
+/**
+ * Get graph nodes for a project, optionally filtered by file type.
+ */
+export function queryGraphNodes(projectId: string, filters?: GraphQueryFilters): GraphNodeResult[] {
+  const db = getDb();
+  if (!db) return [];
+
+  if (filters?.fileType) {
+    const rows = db.prepare(
+      "SELECT * FROM graph_nodes WHERE project_id = ? AND file_type = ?"
+    ).all(projectId, filters.fileType) as GraphNodeRow[];
+    return rows.map(rowToGraphNode);
+  }
+
+  const rows = db.prepare(
+    "SELECT * FROM graph_nodes WHERE project_id = ?"
+  ).all(projectId) as GraphNodeRow[];
+  return rows.map(rowToGraphNode);
+}
+
+/**
+ * Get graph edges for a project, optionally filtered by edge type.
+ */
+export function queryGraphEdges(projectId: string, filters?: GraphQueryFilters): GraphEdgeResult[] {
+  const db = getDb();
+  if (!db) return [];
+
+  if (filters?.edgeType) {
+    const rows = db.prepare(
+      "SELECT * FROM graph_edges WHERE project_id = ? AND edge_type = ?"
+    ).all(projectId, filters.edgeType) as GraphEdgeRow[];
+    return rows.map(rowToGraphEdge);
+  }
+
+  const rows = db.prepare(
+    "SELECT * FROM graph_edges WHERE project_id = ?"
+  ).all(projectId) as GraphEdgeRow[];
+  return rows.map(rowToGraphEdge);
+}
+
+/**
+ * Get direct neighbors of a node (nodes connected by an edge).
+ */
+export function queryNodeNeighbors(nodeId: string, projectId: string): GraphNodeResult[] {
+  const db = getDb();
+  if (!db) return [];
+
+  // Find all node IDs connected to this node (as source or target)
+  const edgeRows = db.prepare(`
+    SELECT target_id AS neighbor_id FROM graph_edges WHERE source_id = ? AND project_id = ?
+    UNION
+    SELECT source_id AS neighbor_id FROM graph_edges WHERE target_id = ? AND project_id = ?
+  `).all(nodeId, projectId, nodeId, projectId) as { neighbor_id: string }[];
+
+  if (edgeRows.length === 0) return [];
+
+  const neighborIds = edgeRows.map((r) => r.neighbor_id);
+  const placeholders = neighborIds.map(() => "?").join(",");
+  const nodeRows = db.prepare(
+    `SELECT * FROM graph_nodes WHERE project_id = ? AND id IN (${placeholders})`
+  ).all(projectId, ...neighborIds) as GraphNodeRow[];
+
+  return nodeRows.map(rowToGraphNode);
+}
+
 // --- Helpers ---
 
 function getProjectName(projectId: string): string {
