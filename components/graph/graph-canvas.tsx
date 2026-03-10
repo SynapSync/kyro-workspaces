@@ -74,6 +74,7 @@ interface GraphCanvasProps {
   highlightedNodeIds?: Set<string> | null;
   visibleNodeIds?: Set<string> | null;
   onHoveredNodeChange?: (info: HoveredNodeInfo | null) => void;
+  onViewportChange?: (viewport: { x: number; y: number; width: number; height: number }) => void;
 }
 
 // ---------- Muted Obsidian-style colors ----------
@@ -110,6 +111,14 @@ const EDGE_WIDTH: Record<GraphEdgeType, number> = {
   "structural":      0.15,
 };
 
+const NODE_TYPE_LABELS: Record<GraphNodeType, string> = {
+  sprint: "Sprints",
+  finding: "Findings",
+  document: "Documents",
+  readme: "README",
+  roadmap: "Roadmap",
+};
+
 // ---------- Dark mode detection ----------
 
 function useIsDarkMode(): boolean {
@@ -133,7 +142,7 @@ function useIsDarkMode(): boolean {
 // ---------- Component ----------
 
 export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
-  function GraphCanvas({ graph, width, height, hiddenTypes, selectedTags, highlightedNodeIds, visibleNodeIds, onHoveredNodeChange }, ref) {
+  function GraphCanvas({ graph, width, height, hiddenTypes, selectedTags, highlightedNodeIds, visibleNodeIds, onHoveredNodeChange, onViewportChange }, ref) {
     const router = useRouter();
     const activeProjectId = useAppStore((s) => s.activeProjectId);
     const isDark = useIsDarkMode();
@@ -142,6 +151,40 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
     const fgRef = useRef<ForceGraphMethods<any, any> | undefined>(undefined);
 
     const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
+    const pendingHoverNodeRef = useRef<GraphNodeDatum | null>(null);
+    const hoverFrameRef = useRef<number | null>(null);
+
+    const cancelPendingHover = useCallback(() => {
+      if (hoverFrameRef.current !== null) {
+        cancelAnimationFrame(hoverFrameRef.current);
+        hoverFrameRef.current = null;
+      }
+      pendingHoverNodeRef.current = null;
+    }, []);
+
+    const flushHover = useCallback(() => {
+      hoverFrameRef.current = null;
+      const node = pendingHoverNodeRef.current;
+      pendingHoverNodeRef.current = null;
+      setHoveredNodeId(node?.id ?? null);
+      if (!onHoveredNodeChange) {
+        return;
+      }
+      const fg = fgRef.current;
+      if (node && fg?.graph2ScreenCoords) {
+        const { x: screenX, y: screenY } = fg.graph2ScreenCoords(node.x ?? 0, node.y ?? 0);
+        onHoveredNodeChange({
+          label: node.label,
+          fileType: node.fileType,
+          edgeCount: node.edgeCount,
+          tags: node.tags,
+          screenX,
+          screenY,
+        });
+      } else {
+        onHoveredNodeChange(null);
+      }
+    }, [onHoveredNodeChange]);
 
     // --- Build adjacency map for hover highlighting ---
     const adjacencyMap = useMemo(() => {
@@ -221,6 +264,8 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       }
     }, []);
 
+    useEffect(() => cancelPendingHover, [cancelPendingHover]);
+
     // --- Click-to-navigate ---
     const handleNodeClick = useCallback(
       (rawNode: NodeObject) => {
@@ -257,23 +302,12 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
     const handleNodeHover = useCallback(
       (rawNode: NodeObject | null) => {
         const node = rawNode as unknown as GraphNodeDatum | null;
-        setHoveredNodeId(node?.id ?? null);
-
-        if (node && onHoveredNodeChange && fgRef.current) {
-          const screenCoords = fgRef.current.graph2ScreenCoords(node.x ?? 0, node.y ?? 0);
-          onHoveredNodeChange({
-            label: node.label,
-            fileType: node.fileType,
-            edgeCount: node.edgeCount,
-            tags: node.tags,
-            screenX: screenCoords.x,
-            screenY: screenCoords.y,
-          });
-        } else if (onHoveredNodeChange) {
-          onHoveredNodeChange(null);
+        pendingHoverNodeRef.current = node;
+        if (hoverFrameRef.current === null) {
+          hoverFrameRef.current = requestAnimationFrame(flushHover);
         }
       },
-      [onHoveredNodeChange]
+      [flushHover]
     );
 
     // --- Node drag end: pin node ---
@@ -323,7 +357,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
 
     // --- Custom node rendering (Obsidian-style) ---
     const nodeCanvasObject = useCallback(
-      (rawNode: NodeObject, ctx: CanvasRenderingContext2D, globalScale: number) => {
+      (rawNode: NodeObject, ctx: CanvasRenderingContext2D, _globalScale: number) => {
         const node = rawNode as unknown as GraphNodeDatum;
         const x = node.x ?? 0;
         const y = node.y ?? 0;
@@ -450,19 +484,36 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       fg.d3Force("cluster", clusterForce as any);
-    });
+    }, [graphInput]);
 
     // --- Cluster labels rendered after each frame (throttled via position fingerprint) ---
-    const NODE_TYPE_LABELS: Record<string, string> = {
-      sprint: "Sprints", finding: "Findings", document: "Documents",
-      readme: "README", roadmap: "Roadmap",
-    };
 
     const cachedCentroids = useRef<Map<string, { x: number; y: number; count: number }>>(new Map());
     const cachedFingerprint = useRef<number>(0);
 
+    const emitViewport = useCallback(() => {
+      if (!onViewportChange) return;
+      const fg = fgRef.current;
+      if (!fg || typeof fg.screen2GraphCoords !== "function") return;
+      const topLeft = fg.screen2GraphCoords(0, 0);
+      const bottomRight = fg.screen2GraphCoords(width, height);
+      if (!topLeft || !bottomRight) return;
+      const minX = Math.min(topLeft.x, bottomRight.x);
+      const maxX = Math.max(topLeft.x, bottomRight.x);
+      const minY = Math.min(topLeft.y, bottomRight.y);
+      const maxY = Math.max(topLeft.y, bottomRight.y);
+      onViewportChange({
+        x: minX,
+        y: minY,
+        width: maxX - minX,
+        height: maxY - minY,
+      });
+    }, [height, onViewportChange, width]);
+
     const renderClusterLabels = useCallback(
       (ctx: CanvasRenderingContext2D, globalScale: number) => {
+        emitViewport();
+
         // Only show at medium zoom
         if (globalScale > 2 || globalScale < 0.3) return;
 
@@ -507,7 +558,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           ctx.fillText(label, c.x, c.y - 20 / globalScale);
         }
       },
-      [graphInput.nodes, isDark, hiddenTypes]
+      [graphInput.nodes, isDark, hiddenTypes, emitViewport]
     );
 
     return (

@@ -37,6 +37,30 @@ export function GraphViewPage() {
     width: typeof window !== "undefined" ? window.innerWidth : 1024,
     height: typeof window !== "undefined" ? Math.max(window.innerHeight - 200, 600) : 768,
   }));
+  const [graphViewport, setGraphViewport] = useState<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } | null>(null);
+
+  const handleViewportChange = useCallback(
+    (next: { x: number; y: number; width: number; height: number }) => {
+      setGraphViewport((prev) => {
+        if (
+          prev &&
+          Math.abs(prev.x - next.x) < 0.1 &&
+          Math.abs(prev.y - next.y) < 0.1 &&
+          Math.abs(prev.width - next.width) < 0.1 &&
+          Math.abs(prev.height - next.height) < 0.1
+        ) {
+          return prev;
+        }
+        return next;
+      });
+    },
+    []
+  );
 
   useEffect(() => {
     if (activeProjectId && !graph) {
@@ -85,9 +109,12 @@ export function GraphViewPage() {
 
     const measure = () => {
       const rect = el.getBoundingClientRect();
-      const width = rect.width > 0 ? Math.round(rect.width) : dimensions.width;
-      const height = rect.height > 0 ? Math.round(rect.height) : dimensions.height;
-      setDimensions({ width, height });
+      if (rect.width > 0 && rect.height > 0) {
+        setDimensions({
+          width: Math.round(rect.width),
+          height: Math.round(rect.height),
+        });
+      }
     };
 
     // Initial measure asap + after paint
@@ -303,6 +330,7 @@ export function GraphViewPage() {
           highlightedNodeIds={highlightedNodeIds}
           visibleNodeIds={visibleNodeIds}
           onHoveredNodeChange={setHoveredNode}
+          onViewportChange={handleViewportChange}
         />
         <GraphTooltip
           label={hoveredNode?.label ?? ""}
@@ -312,6 +340,8 @@ export function GraphViewPage() {
           x={hoveredNode?.screenX ?? 0}
           y={hoveredNode?.screenY ?? 0}
           visible={hoveredNode !== null}
+          containerWidth={dimensions.width}
+          containerHeight={dimensions.height}
         />
         <GraphFilters
           graph={graph}
@@ -321,7 +351,7 @@ export function GraphViewPage() {
         <GraphLegend filterState={filterState} />
         <GraphMinimap
           graph={graph}
-          viewport={null}
+          viewport={graphViewport}
           onPan={handleMinimapPan}
         />
         <GraphControls

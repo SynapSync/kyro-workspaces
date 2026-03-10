@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useCallback } from "react";
+import { useMemo, useRef, useEffect, useCallback } from "react";
 import { GRAPH_NODE_HEX_COLORS } from "@/lib/config";
 import type { GraphData, GraphNodeType } from "@/lib/types";
 
@@ -27,6 +27,13 @@ export function GraphMinimap({
   height = 120,
 }: GraphMinimapProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const nodeMap = useMemo(() => {
+    const map = new Map<string, GraphData["nodes"][0]>();
+    for (const node of graph.nodes) {
+      map.set(node.id, node);
+    }
+    return map;
+  }, [graph.nodes]);
 
   // Compute the bounding box of all nodes
   const getBounds = useCallback(() => {
@@ -79,8 +86,8 @@ export function GraphMinimap({
     ctx.lineWidth = 0.5;
     ctx.strokeStyle = isDark ? "rgba(100, 100, 120, 0.3)" : "rgba(150, 150, 170, 0.3)";
     for (const edge of graph.edges) {
-      const sourceNode = graph.nodes.find((n) => n.id === edge.source);
-      const targetNode = graph.nodes.find((n) => n.id === edge.target);
+      const sourceNode = nodeMap.get(edge.source);
+      const targetNode = nodeMap.get(edge.target);
       if (!sourceNode || !targetNode) continue;
       const sx = ((sourceNode as { x?: number }).x ?? 0 - bounds.minX) * scale + offsetX;
       const sy = ((sourceNode as { y?: number }).y ?? 0 - bounds.minY) * scale + offsetY;
@@ -115,7 +122,7 @@ export function GraphMinimap({
       ctx.fillStyle = isDark ? "rgba(120, 160, 255, 0.05)" : "rgba(60, 100, 200, 0.05)";
       ctx.fillRect(vx, vy, vw, vh);
     }
-  }, [graph, viewport, width, height, getBounds]);
+  }, [graph.edges, graph.nodes, viewport, width, height, getBounds, nodeMap]);
 
   // Handle click to pan
   const handleClick = useCallback(
