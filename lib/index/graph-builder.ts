@@ -15,6 +15,10 @@ import { getDb } from "./sqlite";
 import { extractFileReferences } from "@/lib/file-format/graph-parser";
 import { fileExists } from "@/lib/api/workspace-guard";
 import type { GraphNodeType, GraphEdgeType } from "@/lib/types";
+import {
+  resolveSprintMarkdownDirOnDisk,
+  SPRINT_MARKDOWN_DIR,
+} from "@/lib/project-layout";
 
 // --- Configurable Constants ---
 
@@ -99,15 +103,16 @@ export async function buildProjectGraph(
     fileContents.set(roadmapPath, content);
   }
 
-  // Scan subdirectories
-  const subdirs: { dir: string; type: GraphNodeType }[] = [
-    { dir: "sprints", type: "sprint" },
-    { dir: "findings", type: "finding" },
-    { dir: "documents", type: "document" },
-  ];
+  // Scan sprint markdown dir (sprint-forge/ or legacy sprints/), then findings/documents
+  const sprintRoot = await resolveSprintMarkdownDirOnDisk(projectPath);
+  const subdirs: { dirPath: string; type: GraphNodeType }[] = [];
+  if (sprintRoot) subdirs.push({ dirPath: sprintRoot, type: "sprint" });
+  subdirs.push(
+    { dirPath: path.join(projectPath, "findings"), type: "finding" },
+    { dirPath: path.join(projectPath, "documents"), type: "document" },
+  );
 
-  for (const { dir, type } of subdirs) {
-    const dirPath = path.join(projectPath, dir);
+  for (const { dirPath, type } of subdirs) {
     if (!(await fileExists(dirPath))) continue;
 
     const entries = await fs.readdir(dirPath, { withFileTypes: true });
@@ -473,7 +478,12 @@ function resolvePathReference(
  */
 function detectGraphFileType(filePath: string): GraphNodeType {
   const normalized = filePath.replace(/\\/g, "/");
-  if (normalized.includes("/sprints/")) return "sprint";
+  if (
+    normalized.includes(`/${SPRINT_MARKDOWN_DIR}/`) ||
+    normalized.includes("/sprints/")
+  ) {
+    return "sprint";
+  }
   if (normalized.includes("/findings/")) return "finding";
   if (normalized.includes("/documents/")) return "document";
   if (path.basename(normalized) === "ROADMAP.md") return "roadmap";

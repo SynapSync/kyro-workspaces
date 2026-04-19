@@ -1,12 +1,8 @@
 import * as fs from "fs/promises";
 import * as path from "path";
 import { NextRequest, NextResponse } from "next/server";
-import {
-  getWorkspacePath,
-  resolveProjectRoot,
-  resolveProjectPath,
-  handleError,
-} from "@/lib/api";
+import { getWorkspacePath, resolveProjectRoot, handleError } from "@/lib/api";
+import { resolveSprintMarkdownDirOnDisk } from "@/lib/project-layout";
 
 export async function GET(req: NextRequest) {
   try {
@@ -20,16 +16,25 @@ export async function GET(req: NextRequest) {
 
     const workspacePath = getWorkspacePath();
     const projectRoot = await resolveProjectRoot(workspacePath, projectId);
-    const sprintsDir = resolveProjectPath(projectRoot, "sprints");
+    const sprintsDir = await resolveSprintMarkdownDirOnDisk(projectRoot);
 
     let sprintFiles: string[] = [];
+    if (!sprintsDir) {
+      return NextResponse.json({
+        data: {
+          sprintCount: 0,
+          latestSprint: null,
+          lastModified: null,
+        },
+      });
+    }
     try {
       const entries = await fs.readdir(sprintsDir);
       sprintFiles = entries
         .filter((f) => f.startsWith("SPRINT-") && f.endsWith(".md"))
         .sort();
     } catch {
-      // sprints/ dir may not exist yet
+      // sprint-forge/ dir may not exist yet
     }
 
     let lastModified: string | null = null;

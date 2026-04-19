@@ -10,6 +10,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { reindexFile } from "./builder";
 import { getDb } from "./sqlite";
+import { SPRINT_MARKDOWN_DIR } from "@/lib/project-layout";
 
 // --- Types ---
 
@@ -54,6 +55,7 @@ export function watchProject(projectId: string, projectPath: string): void {
       // Only watch sprint-forge directories
       const normalized = filename.replace(/\\/g, "/");
       const isRelevant =
+        normalized.includes(`${SPRINT_MARKDOWN_DIR}/`) ||
         normalized.includes("sprints/") ||
         normalized.includes("findings/") ||
         normalized.includes("documents/") ||

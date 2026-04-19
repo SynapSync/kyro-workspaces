@@ -87,7 +87,7 @@ export function parseDocumentFile(content: string, fallbackId: string): Document
 }
 
 // ---------------------------------------------------------------------------
-// Sprint File  (projects/{slug}/sprints/SPRINT-NN.md)
+// Sprint File  (projects/{slug}/sprint-forge/SPRINT-NN.md)
 // ---------------------------------------------------------------------------
 
 // Matches lines like: - [x] Task description

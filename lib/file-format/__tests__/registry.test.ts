@@ -13,6 +13,7 @@ import {
   updateLastOpened,
 } from "../registry";
 import type { ProjectRegistry, ProjectRegistryEntry } from "@/lib/types";
+import { SPRINT_MARKDOWN_DIR } from "@/lib/project-layout";
 
 const FIXTURES = path.join(__dirname, "fixtures");
 const SF_PROJECT = path.join(FIXTURES, "sprint-forge-project");
@@ -77,14 +78,14 @@ describe("validateSprintForgeDirectory", () => {
 
   it("rejects a directory without README.md", async () => {
     const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "sf-test-"));
-    await fs.mkdir(path.join(tmpDir, "sprints"));
+    await fs.mkdir(path.join(tmpDir, "notes"));
     const result = await validateSprintForgeDirectory(tmpDir);
     expect(result.valid).toBe(false);
     expect(result.error).toContain("README.md");
     await fs.rm(tmpDir, { recursive: true });
   });
 
-  it("rejects a directory without sprints/", async () => {
+  it(`rejects a directory without ${SPRINT_MARKDOWN_DIR}/`, async () => {
     const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "sf-test-"));
     await fs.writeFile(
       path.join(tmpDir, "README.md"),
@@ -92,7 +93,7 @@ describe("validateSprintForgeDirectory", () => {
     );
     const result = await validateSprintForgeDirectory(tmpDir);
     expect(result.valid).toBe(false);
-    expect(result.error).toContain("sprints/");
+    expect(result.error).toContain(SPRINT_MARKDOWN_DIR);
     await fs.rm(tmpDir, { recursive: true });
   });
 });

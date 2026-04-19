@@ -10,6 +10,11 @@ import type { ProjectRegistry, ProjectRegistryEntry } from "@/lib/types";
 import { ProjectRegistrySchema } from "@/lib/types";
 import { WorkspaceError } from "@/lib/api/errors";
 import { parseSprintForgeReadme } from "./sprint-forge-parsers";
+import {
+  LEGACY_SPRINT_MARKDOWN_DIR,
+  resolveSprintMarkdownDirOnDisk,
+  SPRINT_MARKDOWN_DIR,
+} from "@/lib/project-layout";
 
 const EMPTY_REGISTRY: ProjectRegistry = { version: 1, projects: [] };
 
@@ -85,9 +90,18 @@ export async function validateSprintForgeDirectory(
           const parsed = parseSprintForgeReadme(subReadmeContent);
           name = parsed.name;
         } else if (candidates.length > 1) {
+          const parentName = path.basename(resolved);
+          const examplePaths = candidates
+            .slice(0, 6)
+            .map((c) => path.join(resolved, c))
+            .join(" | ");
+          const registryHint =
+            parentName === "sprint-forge"
+              ? ` You opened the shared parent ".agents/sprint-forge" (or similar). Kyro registers one scope at a time — open the folder for a single scope (it must contain README.md plus "${SPRINT_MARKDOWN_DIR}/" or legacy "${LEGACY_SPRINT_MARKDOWN_DIR}/").`
+              : " Open one project folder (the one that contains README.md at its root), not a directory that lists several such projects.";
           return {
             valid: false,
-            error: `Multiple sprint-forge projects found in this directory: ${candidates.join(", ")}. Please specify the full path to one of them.`,
+            error: `Several scope projects were found under "${resolved}".${registryHint} Example full paths: ${examplePaths}`,
           };
         } else {
           return { valid: false, error: "README.md not found or unreadable" };
@@ -97,15 +111,13 @@ export async function validateSprintForgeDirectory(
       }
     }
 
-    // Check for sprints/ directory
-    const sprintsDir = path.join(actualPath, "sprints");
-    try {
-      const stat = await fs.stat(sprintsDir);
-      if (!stat.isDirectory()) {
-        return { valid: false, error: "sprints/ is not a directory" };
-      }
-    } catch {
-      return { valid: false, error: "sprints/ directory not found" };
+    // Check for sprint markdown directory (sprint-forge/ or legacy sprints/)
+    const sprintMdDir = await resolveSprintMarkdownDirOnDisk(actualPath);
+    if (!sprintMdDir) {
+      return {
+        valid: false,
+        error: `No sprint markdown directory found: add "${SPRINT_MARKDOWN_DIR}/" or "${LEGACY_SPRINT_MARKDOWN_DIR}/" with sprint .md files next to README.md.`,
+      };
     }
 
     return { valid: true, name, resolvedPath: actualPath };

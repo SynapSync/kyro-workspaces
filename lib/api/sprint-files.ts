@@ -6,6 +6,7 @@ import {
   resolveProjectRoot,
 } from "@/lib/api";
 import { parseSprintFile } from "@/lib/file-format/parsers";
+import { resolveSprintMarkdownDirOnDisk } from "@/lib/project-layout";
 
 function slugify(text: string): string {
   return text
@@ -24,8 +25,8 @@ export async function resolveSprintFilePath(
   sprintId: string
 ): Promise<string> {
   const projectRoot = await resolveProjectRoot(workspacePath, projectId);
-  const sprintsDir = resolveProjectPath(projectRoot, "sprints");
-  if (!(await fileExists(sprintsDir))) {
+  const sprintsDir = await resolveSprintMarkdownDirOnDisk(projectRoot);
+  if (!sprintsDir) {
     throw new WorkspaceError("NOT_FOUND", "Sprint not found");
   }
 
@@ -64,7 +65,10 @@ export async function buildCanonicalSprintFileName(
   sprintName: string
 ): Promise<string> {
   const projectRoot = await resolveProjectRoot(workspacePath, projectId);
-  const sprintsDir = resolveProjectPath(projectRoot, "sprints");
+  const sprintsDir = await resolveSprintMarkdownDirOnDisk(projectRoot);
+  if (!sprintsDir) {
+    throw new WorkspaceError("NOT_FOUND", "Sprint directory not found");
+  }
   const entries = await fs.readdir(sprintsDir, { withFileTypes: true });
 
   let maxNumber = 0;

@@ -100,13 +100,25 @@ describe("file-watcher", () => {
     watchProject("proj-1", "/tmp/proj-1");
     const callback = (fs.watch as ReturnType<typeof vi.fn>).mock.calls[0][2];
 
-    // Markdown but not in sprints/, findings/, documents/, or README.md
+    // Markdown but not in sprint-forge/, findings/, documents/, or README.md
     callback("change", "notes/random.md");
     await vi.advanceTimersByTimeAsync(600);
     expect(reindexFile).not.toHaveBeenCalled();
   });
 
-  it("processes markdown files in sprints/ directory", async () => {
+  it("processes markdown files in sprint-forge/ directory", async () => {
+    watchProject("proj-1", "/tmp/proj-1");
+    const callback = (fs.watch as ReturnType<typeof vi.fn>).mock.calls[0][2];
+
+    callback("change", "sprint-forge/SPRINT-1.md");
+    await vi.advanceTimersByTimeAsync(600);
+    expect(reindexFile).toHaveBeenCalledWith(
+      "/tmp/proj-1/sprint-forge/SPRINT-1.md",
+      "proj-1",
+    );
+  });
+
+  it("still processes markdown under legacy sprints/ for hot-reload", async () => {
     watchProject("proj-1", "/tmp/proj-1");
     const callback = (fs.watch as ReturnType<typeof vi.fn>).mock.calls[0][2];
 
@@ -158,9 +170,9 @@ describe("file-watcher", () => {
     const callback = (fs.watch as ReturnType<typeof vi.fn>).mock.calls[0][2];
 
     // Fire 3 changes in quick succession
-    callback("change", "sprints/SPRINT-1.md");
-    callback("change", "sprints/SPRINT-2.md");
-    callback("change", "sprints/SPRINT-3.md");
+    callback("change", "sprint-forge/SPRINT-1.md");
+    callback("change", "sprint-forge/SPRINT-2.md");
+    callback("change", "sprint-forge/SPRINT-3.md");
 
     // Before debounce: nothing indexed yet
     expect(reindexFile).not.toHaveBeenCalled();
@@ -175,9 +187,9 @@ describe("file-watcher", () => {
     const callback = (fs.watch as ReturnType<typeof vi.fn>).mock.calls[0][2];
 
     // Same file changed 3 times
-    callback("change", "sprints/SPRINT-1.md");
-    callback("change", "sprints/SPRINT-1.md");
-    callback("change", "sprints/SPRINT-1.md");
+    callback("change", "sprint-forge/SPRINT-1.md");
+    callback("change", "sprint-forge/SPRINT-1.md");
+    callback("change", "sprint-forge/SPRINT-1.md");
 
     await vi.advanceTimersByTimeAsync(600);
     // Map deduplicates by key — should only reindex once
@@ -193,13 +205,13 @@ describe("file-watcher", () => {
     watchProject("proj-1", "/tmp/proj-1");
     const callback = (fs.watch as ReturnType<typeof vi.fn>).mock.calls[0][2];
 
-    callback("change", "sprints/SPRINT-1.md");
+    callback("change", "sprint-forge/SPRINT-1.md");
     await vi.advanceTimersByTimeAsync(600);
 
     expect(listener).toHaveBeenCalledTimes(1);
     expect(listener).toHaveBeenCalledWith({
       projectId: "proj-1",
-      files: ["/tmp/proj-1/sprints/SPRINT-1.md"],
+      files: ["/tmp/proj-1/sprint-forge/SPRINT-1.md"],
     });
 
     unsubscribe();
@@ -213,7 +225,7 @@ describe("file-watcher", () => {
     watchProject("proj-1", "/tmp/proj-1");
     const callback = (fs.watch as ReturnType<typeof vi.fn>).mock.calls[0][2];
 
-    callback("change", "sprints/SPRINT-1.md");
+    callback("change", "sprint-forge/SPRINT-1.md");
     await vi.advanceTimersByTimeAsync(600);
 
     expect(listener).not.toHaveBeenCalled();
@@ -230,7 +242,7 @@ describe("file-watcher", () => {
     const callback1 = (fs.watch as ReturnType<typeof vi.fn>).mock.calls[0][2];
     const callback2 = (fs.watch as ReturnType<typeof vi.fn>).mock.calls[1][2];
 
-    callback1("change", "sprints/SPRINT-1.md");
+    callback1("change", "sprint-forge/SPRINT-1.md");
     callback2("change", "findings/01-issue.md");
     await vi.advanceTimersByTimeAsync(600);
 

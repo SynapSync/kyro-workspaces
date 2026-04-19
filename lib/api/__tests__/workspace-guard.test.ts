@@ -66,8 +66,8 @@ describe("workspace-guard", () => {
 
   describe("resolveProjectPath", () => {
     it("resolves valid sub-paths within project root", () => {
-      const result = resolveProjectPath("/ext/project", "sprints", "SPRINT-1.md");
-      expect(result).toBe("/ext/project/sprints/SPRINT-1.md");
+      const result = resolveProjectPath("/ext/project", "sprint-forge", "SPRINT-1.md");
+      expect(result).toBe("/ext/project/sprint-forge/SPRINT-1.md");
     });
 
     it("throws PERMISSION_DENIED for traversal outside project root", () => {

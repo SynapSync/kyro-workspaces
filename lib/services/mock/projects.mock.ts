@@ -132,7 +132,7 @@ export class MockProjectsService implements ProjectsService {
         nodes.push({
           id: sprint.id,
           label: sprint.name,
-          filePath: `sprints/${sprint.id}.md`,
+          filePath: `sprint-forge/${sprint.id}.md`,
           fileType: "sprint",
           tags: [projectId, "sprint"],
         });

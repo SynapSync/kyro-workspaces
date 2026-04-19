@@ -162,7 +162,7 @@ export const DEFAULT_GRAPH_DATA = {
   nodes: [
     { id: "readme", label: "README", filePath: "/proj/README.md", fileType: "readme", tags: ["project"] },
     { id: "roadmap", label: "ROADMAP", filePath: "/proj/ROADMAP.md", fileType: "roadmap", tags: ["project", "plan"] },
-    { id: "sprint-01", label: "SPRINT-01", filePath: "/proj/sprints/SPRINT-01.md", fileType: "sprint", tags: ["sprint-1"] },
+    { id: "sprint-01", label: "SPRINT-01", filePath: "/proj/sprint-forge/SPRINT-01.md", fileType: "sprint", tags: ["sprint-1"] },
     { id: "finding-01", label: "01-architecture", filePath: "/proj/findings/01-arch.md", fileType: "finding", tags: ["architecture"] },
     { id: "doc-01", label: "guide", filePath: "/proj/documents/guide.md", fileType: "document", tags: ["project", "guide"] },
   ],

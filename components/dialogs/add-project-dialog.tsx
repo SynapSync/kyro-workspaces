@@ -124,7 +124,7 @@ export function AddProjectDialog({ open, onOpenChange }: AddProjectDialogProps) 
                   setPath(e.target.value);
                   setError(null);
                 }}
-                placeholder="/path/to/sprint-forge/project"
+                placeholder="…/.agents/sprint-forge/your-scope-project"
                 className="flex-1 font-mono text-sm"
                 onKeyDown={(e) => e.key === "Enter" && handleAdd()}
               />
@@ -144,7 +144,7 @@ export function AddProjectDialog({ open, onOpenChange }: AddProjectDialogProps) 
               </Button>
             </div>
             <p className="text-[11px] text-muted-foreground mt-1.5">
-              Path to a directory containing a sprint-forge README.md and sprints/ folder.
+              One scope folder (README.md at root; sprint .md in sprint-forge/ or sprints/). Not the parent that contains multiple scopes.
             </p>
           </div>
 

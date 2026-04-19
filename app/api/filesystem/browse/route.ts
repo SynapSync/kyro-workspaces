@@ -22,7 +22,7 @@ function openNativeFolderPicker(): Promise<string | null> {
         "osascript",
         [
           "-e",
-          'POSIX path of (choose folder with prompt "Select sprint-forge project directory")',
+          'POSIX path of (choose folder with prompt "Select one scope folder (…/.agents/sprint-forge/<name>) — not the parent listing all scopes")',
         ],
         (error, stdout) => {
           if (error) {
@@ -36,7 +36,11 @@ function openNativeFolderPicker(): Promise<string | null> {
     } else if (platform === "linux") {
       execFile(
         "zenity",
-        ["--file-selection", "--directory", "--title=Select sprint-forge project directory"],
+        [
+          "--file-selection",
+          "--directory",
+          "--title=Select one scope: …/sprint-forge/<project> (not the parent)",
+        ],
         (error, stdout) => {
           if (error) {
             if (error.code === 1) return resolve(null);

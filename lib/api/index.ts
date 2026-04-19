@@ -13,3 +13,8 @@ export {
 
 export { ok, notFound, handleError, validateBody } from "./response-helpers";
 export { loadSprintsFromDir } from "./load-sprints";
+export {
+  LEGACY_SPRINT_MARKDOWN_DIR,
+  resolveSprintMarkdownDirOnDisk,
+  SPRINT_MARKDOWN_DIR,
+} from "@/lib/project-layout";

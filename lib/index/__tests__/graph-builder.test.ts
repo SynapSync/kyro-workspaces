@@ -11,8 +11,8 @@ describe("resolveReference", () => {
   const nameIndex = new Map<string, string>([
     ["readme", "readme"],
     ["roadmap", "roadmap"],
-    ["sprint-01-foundation", "sprints-sprint-01-foundation"],
-    ["sprint-02-ui", "sprints-sprint-02-ui"],
+    ["sprint-01-foundation", "sprint-forge-sprint-01-foundation"],
+    ["sprint-02-ui", "sprint-forge-sprint-02-ui"],
     ["01-architecture", "findings-01-architecture"],
   ]);
 
@@ -30,7 +30,7 @@ describe("resolveReference", () => {
 
   it("resolves prefix match (sprint number to full slug)", () => {
     expect(resolveReference("sprint-01", nameIndex)).toBe(
-      "sprints-sprint-01-foundation"
+      "sprint-forge-sprint-01-foundation"
     );
   });
 

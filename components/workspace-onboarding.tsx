@@ -186,9 +186,13 @@ export function WorkspaceOnboarding({ initError }: WorkspaceOnboardingProps) {
           <p className="text-base font-semibold">Open a sprint-forge project</p>
         </div>
         <p className="mb-5 text-sm text-muted-foreground">
-          Point Kyro to an existing sprint-forge directory. It should contain a{" "}
-          <code className="rounded bg-muted px-1 py-0.5 text-xs">README.md</code> and a{" "}
-          <code className="rounded bg-muted px-1 py-0.5 text-xs">sprints/</code> folder.
+          Choose one scope folder (for example{" "}
+          <code className="rounded bg-muted px-1 py-0.5 text-xs">.agents/sprint-forge/diskforge-v2-features/</code>
+          ), not the parent <code className="rounded bg-muted px-1 py-0.5 text-xs">.agents/sprint-forge/</code> that
+          lists several projects. That folder must contain{" "}
+          <code className="rounded bg-muted px-1 py-0.5 text-xs">README.md</code> and either{" "}
+          <code className="rounded bg-muted px-1 py-0.5 text-xs">sprint-forge/</code> or legacy{" "}
+          <code className="rounded bg-muted px-1 py-0.5 text-xs">sprints/</code> with sprint markdown.
         </p>
 
         <div className="flex flex-col gap-4">
@@ -204,7 +208,7 @@ export function WorkspaceOnboarding({ initError }: WorkspaceOnboardingProps) {
                   setPath(e.target.value);
                   setError(null);
                 }}
-                placeholder="/path/to/sprint-forge/project"
+                placeholder="…/.agents/sprint-forge/your-scope-project"
                 className="flex-1 font-mono text-sm"
                 onKeyDown={(e) => e.key === "Enter" && handleOpenProject()}
                 autoFocus

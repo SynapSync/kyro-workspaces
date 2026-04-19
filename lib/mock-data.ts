@@ -805,8 +805,8 @@ I'm continuing work on the Futures DCA Bot v2 project. Sprints 1-4 are complete.
 Read these files in order:
 1. README.md
 2. ROADMAP.md (focus on Sprint 5 definition)
-3. sprints/SPRINT-4.md (Retro, Recommendations, Debt table)
-4. sprints/SPRINT-5.md (current progress)
+3. sprint-forge/SPRINT-4.md (Retro, Recommendations, Debt table)
+4. sprint-forge/SPRINT-5.md (current progress)
 
 Key context: Using CCXT for exchange abstraction, WebSocket for real-time data. Order execution pipeline is 80% complete — missing retry logic. Position tracking needs integration with risk engine from Sprint 4.
 \`\`\`
@@ -821,7 +821,7 @@ I need a status report on the Futures DCA Bot v2 project.
 Read these files:
 1. README.md
 2. ROADMAP.md
-3. All sprint files in sprints/
+3. All sprint files in sprint-forge/
 
 Generate a status report showing: completed sprints, accumulated debt, metrics, and what's planned next.
 \`\`\`

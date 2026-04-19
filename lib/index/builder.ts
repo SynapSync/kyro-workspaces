@@ -25,6 +25,10 @@ import {
   parseFindingFile,
 } from "@/lib/file-format/sprint-forge-parsers";
 import { parseSprintFile } from "@/lib/file-format/parsers";
+import {
+  resolveSprintMarkdownDirOnDisk,
+  SPRINT_MARKDOWN_DIR,
+} from "@/lib/project-layout";
 import { buildProjectGraph, rebuildFileGraph } from "./graph-builder";
 import type { Sprint, Finding } from "@/lib/types";
 
@@ -99,9 +103,9 @@ export async function initIndex(): Promise<InitIndexResult> {
 
     projectCount++;
 
-    // Index sprints
-    const sprintsDir = resolveProjectPath(entry.path, "sprints");
-    if (await fileExists(sprintsDir)) {
+    // Index sprints (sprint-forge/ or legacy sprints/)
+    const sprintsDir = await resolveSprintMarkdownDirOnDisk(entry.path);
+    if (sprintsDir) {
       const sprintFiles = (await fs.readdir(sprintsDir, { withFileTypes: true }))
         .filter((e) => e.isFile() && e.name.endsWith(".md"))
         .sort((a, b) => {
@@ -297,7 +301,16 @@ export async function reindexProject(projectId: string): Promise<{ updated: numb
     currentFiles.add(readmePath);
   }
 
-  for (const subdir of ["sprints", "findings", "documents"]) {
+  const sprintRoot = await resolveSprintMarkdownDirOnDisk(entry.path);
+  if (sprintRoot) {
+    const sprintFiles = (await fs.readdir(sprintRoot, { withFileTypes: true }))
+      .filter((e) => e.isFile() && e.name.endsWith(".md"));
+    for (const file of sprintFiles) {
+      currentFiles.add(resolveProjectPath(sprintRoot, file.name));
+    }
+  }
+
+  for (const subdir of ["findings", "documents"]) {
     const dirPath = resolveProjectPath(entry.path, subdir);
     if (await fileExists(dirPath)) {
       const files = (await fs.readdir(dirPath, { withFileTypes: true }))
@@ -333,7 +346,12 @@ export async function reindexProject(projectId: string): Promise<{ updated: numb
 
 function detectFileType(filePath: string): "sprint" | "finding" | "document" | "readme" {
   const normalized = filePath.replace(/\\/g, "/");
-  if (normalized.includes("/sprints/")) return "sprint";
+  if (
+    normalized.includes(`/${SPRINT_MARKDOWN_DIR}/`) ||
+    normalized.includes("/sprints/")
+  ) {
+    return "sprint";
+  }
   if (normalized.includes("/findings/")) return "finding";
   if (normalized.includes("/documents/")) return "document";
   if (path.basename(normalized) === "README.md") return "readme";

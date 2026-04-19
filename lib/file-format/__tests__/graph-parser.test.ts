@@ -67,8 +67,8 @@ describe("extractMarkdownLinks", () => {
   });
 
   it("extracts relative path links", () => {
-    const result = extractMarkdownLinks("See [sprint](../sprints/SPRINT-01.md).");
-    expect(result).toEqual([{ text: "sprint", href: "../sprints/SPRINT-01.md" }]);
+    const result = extractMarkdownLinks("See [sprint](../sprint-forge/SPRINT-01.md).");
+    expect(result).toEqual([{ text: "sprint", href: "../sprint-forge/SPRINT-01.md" }]);
   });
 
   it("excludes external URLs", () => {
