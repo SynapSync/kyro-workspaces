@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import {
   ChevronDown,
   ChevronLeft,
@@ -8,6 +10,7 @@ import {
   Sparkles,
   Check,
   Plus,
+  Trash2,
 } from "lucide-react";
 import { NAV_ITEMS } from "@/lib/config";
 import { currentUser } from "@/lib/auth";
@@ -15,6 +18,8 @@ import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/lib/store";
+import { AddProjectDialog } from "@/components/dialogs/add-project-dialog";
+import { ActionConfirmDialog } from "@/components/dialogs/action-confirm-dialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -27,30 +32,46 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { Project } from "@/lib/types";
 
 export function AppSidebar() {
   const isMobile = useIsMobile();
+  const pathname = usePathname();
+  const router = useRouter();
   const {
+    workspaceName,
     projects,
     activeProjectId,
-    setActiveProjectId,
-    activeSidebarItem,
-    setActiveSidebarItem,
-    setActiveSprintId,
-    addProject,
     sidebarCollapsed,
     setSidebarCollapsed,
     toggleSidebar,
+    addProjectDialogOpen,
+    setAddProjectDialogOpen,
+    deleteProject,
   } = useAppStore();
 
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const pendingDeleteProject = pendingDeleteId
+    ? projects.find((p) => p.id === pendingDeleteId)
+    : null;
+
   const activeProject = projects.find((p) => p.id === activeProjectId) ?? projects[0];
+
+  // Derive active nav item from pathname
+  const activeNavId = (() => {
+    const segments = pathname.split("/").filter(Boolean);
+    // pathname: /[projectId]/[section]/...
+    return segments[1] ?? "overview";
+  })();
 
   // Load persisted state on mount
   useEffect(() => {
     const saved = localStorage.getItem("kyro-sidebar-collapsed");
     if (saved !== null) {
-      setSidebarCollapsed(JSON.parse(saved));
+      try {
+        setSidebarCollapsed(JSON.parse(saved) === true);
+      } catch {
+        // Ignore corrupted localStorage data
+      }
     } else if (isMobile) {
       setSidebarCollapsed(true);
     }
@@ -81,18 +102,25 @@ export function AppSidebar() {
   }, [handleToggleSidebar]);
 
   const handleCreateProject = () => {
-    const newProject: Project = {
-      id: `proj-${Date.now()}`,
-      name: "New Project",
-      description: "A new project. Edit this description.",
-      readme: "# New Project\n\nWelcome to your new project.",
-      documents: [],
-      sprints: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    addProject(newProject);
-    setActiveProjectId(newProject.id);
+    setAddProjectDialogOpen(true);
+  };
+
+  const handleProjectSwitch = (projectId: string) => {
+    // Navigate to the same section in the new project
+    router.push(`/${projectId}/${activeNavId}`);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!pendingDeleteId) return;
+    const remaining = projects.filter((p) => p.id !== pendingDeleteId);
+    deleteProject(pendingDeleteId);
+    setPendingDeleteId(null);
+    if (remaining.length > 0) {
+      router.push(`/${remaining[0].id}/overview`);
+    } else {
+      router.push("/");
+    }
+    toast.success("Project removed");
   };
 
   return (
@@ -110,7 +138,7 @@ export function AppSidebar() {
           </div>
           {!sidebarCollapsed && (
             <span className="text-lg font-semibold tracking-tight text-sidebar-foreground">
-              Kyro
+              {workspaceName}
             </span>
           )}
           <Button
@@ -131,7 +159,7 @@ export function AppSidebar() {
         </div>
 
         {/* Project Switcher - Hidden when collapsed */}
-        {!sidebarCollapsed && (
+        {!sidebarCollapsed && activeProject && (
           <div className="px-3 pb-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -139,13 +167,13 @@ export function AppSidebar() {
                   <span
                     className={cn(
                       "flex h-5 w-5 items-center justify-center rounded text-[10px] font-bold text-card",
-                      activeProject?.color ?? "bg-primary"
+                      activeProject.color ?? "bg-primary"
                     )}
                   >
-                    {activeProject?.name.charAt(0).toUpperCase()}
+                    {activeProject.name.charAt(0).toUpperCase()}
                   </span>
                   <span className="flex-1 text-left truncate">
-                    {activeProject?.name}
+                    {activeProject.name}
                   </span>
                   <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                 </button>
@@ -154,8 +182,8 @@ export function AppSidebar() {
                 {projects.map((project) => (
                   <DropdownMenuItem
                     key={project.id}
-                    onClick={() => setActiveProjectId(project.id)}
-                    className="flex items-center gap-2"
+                    onClick={() => handleProjectSwitch(project.id)}
+                    className="flex items-center gap-2 group"
                   >
                     <span
                       className={cn(
@@ -169,32 +197,41 @@ export function AppSidebar() {
                     {project.id === activeProjectId && (
                       <Check className="h-3.5 w-3.5 shrink-0 text-primary" />
                     )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPendingDeleteId(project.id);
+                      }}
+                      className="ml-1 hidden group-hover:flex h-5 w-5 shrink-0 items-center justify-center rounded hover:bg-destructive/10"
+                    >
+                      <Trash2 className="h-3 w-3 text-destructive" />
+                    </button>
                   </DropdownMenuItem>
                 ))}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleCreateProject}>
                   <Plus className="mr-2 h-3.5 w-3.5" />
-                  Create Project
+                  Add Project
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         )}
 
+
+
       {/* Navigation */}
       <ScrollArea className={cn("flex-1 px-3", sidebarCollapsed && "px-2")}>
         <nav className="flex flex-col gap-0.5">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
-            const isActive = activeSidebarItem === item.id;
-            
-            const navButton = (
-              <button
+            const isActive = activeNavId === item.id;
+            const href = activeProjectId ? `/${activeProjectId}${item.href}` : item.href;
+
+            const navLink = (
+              <Link
                 key={item.id}
-                onClick={() => {
-                  setActiveSidebarItem(item.id);
-                  if (item.id !== "sprints") setActiveSprintId(null);
-                }}
+                href={href}
                 className={cn(
                   "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                   isActive
@@ -213,14 +250,14 @@ export function AppSidebar() {
                     AI
                   </Badge>
                 )}
-              </button>
+              </Link>
             );
 
             if (sidebarCollapsed) {
               return (
                 <TooltipPrimitive.Root key={item.id}>
                   <TooltipPrimitive.Trigger asChild>
-                    {navButton}
+                    {navLink}
                   </TooltipPrimitive.Trigger>
                   <TooltipPrimitive.Portal>
                     <TooltipPrimitive.Content
@@ -236,7 +273,7 @@ export function AppSidebar() {
               );
             }
 
-            return navButton;
+            return navLink;
           })}
         </nav>
 
@@ -250,7 +287,7 @@ export function AppSidebar() {
               {projects.map((project) => (
                 <button
                   key={project.id}
-                  onClick={() => setActiveProjectId(project.id)}
+                  onClick={() => handleProjectSwitch(project.id)}
                   className={cn(
                     "flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm transition-colors",
                     project.id === activeProjectId
@@ -266,7 +303,7 @@ export function AppSidebar() {
                   />
                   <span className="truncate">{project.name}</span>
                   <span className="ml-auto text-[10px] text-muted-foreground">
-                    {project.sprints.length}
+                    {project.sprints?.length ?? 0}
                   </span>
                 </button>
               ))}
@@ -301,6 +338,20 @@ export function AppSidebar() {
         </div>
       </div>
     </aside>
+    <AddProjectDialog open={addProjectDialogOpen} onOpenChange={setAddProjectDialogOpen} />
+    <ActionConfirmDialog
+      open={pendingDeleteId !== null}
+      onOpenChange={(open) => { if (!open) setPendingDeleteId(null); }}
+      title="Remove project"
+      description={
+        pendingDeleteProject
+          ? `Remove "${pendingDeleteProject.name}" from Kyro? This only unregisters the project — files on disk are not deleted.`
+          : ""
+      }
+      actionLabel="Remove"
+      variant="destructive"
+      onConfirm={handleConfirmDelete}
+    />
     </TooltipPrimitive.Provider>
   );
 }

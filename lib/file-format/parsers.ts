@@ -9,6 +9,11 @@ import type {
   AgentActivity,
 } from "@/lib/types";
 import { symbolToStatus } from "@/lib/types";
+import {
+  detectSprintFormat,
+  parseSprintForgeFile,
+  parseSprintForgeReadme,
+} from "./sprint-forge-parsers";
 
 // gray-matter can parse YAML dates as JS Date objects.
 // This helper normalizes a field value to string, preserving date-only format.
@@ -82,7 +87,7 @@ export function parseDocumentFile(content: string, fallbackId: string): Document
 }
 
 // ---------------------------------------------------------------------------
-// Sprint File  (projects/{slug}/sprints/SPRINT-NN.md)
+// Sprint File  (projects/{slug}/sprint-forge/SPRINT-NN.md)
 // ---------------------------------------------------------------------------
 
 // Matches lines like: - [x] Task description
@@ -121,13 +126,30 @@ function extractTasksFromBody(body: string): RawSprintTask[] {
 }
 
 export function parseSprintFile(content: string): Sprint {
+  // Auto-detect format: sprint-forge (blockquote metadata) vs YAML frontmatter
+  if (detectSprintFormat(content) === "sprint-forge") {
+    const forgeSprint = parseSprintForgeFile(content);
+    // Map to base Sprint type for backward compatibility
+    return {
+      id: forgeSprint.id,
+      name: forgeSprint.name,
+      status: forgeSprint.status,
+      startDate: forgeSprint.startDate,
+      endDate: forgeSprint.endDate,
+      version: forgeSprint.version,
+      objective: forgeSprint.objective,
+      tasks: forgeSprint.tasks,
+      sections: forgeSprint.sections,
+    };
+  }
+
   const { data, content: body } = matter(content);
 
   const rawTasks = extractTasksFromBody(body);
   const tasks: Task[] = rawTasks.map((raw, index) => ({
     id: `${(data.id as string | undefined) ?? "sprint"}-task-${index}`,
     title: raw.title,
-    description: undefined,
+    description: raw.phase === "General" ? undefined : `[phase:${raw.phase}]`,
     priority: "medium",
     status: symbolToStatus(raw.symbol),
     tags: [],
@@ -156,6 +178,19 @@ export function parseProjectReadme(
   content: string,
   slug: string
 ): Pick<Project, "id" | "name" | "description" | "readme" | "createdAt" | "updatedAt"> {
+  // Auto-detect format
+  if (detectSprintFormat(content) === "sprint-forge") {
+    const sfReadme = parseSprintForgeReadme(content);
+    return {
+      id: slug,
+      name: sfReadme.name || slug,
+      description: sfReadme.description || "",
+      readme: content,
+      createdAt: sfReadme.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
   const { data, content: body } = matter(content);
   return {
     id: (data.id as string | undefined) ?? slug,

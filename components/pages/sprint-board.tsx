@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   DndContext,
   DragOverlay,
@@ -10,58 +12,115 @@ import {
   useSensors,
   type DragStartEvent,
   type DragEndEvent,
-  type DragOverEvent,
 } from "@dnd-kit/core";
-import { ArrowLeft, Plus, FileText, Focus, EyeOff } from "lucide-react";
+import { ArrowLeft, FileText, Ban, ChevronDown, ChevronRight, Layers, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { BoardColumn } from "@/components/kanban/board-column";
 import { TaskCard } from "@/components/kanban/task-card";
-import { TaskDialog } from "@/components/kanban/task-dialog";
+import { ActionConfirmDialog } from "@/components/dialogs/action-confirm-dialog";
+import { TaskEditDialog } from "@/components/dialogs/task-edit-dialog";
 import { useAppStore } from "@/lib/store";
-import { COLUMNS, SPRINT_STATUS_CONFIG, ZEN_COLUMNS } from "@/lib/config";
-import { type Task, type TaskStatus } from "@/lib/types";
+import { COLUMNS, SPRINT_STATUS_CONFIG } from "@/lib/config";
+import { type Task, type TaskStatus, type Phase } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 interface SprintBoardProps {
   sprintId: string;
 }
 
-export function SprintBoard({ sprintId }: SprintBoardProps) {
+type ColumnLayoutMode = "empty_only" | "collapse_all" | "expand_all" | "custom";
+
+const COLUMN_LAYOUT_LABEL: Record<Exclude<ColumnLayoutMode, "custom">, string> = {
+  empty_only: "Empty Only",
+  collapse_all: "Collapse All",
+  expand_all: "Expand All",
+};
+
+const COLUMN_LAYOUT_ICON = {
+  empty_only: Layers,
+  collapse_all: ChevronRight,
+  expand_all: ChevronDown,
+} as const;
+
+export function SprintBoardPage({ sprintId }: SprintBoardProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const {
     getActiveProject,
-    moveTask,
-    addTask,
-    updateTask,
-    deleteTask,
-    setActiveSprintId,
-    setActiveSprintDetailId,
-    setActiveSidebarItem,
+    activeProjectId,
     collapsedColumns,
     setColumnCollapsed,
-    toggleColumnCollapsed,
-    focusMode,
-    focusedColumnId,
-    setFocusedColumn,
-    toggleFocusMode,
-    zenMode,
-    setZenMode,
+    updateTaskStatus,
+    updateTask,
+    updatingTasks,
   } = useAppStore();
 
   const project = getActiveProject();
   const sprint = project.sprints.find((s) => s.id === sprintId);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [pendingMove, setPendingMove] = useState<{
+    task: Task;
+    fromStatus: TaskStatus;
+    toStatus: TaskStatus;
+  } | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+
+  // Search & filter state — initialized from URL params
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("q") ?? "");
+  const [activeStatusFilters, setActiveStatusFilters] = useState<Set<TaskStatus>>(() => {
+    const statusParam = searchParams.get("status");
+    if (!statusParam) return new Set<TaskStatus>();
+    return new Set(statusParam.split(",").filter(Boolean) as TaskStatus[]);
+  });
+
+  const hasActiveFilters = searchQuery.trim() !== "" || activeStatusFilters.size > 0;
+
+  // Sync filter state to URL search params
+  const syncFiltersToUrl = useCallback((query: string, statuses: Set<TaskStatus>) => {
+    const params = new URLSearchParams();
+    if (query.trim()) params.set("q", query.trim());
+    if (statuses.size > 0) params.set("status", [...statuses].join(","));
+    const search = params.toString();
+    const newUrl = search
+      ? `/${activeProjectId}/sprints/${sprintId}?${search}`
+      : `/${activeProjectId}/sprints/${sprintId}`;
+    router.replace(newUrl, { scroll: false });
+  }, [activeProjectId, sprintId, router]);
+
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchQuery(value);
+    syncFiltersToUrl(value, activeStatusFilters);
+  }, [activeStatusFilters, syncFiltersToUrl]);
+
+  const handleToggleStatus = useCallback((status: TaskStatus) => {
+    setActiveStatusFilters((prev) => {
+      const next = new Set(prev);
+      if (next.has(status)) next.delete(status);
+      else next.add(status);
+      syncFiltersToUrl(searchQuery, next);
+      return next;
+    });
+  }, [searchQuery, syncFiltersToUrl]);
+
+  const handleClearFilters = useCallback(() => {
+    setSearchQuery("");
+    setActiveStatusFilters(new Set());
+    syncFiltersToUrl("", new Set());
+  }, [syncFiltersToUrl]);
 
   // Load persisted column state on mount
   useEffect(() => {
     const saved = localStorage.getItem(`kyro-column-state-${sprintId}`);
     if (saved) {
-      const parsed = JSON.parse(saved);
-      Object.entries(parsed).forEach(([columnId, collapsed]) => {
-        setColumnCollapsed(sprintId, columnId, collapsed as boolean);
-      });
+      try {
+        const parsed = JSON.parse(saved) as Record<string, boolean>;
+        Object.entries(parsed).forEach(([columnId, collapsed]) => {
+          setColumnCollapsed(sprintId, columnId, collapsed);
+        });
+      } catch {
+        // Ignore corrupted localStorage data
+      }
     }
   }, [sprintId, setColumnCollapsed]);
 
@@ -83,22 +142,30 @@ export function SprintBoard({ sprintId }: SprintBoardProps) {
     })
   );
 
+  // Column IDs are TaskStatus values — used to distinguish column droppables from task sortables
+  const columnIds = useMemo(() => new Set(COLUMNS.map((c) => c.id as string)), []);
+
   const columnTasks = useMemo(() => {
     if (!sprint) return {} as Record<TaskStatus, Task[]>;
     const map: Record<TaskStatus, Task[]> = {
-      backlog: [],
-      todo: [],
+      pending: [],
       in_progress: [],
-      review: [],
       done: [],
       blocked: [],
       skipped: [],
+      carry_over: [],
     };
+
+    const query = searchQuery.trim().toLowerCase();
+
     sprint.tasks.forEach((task) => {
+      if (activeStatusFilters.size > 0 && !activeStatusFilters.has(task.status)) return;
+      if (query && !task.title.toLowerCase().includes(query)) return;
+
       map[task.status].push(task);
     });
     return map;
-  }, [sprint]);
+  }, [sprint, searchQuery, activeStatusFilters]);
 
   if (!sprint) {
     return (
@@ -113,71 +180,88 @@ export function SprintBoard({ sprintId }: SprintBoardProps) {
     if (task) setActiveTask(task);
   };
 
-  const handleDragOver = (_event: DragOverEvent) => {
-    // handled in dragEnd
-  };
-
   const handleDragEnd = (event: DragEndEvent) => {
     setActiveTask(null);
     const { active, over } = event;
     if (!over) return;
 
     const taskId = active.id as string;
-    const overId = over.id as string;
+    const task = sprint.tasks.find((t) => t.id === taskId);
+    if (!task) return;
 
-    const targetColumn = COLUMNS.find((c) => c.id === overId);
-    if (targetColumn) {
-      moveTask(sprintId, taskId, targetColumn.id);
-      return;
-    }
-
-    const overTask = sprint.tasks.find((t) => t.id === overId);
-    if (overTask && overTask.id !== taskId) {
-      moveTask(sprintId, taskId, overTask.status);
-    }
-  };
-
-  const handleCreateTask = () => {
-    setEditingTask(null);
-    setDialogOpen(true);
-  };
-
-  const handleEditTask = (task: Task) => {
-    setEditingTask(task);
-    setDialogOpen(true);
-  };
-
-  const handleDeleteTask = (taskId: string) => {
-    deleteTask(sprintId, taskId);
-  };
-
-  const handleSaveTask = (
-    data: Omit<Task, "id" | "createdAt" | "updatedAt">
-  ) => {
-    if (editingTask) {
-      updateTask(sprintId, editingTask.id, data);
+    // over.id can be either a column ID (TaskStatus) or a task ID (from SortableContext).
+    // If it's a task ID, find which column that task belongs to.
+    let newStatus: TaskStatus;
+    if (columnIds.has(over.id as string)) {
+      newStatus = over.id as TaskStatus;
     } else {
-      const newTask: Task = {
-        ...data,
-        id: `task-${Date.now()}`,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      addTask(sprintId, newTask);
+      // Dropped on a task — find which column owns it
+      const targetTask = sprint.tasks.find((t) => t.id === over.id);
+      if (!targetTask) return;
+      newStatus = targetTask.status;
     }
+
+    if (task.status === newStatus) return;
+
+    setPendingMove({ task, fromStatus: task.status, toStatus: newStatus });
+  };
+
+  const handleConfirmMove = () => {
+    if (!pendingMove) return;
+    updateTaskStatus(activeProjectId, sprintId, pendingMove.task.id, pendingMove.toStatus);
+    setPendingMove(null);
   };
 
   const handleBack = () => {
-    setActiveSprintId(null);
-    setActiveSidebarItem("sprints");
-  };
-
-  const handleViewDetails = () => {
-    setActiveSprintId(null);
-    setActiveSprintDetailId(sprintId);
+    router.push(`/${activeProjectId}/sprints`);
   };
 
   const statusCfg = SPRINT_STATUS_CONFIG[sprint.status];
+
+  const columnStates = COLUMNS.map((col) => {
+    const persistedCollapsed = collapsedColumns[`${sprintId}-${col.id}`];
+    const tasks = columnTasks[col.id] || [];
+    const defaultCollapsed = tasks.length === 0;
+    const isCollapsed = persistedCollapsed ?? defaultCollapsed;
+    return { col, tasks, isCollapsed };
+  });
+
+  const allCollapsed = columnStates.every(({ isCollapsed }) => isCollapsed);
+  const allExpanded = columnStates.every(({ isCollapsed }) => !isCollapsed);
+  const emptyOnly = columnStates.every(
+    ({ tasks, isCollapsed }) => isCollapsed === (tasks.length === 0)
+  );
+
+  const columnLayoutMode: ColumnLayoutMode = allCollapsed
+    ? "collapse_all"
+    : allExpanded
+      ? "expand_all"
+      : emptyOnly
+        ? "empty_only"
+        : "custom";
+
+  const nextColumnLayoutMode: Exclude<ColumnLayoutMode, "custom"> =
+    columnLayoutMode === "empty_only"
+      ? "collapse_all"
+      : columnLayoutMode === "collapse_all"
+        ? "expand_all"
+        : "empty_only";
+
+  const columnLayoutDisplayMode: Exclude<ColumnLayoutMode, "custom"> =
+    columnLayoutMode === "custom" ? nextColumnLayoutMode : columnLayoutMode;
+  const ColumnLayoutIcon = COLUMN_LAYOUT_ICON[columnLayoutDisplayMode];
+
+  const handleCycleColumnLayoutMode = () => {
+    columnStates.forEach(({ col, tasks }) => {
+      const collapsed =
+        nextColumnLayoutMode === "collapse_all"
+          ? true
+          : nextColumnLayoutMode === "expand_all"
+            ? false
+            : tasks.length === 0;
+      setColumnCollapsed(sprintId, col.id, collapsed);
+    });
+  };
 
   return (
     <div className="flex h-full flex-col">
@@ -210,87 +294,185 @@ export function SprintBoard({ sprintId }: SprintBoardProps) {
                 </Badge>
               )}
             </div>
-            <p className="text-xs text-muted-foreground">
-              {sprint.tasks.length} tasks
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-muted-foreground">
+                {sprint.tasks.length} tasks
+              </p>
+              {sprint.phases && sprint.phases.length > 0 && (
+                <div className="flex items-center gap-1">
+                  {sprint.phases.map((phase: Phase) => {
+                    const phaseDone = phase.tasks.filter((t) => t.status === "done").length;
+                    return (
+                      <Badge
+                        key={phase.id}
+                        variant="outline"
+                        className={cn(
+                          "text-[10px] h-4 px-1.5",
+                          phase.isEmergent && "border-purple-300 text-purple-600"
+                        )}
+                        title={`${phase.name}: ${phaseDone}/${phase.tasks.length}`}
+                      >
+                        {phase.name.replace(/^Phase \d+ — /, "").substring(0, 12)}
+                        {" "}
+                        {phaseDone}/{phase.tasks.length}
+                      </Badge>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
         <div className="flex gap-2">
           <Button
-            variant={zenMode ? "default" : "outline"}
+            variant="outline"
             size="sm"
             className="gap-1.5"
-            onClick={() => setZenMode(!zenMode)}
-            title="Zen Mode (In Progress + Review)"
+            onClick={handleCycleColumnLayoutMode}
+            title="Cycle column layout: Empty Only → Collapse All → Expand All"
           >
-            <EyeOff className="h-3.5 w-3.5" />
-            Zen
-          </Button>
-          <Button
-            variant={focusMode ? "default" : "outline"}
-            size="sm"
-            className="gap-1.5"
-            onClick={toggleFocusMode}
-            title="Focus Mode"
-          >
-            <Focus className="h-3.5 w-3.5" />
-            Focus
+            <ColumnLayoutIcon className="h-3.5 w-3.5" />
+            {COLUMN_LAYOUT_LABEL[columnLayoutDisplayMode]}
           </Button>
           <Button
             variant="outline"
             size="sm"
             className="gap-1.5"
-            onClick={handleViewDetails}
+            asChild
           >
-            <FileText className="h-3.5 w-3.5" />
-            Details
-          </Button>
-          <Button size="sm" className="gap-1.5" onClick={handleCreateTask}>
-            <Plus className="h-3.5 w-3.5" />
-            Add Task
+            <Link href={`/${activeProjectId}/sprints/${sprintId}/detail`}>
+              <FileText className="h-3.5 w-3.5" />
+              Details
+            </Link>
           </Button>
         </div>
       </div>
 
+      {/* Search & Filter Bar */}
+      <div className="shrink-0 border-b border-border px-6 py-2 flex items-center gap-3">
+        <div className="relative flex-1 max-w-xs">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            placeholder="Filter tasks..."
+            className="w-full rounded-md border bg-background pl-8 pr-3 py-1.5 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          />
+        </div>
+        <div className="flex items-center gap-1.5">
+          {COLUMNS.map((col) => {
+            const isActive = activeStatusFilters.has(col.id);
+            return (
+              <button
+                key={col.id}
+                type="button"
+                onClick={() => handleToggleStatus(col.id)}
+                className={cn(
+                  "flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium border transition-colors",
+                  isActive
+                    ? "border-primary/50 bg-primary/10 text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                )}
+              >
+                <div className={cn("h-1.5 w-1.5 rounded-full", col.color)} />
+                {col.title}
+              </button>
+            );
+          })}
+        </div>
+        {hasActiveFilters && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleClearFilters}
+            className="h-6 gap-1 text-xs text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-3 w-3" />
+            Clear
+          </Button>
+        )}
+      </div>
+
       {/* Board */}
-      <div className="flex-1 overflow-hidden">
-        <ScrollArea className="h-full">
-          <div className="flex gap-4 p-6 h-full min-h-[500px]">
+      <div className="flex-1 min-h-0 overflow-x-auto overflow-y-hidden">
+        <div className="flex h-full min-w-max flex-col px-6">
+          {/* Column Headers — fixed row, never scrolls vertically */}
+          <div className="flex shrink-0 gap-4 pt-4 pb-2">
+            {columnStates.map(({ col, tasks: colTasks, isCollapsed }) => {
+              const blockedCount = colTasks.filter((t) => t.tags.includes("blocked")).length;
+
+              return (
+                <div
+                  key={col.id}
+                  className={cn(
+                    "flex shrink-0 items-center gap-2 px-2 transition-all duration-300 ease-in-out",
+                    isCollapsed ? "w-16" : "w-72"
+                  )}
+                >
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 shrink-0"
+                    onClick={() => setColumnCollapsed(sprintId, col.id, !isCollapsed)}
+                  >
+                    {isCollapsed ? (
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    ) : (
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    )}
+                  </Button>
+                  {!isCollapsed && (
+                    <>
+                      <div className={cn("h-2 w-2 rounded-full", col.color)} />
+                      <h3 className="text-sm font-semibold text-foreground">{col.title}</h3>
+                      <span className="text-xs text-muted-foreground ml-auto">
+                        {colTasks.length}
+                      </span>
+                      {blockedCount > 0 && (
+                        <Badge variant="destructive" className="h-5 text-[10px] gap-1">
+                          <Ban className="h-2.5 w-2.5" />
+                          {blockedCount}
+                        </Badge>
+                      )}
+                    </>
+                  )}
+                  {isCollapsed && (
+                    <div className="flex flex-col items-center gap-2 w-full">
+                      <div className={cn("h-2 w-2 rounded-full", col.color)} />
+                      <Badge variant="secondary" className="h-6 w-6 p-0 flex items-center justify-center">
+                        {colTasks.length}
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Column Content — each column scrolls independently */}
+          <div className="flex flex-1 min-h-0 gap-4">
             <DndContext
               sensors={sensors}
               collisionDetection={closestCorners}
               onDragStart={handleDragStart}
-              onDragOver={handleDragOver}
               onDragEnd={handleDragEnd}
             >
-              {COLUMNS.filter(col => {
-                if (zenMode) return ZEN_COLUMNS.includes(col.id);
-                if (focusMode && focusedColumnId) return col.id === focusedColumnId;
-                return true;
-              }).map((col) => {
-                const isColumnCollapsed = collapsedColumns[`${sprintId}-${col.id}`] ?? false;
-                const shouldBeCollapsed = zenMode || (focusMode && focusedColumnId && focusedColumnId !== col.id);
-                
+              {columnStates.map(({ col, tasks: colTasks, isCollapsed }) => {
                 return (
-                <BoardColumn
-                  key={col.id}
-                  id={col.id}
-                  title={col.title}
-                  color={col.color}
-                  tasks={columnTasks[col.id] || []}
-                  collapsed={shouldBeCollapsed || isColumnCollapsed}
-                  onToggleCollapse={() => {
-                    if (focusMode && !focusedColumnId) {
-                      setFocusedColumn(col.id);
-                    } else if (focusedColumnId === col.id) {
-                      setFocusedColumn(null);
-                    } else {
-                      toggleColumnCollapsed(sprintId, col.id);
-                    }
-                  }}
-                  onEditTask={handleEditTask}
-                  onDeleteTask={handleDeleteTask}
-                />
+                  <BoardColumn
+                    key={col.id}
+                    id={col.id}
+                    title={col.title}
+                    color={col.color}
+                    tasks={colTasks}
+                    collapsed={isCollapsed}
+                    hideHeader
+                    updatingTasks={updatingTasks}
+                    onToggleCollapse={() => setColumnCollapsed(sprintId, col.id, !isCollapsed)}
+                    onEditTask={setEditingTask}
+                    onDeleteTask={() => { /* TODO: wire task deletion */ }}
+                  />
                 );
               })}
               <DragOverlay>
@@ -306,16 +488,33 @@ export function SprintBoard({ sprintId }: SprintBoardProps) {
               </DragOverlay>
             </DndContext>
           </div>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
+        </div>
       </div>
 
-      {/* Task Dialog */}
-      <TaskDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
+      {/* Confirmation dialog for drag-drop status changes */}
+      <ActionConfirmDialog
+        open={pendingMove !== null}
+        onOpenChange={(open) => { if (!open) setPendingMove(null); }}
+        title="Move Task"
+        description={
+          pendingMove
+            ? `Move "${pendingMove.task.title}" from ${pendingMove.fromStatus.replace("_", " ")} to ${pendingMove.toStatus.replace("_", " ")}?`
+            : ""
+        }
+        actionLabel="Move"
+        onConfirm={handleConfirmMove}
+      />
+
+      <TaskEditDialog
         task={editingTask}
-        onSave={handleSaveTask}
+        open={editingTask !== null}
+        onOpenChange={(open) => { if (!open) setEditingTask(null); }}
+        onSave={(updates) => {
+          if (!editingTask) return;
+          const sprintForTask = sprint?.tasks.find((t) => t.id === editingTask.id) ? sprintId : "";
+          if (!sprintForTask) return;
+          updateTask(activeProjectId, sprintForTask, editingTask.id, updates);
+        }}
       />
     </div>
   );

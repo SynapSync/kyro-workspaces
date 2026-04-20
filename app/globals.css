@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
+@plugin '@tailwindcss/typography';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -123,3 +124,9 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Fix unreadable text in prose code blocks */
+.prose {
+  --tw-prose-pre-code: var(--foreground);
+}
+

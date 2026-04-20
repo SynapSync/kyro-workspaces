@@ -1,76 +1,98 @@
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 import type {
   Project,
-  AgentActivity,
-  Task,
   TaskStatus,
-  Sprint,
-  SprintMarkdownSections,
-  Document,
-  DocumentVersion,
+  AgentActivity,
+  AgentActionType,
+  ActivitiesDiagnostics,
+  Finding,
+  RoadmapSprintEntry,
   TeamMember,
-  LoadingState,
+  GraphData,
 } from "./types";
-import { getInitialState } from "./services/mock/seed";
 import { services } from "./services";
+import { APP_NAME } from "./config";
+
+const errorMsg = (err: unknown) =>
+  err instanceof Error ? err.message : "Save failed";
+
+function recordActivity(input: {
+  projectId: string;
+  actionType: AgentActionType;
+  description: string;
+  metadata?: Record<string, string>;
+}, setWarning?: (value: string | null) => void) {
+  services.activities
+    .createActivity(input)
+    .then(() => setWarning?.(null))
+    .catch((err) => {
+      const message = errorMsg(err);
+      const warning = `Activity log unavailable: ${message}`;
+      setWarning?.(warning);
+      console.warn("[activity-trace]", warning, input);
+    });
+}
 
 interface AppState {
+  workspaceName: string;
+
   // Multi-project management
   projects: Project[];
   activeProjectId: string;
   setActiveProjectId: (id: string) => void;
-  addProject: (project: Project) => void;
-  updateProject: (id: string, updates: Partial<Project>) => void;
+  addProject: (path: string, name?: string, color?: string) => Promise<void>;
+  updateProject: (id: string, updates: { name?: string; color?: string }) => void;
   deleteProject: (id: string) => void;
 
   // Current project helper
   getActiveProject: () => Project;
 
-  // README (scoped to active project)
-  updateReadme: (content: string) => void;
+  // Findings (per-project, loaded on demand)
+  findings: Record<string, Finding[]>;
+  findingsLoading: Record<string, boolean>;
+  loadFindings: (projectId: string) => Promise<void>;
 
-  // Documents (scoped to active project)
-  addDocument: (doc: Document) => void;
-  updateDocument: (id: string, updates: Partial<Document>) => void;
-  deleteDocument: (id: string) => void;
+  // Roadmap (per-project, loaded on demand)
+  roadmaps: Record<string, { raw: string; sprints: RoadmapSprintEntry[] }>;
+  roadmapLoading: Record<string, boolean>;
+  loadRoadmap: (projectId: string) => Promise<void>;
 
-  // Sprints (scoped to active project)
-  addSprint: (sprint: Sprint) => void;
-  updateSprint: (id: string, updates: Partial<Sprint>) => void;
-  updateSprintSection: (
-    sprintId: string,
-    sectionKey: keyof SprintMarkdownSections,
-    content: string
-  ) => void;
+  // Re-entry Prompts (per-project, loaded on demand)
+  reentryPrompts: Record<string, string>;
+  reentryLoading: Record<string, boolean>;
+  loadReentryPrompts: (projectId: string) => Promise<void>;
 
-  // Tasks (scoped to active project)
-  addTask: (sprintId: string, task: Task) => void;
-  updateTask: (sprintId: string, taskId: string, updates: Partial<Task>) => void;
-  moveTask: (sprintId: string, taskId: string, newStatus: TaskStatus) => void;
-  deleteTask: (sprintId: string, taskId: string) => void;
+  // Graph Data (per-project, loaded on demand)
+  graphData: Record<string, GraphData>;
+  graphLoading: Record<string, boolean>;
+  loadGraph: (projectId: string) => Promise<void>;
+
+  // Task Mutations
+  updatingTasks: Record<string, boolean>; // taskId -> isUpdating
+  updateTaskStatus: (projectId: string, sprintId: string, taskId: string, newStatus: TaskStatus) => void;
+  updateTask: (projectId: string, sprintId: string, taskId: string, updates: { title?: string; status?: TaskStatus }) => void;
+  refreshProject: (projectId: string) => Promise<void>;
 
   // Async initialization state
   isInitializing: boolean;
   initError: string | null;
   initializeApp: () => Promise<void>;
 
+  // Saving state
+  isSaving: boolean;
+  saveError: string | null;
+  setSaveError: (msg: string | null) => void;
+
   // Team Members
   members: TeamMember[];
-  addMember: (member: TeamMember) => void;
-  updateMember: (name: string, updates: Partial<TeamMember>) => void;
-  removeMember: (name: string) => void;
 
   // Agent Activity
   activities: AgentActivity[];
+  activitiesDiagnostics: ActivitiesDiagnostics | null;
   addActivity: (activity: AgentActivity) => void;
-
-  // UI State
-  activeSidebarItem: string;
-  setActiveSidebarItem: (item: string) => void;
-  activeSprintId: string | null;
-  setActiveSprintId: (id: string | null) => void;
-  activeSprintDetailId: string | null;
-  setActiveSprintDetailId: (id: string | null) => void;
+  activityWriteWarning: string | null;
+  clearActivityWriteWarning: () => void;
 
   // Sidebar State
   sidebarCollapsed: boolean;
@@ -82,236 +104,338 @@ interface AppState {
   setColumnCollapsed: (sprintId: string, columnId: string, collapsed: boolean) => void;
   toggleColumnCollapsed: (sprintId: string, columnId: string) => void;
 
-  // Document Version History
-  documentVersions: Record<string, DocumentVersion[]>;
-  addDocumentVersion: (docId: string, content: string, title: string) => void;
-  restoreDocumentVersion: (docId: string, versionId: string) => void;
-  getDocumentVersions: (docId: string) => DocumentVersion[];
-
-  // Focus Mode / Zen Mode
-  focusMode: boolean;
-  focusedColumnId: string | null;
-  setFocusedColumn: (columnId: string | null) => void;
-  toggleFocusMode: () => void;
-  zenMode: boolean;
-  setZenMode: (enabled: boolean) => void;
-
   // Command Palette
   commandPaletteOpen: boolean;
   setCommandPaletteOpen: (open: boolean) => void;
   toggleCommandPalette: () => void;
+
+  // Add Project Dialog
+  addProjectDialogOpen: boolean;
+  setAddProjectDialogOpen: (open: boolean) => void;
 }
 
-// Helper to update sprints inside a project
-function updateProjectSprints(
-  projects: Project[],
-  projectId: string,
-  updater: (sprints: Sprint[]) => Sprint[]
-): Project[] {
-  return projects.map((p) =>
-    p.id === projectId
-      ? { ...p, sprints: updater(p.sprints), updatedAt: new Date().toISOString() }
-      : p
-  );
-}
+export const useAppStore = create<AppState>()(
+  persist(
+    (set, get) => ({
+  workspaceName: APP_NAME,
+  projects: [],
+  activeProjectId: "",
 
-const { projects: initialProjects, members: initialMembers, activities: initialActivities } = getInitialState();
+  setActiveProjectId: (id) => set({ activeProjectId: id }),
 
-export const useAppStore = create<AppState>((set, get) => ({
-  projects: initialProjects,
-  activeProjectId: initialProjects[0].id,
+  addProject: async (path, name, color) => {
+    set({ isSaving: true, saveError: null });
+    try {
+      const entry = await services.projects.createProject({ path, name, color });
+      const project = (await services.projects.getProject(entry.id)) ?? entry;
+      set((state) => ({
+        projects: [...state.projects, project],
+        activeProjectId: project.id,
+        isSaving: false,
+      }));
+    } catch (err) {
+      set({ isSaving: false, saveError: errorMsg(err) });
+      throw err;
+    }
+  },
 
-  setActiveProjectId: (id) =>
-    set({ activeProjectId: id, activeSprintId: null, activeSprintDetailId: null, activeSidebarItem: "overview" }),
-
-  addProject: (project) =>
-    set((state) => ({ projects: [...state.projects, project] })),
-
-  updateProject: (id, updates) =>
+  updateProject: (id, updates) => {
+    const prev = get().projects;
     set((state) => ({
+      isSaving: true,
+      saveError: null,
       projects: state.projects.map((p) =>
         p.id === id ? { ...p, ...updates, updatedAt: new Date().toISOString() } : p
       ),
-    })),
+    }));
+    services.projects.updateProject(id, updates)
+      .then(() => set({ isSaving: false }))
+      .catch((err) => set({ projects: prev, isSaving: false, saveError: errorMsg(err) }));
+  },
 
-  deleteProject: (id) =>
+  deleteProject: (id) => {
+    const prev = get().projects;
     set((state) => {
       const remaining = state.projects.filter((p) => p.id !== id);
       return {
+        isSaving: true,
+        saveError: null,
         projects: remaining,
         activeProjectId:
           state.activeProjectId === id
             ? remaining[0]?.id ?? ""
             : state.activeProjectId,
       };
-    }),
+    });
+    const deletedProject = prev.find((p) => p.id === id);
+    services.projects.deleteProject(id)
+      .then(() => {
+        set({ isSaving: false });
+        if (deletedProject) {
+          recordActivity({
+            projectId: id,
+            actionType: "removed_project",
+            description: `Removed project "${deletedProject.name}"`,
+          }, (warning) => set({ activityWriteWarning: warning }));
+        }
+      })
+      .catch((err) => set({ projects: prev, isSaving: false, saveError: errorMsg(err) }));
+  },
 
   getActiveProject: () => {
     const state = get();
     return state.projects.find((p) => p.id === state.activeProjectId) ?? state.projects[0];
   },
 
-  updateReadme: (content) =>
-    set((state) => ({
-      projects: state.projects.map((p) =>
-        p.id === state.activeProjectId
-          ? { ...p, readme: content, updatedAt: new Date().toISOString() }
-          : p
-      ),
-    })),
+  // --- Findings ---
 
-  addDocument: (doc) =>
+  findings: {},
+  findingsLoading: {},
+  loadFindings: async (projectId) => {
     set((state) => ({
-      projects: state.projects.map((p) =>
-        p.id === state.activeProjectId
-          ? { ...p, documents: [...p.documents, doc], updatedAt: new Date().toISOString() }
-          : p
-      ),
-    })),
+      findingsLoading: { ...state.findingsLoading, [projectId]: true },
+    }));
+    try {
+      const findings = await services.projects.getFindings(projectId);
+      set((state) => ({
+        findings: { ...state.findings, [projectId]: findings },
+        findingsLoading: { ...state.findingsLoading, [projectId]: false },
+      }));
+    } catch (err) {
+      set((state) => ({
+        findingsLoading: { ...state.findingsLoading, [projectId]: false },
+      }));
+      console.warn("[findings] Failed to load:", errorMsg(err));
+    }
+  },
 
-  updateDocument: (id, updates) =>
+  // --- Roadmaps ---
+
+  roadmaps: {},
+  roadmapLoading: {},
+  loadRoadmap: async (projectId) => {
     set((state) => ({
+      roadmapLoading: { ...state.roadmapLoading, [projectId]: true },
+    }));
+    try {
+      const roadmap = await services.projects.getRoadmap(projectId);
+      set((state) => ({
+        roadmaps: { ...state.roadmaps, [projectId]: roadmap },
+        roadmapLoading: { ...state.roadmapLoading, [projectId]: false },
+      }));
+    } catch (err) {
+      set((state) => ({
+        roadmapLoading: { ...state.roadmapLoading, [projectId]: false },
+      }));
+      console.warn("[roadmap] Failed to load:", errorMsg(err));
+    }
+  },
+
+  // --- Re-entry Prompts ---
+
+  reentryPrompts: {},
+  reentryLoading: {},
+  loadReentryPrompts: async (projectId) => {
+    set((state) => ({
+      reentryLoading: { ...state.reentryLoading, [projectId]: true },
+    }));
+    try {
+      const content = await services.projects.getReentryPrompts(projectId);
+      set((state) => ({
+        reentryPrompts: { ...state.reentryPrompts, [projectId]: content },
+        reentryLoading: { ...state.reentryLoading, [projectId]: false },
+      }));
+    } catch (err) {
+      set((state) => ({
+        reentryLoading: { ...state.reentryLoading, [projectId]: false },
+      }));
+      console.warn("[reentry] Failed to load:", errorMsg(err));
+    }
+  },
+
+  // --- Graph Data ---
+
+  graphData: {},
+  graphLoading: {},
+  loadGraph: async (projectId) => {
+    set((state) => ({
+      graphLoading: { ...state.graphLoading, [projectId]: true },
+    }));
+    try {
+      const data = await services.projects.getGraph(projectId);
+      set((state) => ({
+        graphData: { ...state.graphData, [projectId]: data },
+        graphLoading: { ...state.graphLoading, [projectId]: false },
+      }));
+    } catch (err) {
+      set((state) => ({
+        graphLoading: { ...state.graphLoading, [projectId]: false },
+      }));
+      console.warn("[graph] Failed to load:", errorMsg(err));
+    }
+  },
+
+  // --- Task Mutations ---
+
+  updatingTasks: {},
+
+  updateTaskStatus: (projectId, sprintId, taskId, newStatus) => {
+    const prev = get().projects;
+    const project = prev.find((p) => p.id === projectId);
+    if (!project) return;
+    const sprint = project.sprints.find((s) => s.id === sprintId);
+    if (!sprint) return;
+    const task = sprint.tasks.find((t) => t.id === taskId);
+    if (!task) return;
+
+    const oldStatus = task.status;
+    if (oldStatus === newStatus) return;
+
+    set((state) => ({
+      updatingTasks: { ...state.updatingTasks, [taskId]: true },
       projects: state.projects.map((p) =>
-        p.id === state.activeProjectId
+        p.id === projectId
           ? {
               ...p,
-              documents: p.documents.map((d) =>
-                d.id === id
-                  ? { ...d, ...updates, updatedAt: new Date().toISOString() }
-                  : d
+              sprints: p.sprints.map((s) =>
+                s.id === sprintId
+                  ? {
+                      ...s,
+                      tasks: s.tasks.map((t) =>
+                        t.id === taskId
+                          ? { ...t, status: newStatus, updatedAt: new Date().toISOString() }
+                          : t
+                      ),
+                    }
+                  : s
               ),
-              updatedAt: new Date().toISOString(),
             }
           : p
       ),
-    })),
+    }));
 
-  deleteDocument: (id) =>
+    services.projects
+      .updateTaskStatus(projectId, sprintId, taskId, newStatus)
+      .then(() => {
+        set((state) => ({
+          updatingTasks: { ...state.updatingTasks, [taskId]: false },
+        }));
+        recordActivity({
+          projectId,
+          actionType: "moved_task",
+          description: `Moved task "${task.title}" from ${oldStatus} to ${newStatus}`,
+          metadata: { taskId, sprintId, from: oldStatus, to: newStatus },
+        }, (warning) => set({ activityWriteWarning: warning }));
+      })
+      .catch((err) => {
+        set((state) => ({
+          projects: prev,
+          updatingTasks: { ...state.updatingTasks, [taskId]: false },
+          saveError: errorMsg(err),
+        }));
+      });
+  },
+
+  updateTask: (projectId, sprintId, taskId, updates) => {
+    const prev = get().projects;
+    const project = prev.find((p) => p.id === projectId);
+    if (!project) return;
+    const sprint = project.sprints.find((s) => s.id === sprintId);
+    if (!sprint) return;
+    const task = sprint.tasks.find((t) => t.id === taskId);
+    if (!task) return;
+
+    // Optimistic update
     set((state) => ({
+      updatingTasks: { ...state.updatingTasks, [taskId]: true },
       projects: state.projects.map((p) =>
-        p.id === state.activeProjectId
-          ? { ...p, documents: p.documents.filter((d) => d.id !== id) }
+        p.id === projectId
+          ? {
+              ...p,
+              sprints: p.sprints.map((s) =>
+                s.id === sprintId
+                  ? {
+                      ...s,
+                      tasks: s.tasks.map((t) =>
+                        t.id === taskId
+                          ? { ...t, ...updates, updatedAt: new Date().toISOString() }
+                          : t
+                      ),
+                    }
+                  : s
+              ),
+            }
           : p
       ),
-    })),
+    }));
 
-  addSprint: (sprint) =>
-    set((state) => ({
-      projects: updateProjectSprints(
-        state.projects,
-        state.activeProjectId,
-        (sprints) => [...sprints, sprint]
-      ),
-    })),
+    services.projects
+      .updateTask(projectId, sprintId, taskId, updates)
+      .then(() => {
+        set((state) => ({
+          updatingTasks: { ...state.updatingTasks, [taskId]: false },
+        }));
+      })
+      .catch((err) => {
+        set((state) => ({
+          projects: prev,
+          updatingTasks: { ...state.updatingTasks, [taskId]: false },
+          saveError: errorMsg(err),
+        }));
+      });
+  },
 
-  updateSprint: (id, updates) =>
-    set((state) => ({
-      projects: updateProjectSprints(
-        state.projects,
-        state.activeProjectId,
-        (sprints) => sprints.map((s) => (s.id === id ? { ...s, ...updates } : s))
-      ),
-    })),
+  refreshProject: async (projectId) => {
+    // Skip refresh while tasks are being written — avoids overwriting optimistic updates
+    const hasPendingWrites = Object.values(get().updatingTasks).some(Boolean);
+    if (hasPendingWrites) return;
 
-  updateSprintSection: (sprintId, sectionKey, content) =>
-    set((state) => ({
-      projects: updateProjectSprints(
-        state.projects,
-        state.activeProjectId,
-        (sprints) =>
-          sprints.map((s) =>
-            s.id === sprintId
-              ? {
-                  ...s,
-                  sections: {
-                    ...s.sections,
-                    [sectionKey]: content,
-                  },
-                }
-              : s
-          )
-      ),
-    })),
+    try {
+      const project = await services.projects.getProject(projectId);
+      if (!project) return;
+      set((state) => ({
+        projects: state.projects.map((p) => (p.id === projectId ? project : p)),
+      }));
+    } catch {
+      // Refresh is best-effort — failures are non-critical
+    }
+  },
 
-  addTask: (sprintId, task) =>
-    set((state) => ({
-      projects: updateProjectSprints(
-        state.projects,
-        state.activeProjectId,
-        (sprints) =>
-          sprints.map((s) =>
-            s.id === sprintId ? { ...s, tasks: [...s.tasks, task] } : s
-          )
-      ),
-    })),
+  // --- Async init ---
 
-  updateTask: (sprintId, taskId, updates) =>
-    set((state) => ({
-      projects: updateProjectSprints(
-        state.projects,
-        state.activeProjectId,
-        (sprints) =>
-          sprints.map((s) =>
-            s.id === sprintId
-              ? {
-                  ...s,
-                  tasks: s.tasks.map((t) =>
-                    t.id === taskId
-                      ? { ...t, ...updates, updatedAt: new Date().toISOString() }
-                      : t
-                  ),
-                }
-              : s
-          )
-      ),
-    })),
-
-  moveTask: (sprintId, taskId, newStatus) =>
-    set((state) => ({
-      projects: updateProjectSprints(
-        state.projects,
-        state.activeProjectId,
-        (sprints) =>
-          sprints.map((s) =>
-            s.id === sprintId
-              ? {
-                  ...s,
-                  tasks: s.tasks.map((t) =>
-                    t.id === taskId
-                      ? { ...t, status: newStatus, updatedAt: new Date().toISOString() }
-                      : t
-                  ),
-                }
-              : s
-          )
-      ),
-    })),
-
-  deleteTask: (sprintId, taskId) =>
-    set((state) => ({
-      projects: updateProjectSprints(
-        state.projects,
-        state.activeProjectId,
-        (sprints) =>
-          sprints.map((s) =>
-            s.id === sprintId
-              ? { ...s, tasks: s.tasks.filter((t) => t.id !== taskId) }
-              : s
-          )
-      ),
-    })),
-
-  isInitializing: false,
+  isInitializing: true,
   initError: null,
   initializeApp: async () => {
     set({ isInitializing: true, initError: null });
     try {
-      const [projects, members, activities] = await Promise.all([
+      const workspaceNamePromise = fetch("/api/workspace")
+        .then(async (response) => {
+          if (!response.ok) return null;
+          const json = (await response.json()) as {
+            data?: { workspace?: { name?: string } };
+          };
+          return json.data?.workspace?.name ?? null;
+        })
+        .catch(() => null);
+
+      const [projects, members, activitiesResult, workspaceName] = await Promise.all([
         services.projects.list(),
         services.members.list(),
         services.activities.list(),
+        workspaceNamePromise,
       ]);
-      set({ projects, members, activities, isInitializing: false });
+      set((state) => ({
+        projects,
+        members,
+        activities: activitiesResult.activities,
+        activitiesDiagnostics: activitiesResult.diagnostics,
+        workspaceName: workspaceName ?? APP_NAME,
+        activeProjectId:
+          state.activeProjectId && projects.some((p) => p.id === state.activeProjectId)
+            ? state.activeProjectId
+            : projects[0]?.id ?? "",
+        isInitializing: false,
+      }));
     } catch (err) {
       set({
         isInitializing: false,
@@ -320,26 +444,31 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
-  members: initialMembers,
-  addMember: (member) =>
-    set((state) => ({ members: [...state.members, member] })),
-  updateMember: (name, updates) =>
-    set((state) => ({
-      members: state.members.map((m) => (m.name === name ? { ...m, ...updates } : m)),
-    })),
-  removeMember: (name) =>
-    set((state) => ({ members: state.members.filter((m) => m.name !== name) })),
+  // --- Saving state ---
 
-  activities: initialActivities,
-  addActivity: (activity) =>
-    set((state) => ({ activities: [activity, ...state.activities] })),
+  isSaving: false,
+  saveError: null,
+  setSaveError: (msg) => set({ saveError: msg }),
 
-  activeSidebarItem: "overview",
-  setActiveSidebarItem: (item) => set({ activeSidebarItem: item }),
-  activeSprintId: null,
-  setActiveSprintId: (id) => set({ activeSprintId: id }),
-  activeSprintDetailId: null,
-  setActiveSprintDetailId: (id) => set({ activeSprintDetailId: id }),
+  // --- Team Members ---
+
+  members: [],
+
+  // --- Activities ---
+
+  activities: [],
+  activitiesDiagnostics: null,
+  activityWriteWarning: null,
+  clearActivityWriteWarning: () => set({ activityWriteWarning: null }),
+  addActivity: (activity) => {
+    set((state) => ({ activities: [activity, ...state.activities] }));
+    recordActivity({
+      projectId: activity.projectId,
+      actionType: activity.actionType,
+      description: activity.description,
+      metadata: activity.metadata,
+    }, (warning) => set({ activityWriteWarning: warning }));
+  },
 
   // Sidebar State
   sidebarCollapsed: false,
@@ -363,66 +492,22 @@ export const useAppStore = create<AppState>((set, get) => ({
       },
     })),
 
-  // Document Version History
-  documentVersions: {},
-  addDocumentVersion: (docId, content, title) =>
-    set((state) => {
-      const newVersion: DocumentVersion = {
-        id: `ver-${Date.now()}`,
-        docId,
-        content,
-        title,
-        createdAt: new Date().toISOString(),
-      };
-      const existingVersions = state.documentVersions[docId] || [];
-      const updatedVersions = [newVersion, ...existingVersions].slice(0, 10);
-      return {
-        documentVersions: {
-          ...state.documentVersions,
-          [docId]: updatedVersions,
-        },
-      };
-    }),
-  restoreDocumentVersion: (docId, versionId) =>
-    set((state) => {
-      const versions = state.documentVersions[docId] || [];
-      const version = versions.find((v) => v.id === versionId);
-      if (!version) return state;
-      
-      const activeProject = state.projects.find((p) => p.id === state.activeProjectId);
-      if (!activeProject) return state;
-      
-      return {
-        projects: state.projects.map((p) =>
-          p.id === state.activeProjectId
-            ? {
-                ...p,
-                documents: p.documents.map((d) =>
-                  d.id === docId
-                    ? { ...d, content: version.content, title: version.title, updatedAt: new Date().toISOString() }
-                    : d
-                ),
-                updatedAt: new Date().toISOString(),
-              }
-            : p
-        ),
-      };
-    }),
-  getDocumentVersions: (docId) => {
-    const state = get();
-    return state.documentVersions[docId] || [];
-  },
-
-  // Focus Mode / Zen Mode
-  focusMode: false,
-  focusedColumnId: null,
-  setFocusedColumn: (columnId) => set({ focusedColumnId: columnId }),
-  toggleFocusMode: () => set((state) => ({ focusMode: !state.focusMode })),
-  zenMode: false,
-  setZenMode: (enabled) => set({ zenMode: enabled }),
-
   // Command Palette
   commandPaletteOpen: false,
   setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
   toggleCommandPalette: () => set((state) => ({ commandPaletteOpen: !state.commandPaletteOpen })),
-}));
+
+  // Add Project Dialog
+  addProjectDialogOpen: false,
+  setAddProjectDialogOpen: (open) => set({ addProjectDialogOpen: open }),
+    }),
+    {
+      name: "kyro-ui-state",
+      storage: createJSONStorage(() => sessionStorage),
+      partialize: (state) => ({
+        activeProjectId: state.activeProjectId,
+        sidebarCollapsed: state.sidebarCollapsed,
+      }),
+    }
+  )
+);
